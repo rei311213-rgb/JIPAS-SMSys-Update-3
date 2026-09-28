@@ -1,0 +1,358 @@
+{
+  "collections": {
+    "students": {
+      "fields": {
+        "id": "string",
+        "fullName": "string",
+        "admissionNo": "string",
+        "className": "string",
+        "gender": "string",
+        "dob": "string",
+        "parentName": "string",
+        "parentPhone": "string",
+        "academicYear": "string",
+        "term": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "secretary": ["create", "read", "update"],
+        "clerk": ["create", "read", "update"],
+        "teacher": ["read"],
+        "student": ["read"]
+      }
+    },
+    "teachers": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "staffId": "string",
+        "phone": "string",
+        "role": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "sub_admin": ["read"],
+        "clerk": ["read"]
+      }
+    },
+    "users": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "role": "string",
+        "active": "boolean"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"]
+      }
+    },
+    "academicYears": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "status": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["read"]
+      }
+    },
+    "terms": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "academicYear": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["read"]
+      }
+    },
+    "classes": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "department": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["read"]
+      }
+    },
+    "reports": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "academicYear": "string",
+        "term": "string",
+        "totalScore": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "teacher": ["create", "read", "update"],
+        "student": ["read"]
+      }
+    },
+    "bills": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "payable": "number",
+        "paid": "number",
+        "balance": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "accountant": ["create", "read", "update"],
+        "secretary": ["read"],
+        "student": ["read"]
+      }
+    },
+    "transactions": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "amount": "number",
+        "date": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "accountant": ["create", "read", "update"],
+        "secretary": ["create", "read"],
+        "student": ["read"]
+      }
+    },
+    "securityAuditLogs": {
+      "fields": {
+        "id": "string",
+        "actionType": "string",
+        "performedBy": "string",
+        "timestamp": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"]
+      }
+    },
+    "expenses": {
+      "fields": {
+        "id": "string",
+        "amount": "number",
+        "description": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "accountant": ["create", "read", "update"]
+      }
+    },
+    "bankDeposits": {
+      "fields": {
+        "id": "string",
+        "amount": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "accountant": ["create", "read", "update"]
+      }
+    },
+    "feedback": {
+      "fields": {
+        "id": "string",
+        "message": "string",
+        "type": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["create"]
+      }
+    },
+    "studentAttendance": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "date": "string",
+        "status": "string",
+        "className": "string",
+        "markedBy": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "teacher": ["create", "read", "update"]
+      }
+    },
+    "teacherAttendance": {
+      "fields": {
+        "id": "string",
+        "staffId": "string",
+        "date": "string",
+        "checkIn": "string",
+        "checkOut": "string",
+        "status": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "teacher": ["create", "read", "update"]
+      }
+    },
+    "communications": {
+      "fields": {
+        "id": "string",
+        "title": "string",
+        "message": "string",
+        "type": "string",
+        "target": "string",
+        "status": "string",
+        "sentBy": "string",
+        "sentAt": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "secretary": ["create", "read"]
+      }
+    },
+    "libraryBooks": {
+      "fields": {
+        "id": "string",
+        "title": "string",
+        "author": "string",
+        "isbn": "string",
+        "category": "string",
+        "status": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "clerk": ["create", "read", "update"]
+      }
+    },
+    "libraryLoans": {
+      "fields": {
+        "id": "string",
+        "bookId": "string",
+        "studentId": "string",
+        "borrowDate": "string",
+        "dueDate": "string",
+        "returnDate": "string",
+        "status": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "clerk": ["create", "read", "update"]
+      }
+    },
+    "schoolAssets": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "condition": "string",
+        "location": "string",
+        "assignedTo": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"]
+      }
+    },
+    "disciplineLogs": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "type": "string",
+        "description": "string",
+        "points": "number",
+        "date": "string",
+        "recordedBy": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "teacher": ["create", "read"]
+      }
+    },
+    "refunds": {
+      "fields": {
+        "id": "string",
+        "refundVoucherNo": "string",
+        "studentId": "string",
+        "studentName": "string",
+        "admissionNo": "string",
+        "className": "string",
+        "amount": "number",
+        "date": "string",
+        "refundMethod": "string",
+        "reason": "string",
+        "approvedBy": "string",
+        "status": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "accountant": ["create", "read", "update"]
+      }
+    },
+    "studentTransfers": {
+      "fields": {
+        "id": "string",
+        "studentId": "string",
+        "studentName": "string",
+        "admissionNo": "string",
+        "transferType": "string",
+        "fromClass": "string",
+        "toClass": "string",
+        "date": "string",
+        "reason": "string",
+        "clearanceStatus": "string"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "secretary": ["create", "read", "update"]
+      }
+    },
+    "scoreApprovals": {
+      "fields": {
+        "id": "string",
+        "className": "string",
+        "subjectName": "string",
+        "academicYear": "string",
+        "term": "string",
+        "teacherId": "string",
+        "teacherName": "string",
+        "status": "string",
+        "scoresCount": "number",
+        "averageScore": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "headmaster": ["create", "read", "update"],
+        "teacher": ["create", "read"]
+      }
+    },
+    "transportRoutes": {
+      "fields": {
+        "id": "string",
+        "routeName": "string",
+        "driverName": "string",
+        "busNumber": "string",
+        "capacity": "number",
+        "farePerTerm": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["read"]
+      }
+    },
+    "boardingRooms": {
+      "fields": {
+        "id": "string",
+        "hallName": "string",
+        "roomNumber": "string",
+        "gender": "string",
+        "houseMaster": "string",
+        "capacity": "number",
+        "occupied": "number"
+      },
+      "roles": {
+        "admin": ["create", "read", "update", "delete"],
+        "public": ["read"]
+      }
+    }
+  }
+}

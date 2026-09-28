@@ -1,0 +1,8 @@
+{
+  "name": "JIPAS - Joy International Primary/Junior/Senior High & Adult School Portal System",
+  "description": "A production-grade, multi-role school management system featuring secure academic portals, real-time financial auditing, institutional payroll management, and offline-first mobile resilience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

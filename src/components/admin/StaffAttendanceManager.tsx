@@ -1,0 +1,1179 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Clock, ShieldCheck, AlertCircle, Calendar, RefreshCw, Sparkles, Plus, 
+  Trash2, Download, Printer, Search, Filter, Edit, CheckCircle2, UserCheck, 
+  Play, Power, Lock, AlertTriangle, QrCode, FileText, BarChart3, Settings, 
+  Save, ArrowLeft, ArrowRight, User
+} from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { EntranceQrService, EntranceQrCode } from '../../services/supabase/entranceQrService';
+import { StaffAttendanceService, StaffAttendanceRecord } from '../../services/supabase/staffAttendanceService';
+import { StaffAttendanceReportService, WorkingHoursConfig } from '../../services/supabase/staffAttendanceReportService';
+import { StaffAttendanceExportService } from '../../services/supabase/staffAttendanceExportService';
+import EntranceQRPrintPage from './EntranceQRPrintPage';
+import StaffAttendanceReport from './StaffAttendanceReport';
+
+export default function StaffAttendanceManager() {
+  // Resolve profile from optional Supabase context or fallback to localStorage safely
+  let profile: any = null;
+
+  if (typeof localStorage !== 'undefined') {
+    const cachedUser = localStorage.getItem('jipas_current_user');
+    if (cachedUser) {
+      try {
+        profile = JSON.parse(cachedUser);
+      } catch {}
+    }
+  }
+
+  if (!profile) {
+    console.log('[StaffAttendanceManager] Relying strictly on local storage profile data.');
+  }
+  
+  // Dashboard tab switching
+  const [activeSubTab, setActiveSubTab] = useState<'today_attendance' | 'monthly_reports' | 'hours_configuration' | 'qr_management'>('today_attendance');
+  
+  // Campuses state
+  const [campuses, setCampuses] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCampusId, setSelectedCampusId] = useState<string>('');
+
+  // QR Generator Form state
+  const [newQrName, setNewQrName] = useState<string>('');
+  const [qrCodeList, setQrCodeList] = useState<EntranceQrCode[]>([]);
+  const [activePrintPayload, setActivePrintPayload] = useState<{ qrCode: EntranceQrCode; rawToken: string; campusName: string } | null>(null);
+
+  // Attendance Records State
+  const [attendanceRecords, setAttendanceRecords] = useState<StaffAttendanceRecord[]>([]);
+  const [selectedFilterDate, setSelectedFilterDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedFilterStatus, setSelectedFilterStatus] = useState<string>('');
+  const [searchText, setSearchText] = useState<string>('');
+  const [selectedSortField, setSelectedSortField] = useState<'name' | 'time'>('name');
+
+  // Working Hours settings state
+  const [expectedSignIn, setExpectedSignIn] = useState<string>('08:00');
+  const [expectedSignOut, setExpectedSignOut] = useState<string>('17:00');
+  const [lateThresholdMins, setLateThresholdMins] = useState<number>(30);
+  const [earlyDepartureThresholdMins, setEarlyDepartureThresholdMins] = useState<number>(30);
+  const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+
+  // Daily Dashboard statistics State
+  const [dashboardStats, setDashboardStats] = useState<{
+    totalStaff: number;
+    expectedStaff: number;
+    signedIn: number;
+    signedOut: number;
+    onCampus: number;
+    notArrived: number;
+    late: number;
+    earlyDeparture: number;
+    absent: number;
+    completionPercentage: number;
+  }>({
+    totalStaff: 0,
+    expectedStaff: 0,
+    signedIn: 0,
+    signedOut: 0,
+    onCampus: 0,
+    notArrived: 0,
+    late: 0,
+    earlyDeparture: 0,
+    absent: 0,
+    completionPercentage: 0
+  });
+  
+  // Individual profile review detail pane
+  const [viewingStaffDetailId, setViewingStaffDetailId] = useState<string | null>(null);
+  const [staffHistoryRecords, setStaffHistoryRecords] = useState<StaffAttendanceRecord[]>([]);
+  const [staffAuditHistory, setStaffAuditHistory] = useState<any[]>([]);
+
+  // Correction modal state
+  const [editingRecord, setEditingRecord] = useState<StaffAttendanceRecord | null>(null);
+  const [correctionStatus, setCorrectionStatus] = useState<'Present' | 'Late' | 'Absent' | 'Excused'>('Present');
+  const [correctionSignIn, setCorrectionSignIn] = useState<string>('');
+  const [correctionSignOut, setCorrectionSignOut] = useState<string>('');
+  const [correctionReason, setCorrectionReason] = useState<string>('');
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
+
+  // Review Dispute State dialog
+  const [disputingRecord, setDisputingRecord] = useState<StaffAttendanceRecord | null>(null);
+  const [targetDisputeState, setTargetDisputeState] = useState<'REVIEW_REQUIRED' | 'REVIEWED' | 'CORRECTED' | 'DISMISSED'>('REVIEW_REQUIRED');
+  const [disputeReason, setDisputeReason] = useState<string>('');
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCampuses();
+  }, []);
+
+  useEffect(() => {
+    if (campuses.length > 0) {
+      fetchQrCodes();
+      fetchAttendance();
+      fetchDashboardStats();
+      fetchWorkingHoursSettings();
+    }
+  }, [campuses, selectedCampusId, selectedFilterDate, selectedFilterStatus]);
+
+  useEffect(() => {
+    if (viewingStaffDetailId) {
+      fetchStaffIndividualHistory(viewingStaffDetailId);
+    }
+  }, [viewingStaffDetailId]);
+
+  const fetchCampuses = async () => {
+    try {
+      const { data, error } = await supabase.from('campuses').select('id, name');
+      if (!error && data) {
+        setCampuses(data);
+        if (data.length > 0) {
+          const localActive = localStorage.getItem('jipas_active_campus');
+          const found = data.find(c => c.id === localActive || c.name === localActive);
+          setSelectedCampusId(found ? found.id : data[0].id);
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching campuses:', err);
+    }
+  };
+
+  const fetchWorkingHoursSettings = async () => {
+    if (!selectedCampusId) return;
+    try {
+      const config = await StaffAttendanceReportService.getWorkingHours(selectedCampusId);
+      setExpectedSignIn(config.expectedSignIn);
+      setExpectedSignOut(config.expectedSignOut);
+      setLateThresholdMins(config.lateThresholdMins);
+      setEarlyDepartureThresholdMins(config.earlyDepartureThresholdMins);
+      setWorkingDays(config.workingDays);
+    } catch (err) {
+      console.warn('Error retrieving hours config:', err);
+    }
+  };
+
+  const handleSaveWorkingHours = async () => {
+    if (!selectedCampusId) return;
+    setIsLoading(true);
+    try {
+      await StaffAttendanceReportService.saveWorkingHours(
+        selectedCampusId,
+        {
+          expectedSignIn,
+          expectedSignOut,
+          lateThresholdMins,
+          earlyDepartureThresholdMins,
+          workingDays
+        },
+        profile?.id || ''
+      );
+      setActionSuccessMsg('Working hours parameters updated for this campus.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+    } catch (err: any) {
+      alert('Error updating schedule config: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    if (!selectedCampusId) return;
+    try {
+      const stats = await StaffAttendanceReportService.getDailyDashboardStats(selectedFilterDate, selectedCampusId);
+      setDashboardStats(stats);
+    } catch (err) {
+      console.warn('Error loading daily stats:', err);
+    }
+  };
+
+  const fetchQrCodes = async () => {
+    setIsLoading(true);
+    try {
+      const codes = await EntranceQrService.listQrCodes(selectedCampusId || undefined);
+      setQrCodeList(codes);
+    } catch (err) {
+      console.warn('Error fetching QR codes:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAttendance = async () => {
+    setIsLoading(true);
+    try {
+      const records = await StaffAttendanceService.listAttendance({
+        campusId: selectedCampusId || undefined,
+        date: selectedFilterDate || undefined,
+        status: selectedFilterStatus || undefined
+      });
+      setAttendanceRecords(records);
+    } catch (err) {
+      console.warn('Error fetching attendance:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStaffIndividualHistory = async (staffId: string) => {
+    try {
+      // 1. Fetch total attendance log history
+      const history = await StaffAttendanceService.listAttendance({
+        campusId: selectedCampusId || undefined,
+        staffId
+      });
+      setStaffHistoryRecords(history);
+
+      // 2. Fetch correction audit logs
+      const { data: audit, error } = await supabase
+        .from('staff_attendance_corrections_audit')
+        .select(`
+          *,
+          admin:profiles!administrator_id (
+            full_name
+          )
+        `)
+        .eq('staff_id', staffId)
+        .order('timestamp', { ascending: false });
+
+      if (!error && audit) {
+        setStaffAuditHistory(audit);
+      }
+    } catch (err) {
+      console.warn('Error loading history profiles details:', err);
+    }
+  };
+
+  const handleCreateQrCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newQrName.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const { rawToken, qrCode } = await EntranceQrService.generateQrCode(
+        newQrName.trim(),
+        selectedCampusId,
+        profile?.id || ''
+      );
+
+      setNewQrName('');
+      setActionSuccessMsg('Secure entrance QR code generated successfully!');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      
+      const campusObj = campuses.find(c => c.id === selectedCampusId);
+      setActivePrintPayload({
+        qrCode,
+        rawToken,
+        campusName: campusObj ? campusObj.name : 'Main Campus'
+      });
+
+      fetchQrCodes();
+    } catch (err: any) {
+      alert('Failed to generate QR: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRevokeQrCode = async (id: string) => {
+    if (!window.confirm('Are you absolutely sure you want to deactivate and revoke this entrance QR code? It will stop validating scanned arrivals.')) return;
+
+    setIsLoading(true);
+    try {
+      await EntranceQrService.revokeQrCode(id);
+      setActionSuccessMsg('Entrance QR code has been permanently deactivated.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchQrCodes();
+    } catch (err: any) {
+      alert('Failed to revoke QR code: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenCorrection = (record: StaffAttendanceRecord) => {
+    setEditingRecord(record);
+    setCorrectionStatus(record.status);
+    setCorrectionSignIn(record.sign_in_at ? new Date(record.sign_in_at).toISOString().slice(0, 16) : '');
+    setCorrectionSignOut(record.sign_out_at ? new Date(record.sign_out_at).toISOString().slice(0, 16) : '');
+    setCorrectionReason('');
+    setCorrectionError(null);
+  };
+
+  const handleSaveCorrection = async () => {
+    if (!editingRecord) return;
+    if (!correctionReason.trim()) {
+      setCorrectionError('A valid administrative reason is mandatory for auditing historical changes.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await StaffAttendanceService.adminCorrectAttendance(
+        editingRecord.id,
+        {
+          status: correctionStatus,
+          sign_in_at: correctionSignIn ? new Date(correctionSignIn).toISOString() : null,
+          sign_out_at: correctionSignOut ? new Date(correctionSignOut).toISOString() : null
+        },
+        profile?.id || '',
+        correctionReason.trim()
+      );
+
+      setEditingRecord(null);
+      setActionSuccessMsg('Administrative attendance correction and audit log written successfully.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchAttendance();
+      fetchDashboardStats();
+    } catch (err: any) {
+      setCorrectionError(err.message || 'Correction failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenDispute = (record: StaffAttendanceRecord) => {
+    setDisputingRecord(record);
+    setTargetDisputeState(record.review_status || 'REVIEW_REQUIRED');
+    setDisputeReason('');
+    setDisputeError(null);
+  };
+
+  const handleSaveDisputeState = async () => {
+    if (!disputingRecord) return;
+    if (!disputeReason.trim()) {
+      setDisputeError('An explicit reason statement is mandatory for auditing state transitions.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await StaffAttendanceReportService.updateReviewState(
+        disputingRecord.id,
+        targetDisputeState,
+        profile?.id || '',
+        selectedCampusId,
+        disputeReason.trim()
+      );
+
+      setDisputingRecord(null);
+      setActionSuccessMsg(`Dispute state successfully updated to [${targetDisputeState}].`);
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchAttendance();
+    } catch (err: any) {
+      setDisputeError(err.message || 'Transition update failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    if (attendanceRecords.length === 0) return;
+    try {
+      const campusObj = campuses.find(c => c.id === selectedCampusId);
+      await StaffAttendanceExportService.exportToCSV(
+        attendanceRecords,
+        selectedCampusId,
+        profile?.id || '',
+        campusObj ? campusObj.name : 'Main Campus'
+      );
+    } catch (err: any) {
+      alert('Export failed: ' + err.message);
+    }
+  };
+
+  const toggleWorkingDayCheckbox = (dayNum: number) => {
+    if (workingDays.includes(dayNum)) {
+      setWorkingDays(workingDays.filter(d => d !== dayNum));
+    } else {
+      setWorkingDays([...workingDays, dayNum].sort());
+    }
+  };
+
+  // Search filter matches and sorting
+  const filteredRecords = attendanceRecords.filter(rec => {
+    if (!searchText.trim()) return true;
+    const term = searchText.toLowerCase();
+    return (
+      (rec.staff_name || '').toLowerCase().includes(term) ||
+      (rec.staff_number || '').toLowerCase().includes(term) ||
+      (rec.department || '').toLowerCase().includes(term)
+    );
+  }).sort((a, b) => {
+    if (selectedSortField === 'time') {
+      const timeA = a.sign_in_at ? new Date(a.sign_in_at).getTime() : 0;
+      const timeB = b.sign_in_at ? new Date(b.sign_in_at).getTime() : 0;
+      return timeB - timeA;
+    } else {
+      return (a.staff_name || '').localeCompare(b.staff_name || '');
+    }
+  });
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Action success alert banner */}
+      {actionSuccessMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center gap-2 animate-in fade-in shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span className="font-bold text-xs">{actionSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Header bar and view tabs */}
+      <div className="bg-slate-900 rounded-3xl p-6 text-white space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-extrabold uppercase border border-indigo-500/30">
+                Staff Operations Hub
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold border border-slate-700 uppercase flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-400" /> PostgreSQL RLS Active
+              </span>
+            </div>
+            <h1 className="text-xl font-black mt-2 tracking-tight flex items-center gap-2">
+              <UserCheck className="w-6 h-6 text-indigo-400" />
+              <span>JIPAS Staff Roster Manager</span>
+            </h1>
+            <p className="text-xs text-slate-400 max-w-lg mt-0.5">
+              Securely track daily check-ins, configure campus thresholds, manage physical entrance posters, and export audited summaries.
+            </p>
+          </div>
+
+          {/* Campus Switcher */}
+          <div className="w-full sm:w-auto">
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 tracking-wider">Active Campus Boundary:</label>
+            <select
+              value={selectedCampusId}
+              onChange={(e) => setSelectedCampusId(e.target.value)}
+              className="px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {campuses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* View Tabs */}
+        <div className="flex flex-wrap gap-2 border-t border-slate-800/80 pt-4">
+          <button
+            onClick={() => { setActiveSubTab('today_attendance'); setViewingStaffDetailId(null); }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeSubTab === 'today_attendance' && !viewingStaffDetailId
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40' 
+                : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Daily Attendance Log</span>
+          </button>
+          <button
+            onClick={() => { setActiveSubTab('monthly_reports'); setViewingStaffDetailId(null); }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeSubTab === 'monthly_reports' 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40' 
+                : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Monthly Reports Summary</span>
+          </button>
+          <button
+            onClick={() => { setActiveSubTab('hours_configuration'); setViewingStaffDetailId(null); }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeSubTab === 'hours_configuration' 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40' 
+                : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Schedule Config</span>
+          </button>
+          <button
+            onClick={() => { setActiveSubTab('qr_management'); setViewingStaffDetailId(null); }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeSubTab === 'qr_management' 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40' 
+                : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            <span>QR Entrance Gates</span>
+          </button>
+        </div>
+      </div>
+
+      {/* INDIVIDUAL STAFF HISTORY DETAIL OVERLAY PANE */}
+      {viewingStaffDetailId && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <button
+              onClick={() => setViewingStaffDetailId(null)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to daily log list
+            </button>
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Audited Staff History Card</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-xs font-bold space-y-3">
+                <h4 className="text-sm font-black text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-indigo-600" />
+                  <span>Identity Card Details</span>
+                </h4>
+                <div className="space-y-1">
+                  <span className="text-[9px] uppercase text-slate-400 block font-black">Staff Member:</span>
+                  <span className="text-slate-900 text-sm font-black">{staffHistoryRecords[0]?.staff_name || 'Staff Profile'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] uppercase text-slate-400 block font-black">Staff ID No:</span>
+                  <span className="text-slate-700 font-mono text-sm">{staffHistoryRecords[0]?.staff_number || 'ST-000'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] uppercase text-slate-400 block font-black">Role Segment:</span>
+                  <span className="text-slate-700 font-bold uppercase">{staffHistoryRecords[0]?.department || 'Staff'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] uppercase text-slate-400 block font-black">Assigned Campus:</span>
+                  <span className="text-slate-700">{staffHistoryRecords[0]?.campus_name || 'Main Campus'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-4">
+              <h4 className="text-sm font-black text-slate-900 border-b border-slate-200 pb-2">Roster Log History</h4>
+              <div className="overflow-x-auto border border-slate-100 rounded-xl max-h-64 overflow-y-auto">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 font-extrabold text-[9px] uppercase border-b border-slate-150">
+                      <th className="p-3">Roster Date</th>
+                      <th className="p-3">Sign In</th>
+                      <th className="p-3">Sign Out</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Source</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                    {staffHistoryRecords.map(h => {
+                      const formattedIn = h.sign_in_at ? new Date(h.sign_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+                      const formattedOut = h.sign_out_at ? new Date(h.sign_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+                      return (
+                        <tr key={h.id}>
+                          <td className="p-3 font-bold text-slate-900">{h.attendance_date}</td>
+                          <td className="p-3 font-mono text-emerald-600">{formattedIn}</td>
+                          <td className="p-3 font-mono text-slate-500">{formattedOut}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-slate-100">{h.status}</span>
+                          </td>
+                          <td className="p-3 uppercase text-[9px] font-bold text-slate-500">{h.source}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 className="text-sm font-black text-slate-900 border-b border-slate-200 pb-2 pt-2">Audit Correction History</h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {staffAuditHistory.length > 0 ? (
+                  staffAuditHistory.map((au, i) => (
+                    <div key={au.id || i} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] font-medium leading-relaxed text-slate-600 space-y-1">
+                      <div className="flex justify-between font-bold text-slate-800 text-[10px] uppercase">
+                        <span>Admin: {au.admin?.full_name || 'Administrator'}</span>
+                        <span className="text-slate-400">{new Date(au.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-slate-900 font-semibold"><strong className="text-slate-500">Reason:</strong> {au.reason}</p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-slate-150/50">
+                        <div><strong className="text-slate-400 uppercase text-[9px]">Original:</strong> {JSON.stringify(au.old_value)}</div>
+                        <div><strong className="text-slate-400 uppercase text-[9px]">Corrected To:</strong> {JSON.stringify(au.new_value)}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 font-medium text-center py-4">No historical corrections applied or logged for this employee profile.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TODAY'S ATTENDANCE TAB */}
+      {activeSubTab === 'today_attendance' && !viewingStaffDetailId && (
+        <div className="space-y-6">
+          
+          {/* Enhanced Campus Dashboard Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-1 relative overflow-hidden">
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Expected Staff</span>
+              <span className="text-2xl font-black text-slate-900 block">{dashboardStats.expectedStaff}</span>
+              <div className="absolute right-3 bottom-3 p-1.5 bg-slate-50 text-slate-400 rounded-lg"><UserCheck className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-1 relative overflow-hidden">
+              <span className="text-[10px] text-emerald-500 font-extrabold uppercase tracking-wider block">Signed In</span>
+              <span className="text-2xl font-black text-emerald-600 block">{dashboardStats.signedIn}</span>
+              <div className="absolute right-3 bottom-3 p-1.5 bg-emerald-50 text-emerald-500 rounded-lg"><Play className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-1 relative overflow-hidden">
+              <span className="text-[10px] text-blue-500 font-extrabold uppercase tracking-wider block">Signed Out</span>
+              <span className="text-2xl font-black text-blue-600 block">{dashboardStats.signedOut}</span>
+              <div className="absolute right-3 bottom-3 p-1.5 bg-blue-50 text-blue-500 rounded-lg"><Power className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-1 relative overflow-hidden">
+              <span className="text-[10px] text-amber-500 font-extrabold uppercase tracking-wider block">Late Arrivals</span>
+              <span className="text-2xl font-black text-amber-600 block">{dashboardStats.late}</span>
+              <div className="absolute right-3 bottom-3 p-1.5 bg-amber-50 text-amber-500 rounded-lg"><AlertTriangle className="w-5 h-5" /></div>
+            </div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-1 relative overflow-hidden col-span-2 md:col-span-1">
+              <span className="text-[10px] text-indigo-500 font-extrabold uppercase tracking-wider block">Completion rate</span>
+              <span className="text-2xl font-black text-indigo-600 block">{dashboardStats.completionPercentage}%</span>
+              <div className="absolute right-3 bottom-3 p-1.5 bg-indigo-50 text-indigo-500 rounded-lg"><CheckCircle2 className="w-5 h-5" /></div>
+            </div>
+          </div>
+
+          {/* Filtering Controls */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-4 justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Roster Date:</label>
+                <input
+                  type="date"
+                  value={selectedFilterDate}
+                  onChange={(e) => setSelectedFilterDate(e.target.value)}
+                  className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Status Filter:</label>
+                <select
+                  value={selectedFilterStatus}
+                  onChange={(e) => setSelectedFilterStatus(e.target.value)}
+                  className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Present">Present</option>
+                  <option value="Late">Late</option>
+                  <option value="Absent">Absent</option>
+                  <option value="Excused">Excused</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Sort Field:</label>
+                <select
+                  value={selectedSortField}
+                  onChange={(e) => setSelectedSortField(e.target.value as any)}
+                  className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="name">Staff Name</option>
+                  <option value="time">Sign In Timestamp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search staff, ID, department..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                onClick={handleExportCSV}
+                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 flex items-center gap-1 font-bold text-xs cursor-pointer"
+                title="Export active roster list to CSV"
+              >
+                <Download className="w-4 h-4 text-slate-600" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Roster Table */}
+          <div className="overflow-x-auto border border-slate-200 rounded-3xl bg-white shadow-sm">
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-slate-200">
+                  <th className="p-3.5">Staff Member</th>
+                  <th className="p-3.5">Staff ID</th>
+                  <th className="p-3.5">Segment Role</th>
+                  <th className="p-3.5">Campus</th>
+                  <th className="p-3.5">Date</th>
+                  <th className="p-3.5">Sign In</th>
+                  <th className="p-3.5">Sign Out</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5">Dispute / Review</th>
+                  <th className="p-3.5 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map(rec => {
+                    const formattedIn = rec.sign_in_at ? new Date(rec.sign_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+                    const formattedOut = rec.sign_out_at ? new Date(rec.sign_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+
+                    return (
+                      <tr key={rec.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-3.5 font-bold text-slate-900">
+                          <button
+                            onClick={() => setViewingStaffDetailId(rec.staff_id)}
+                            className="text-left font-black hover:text-indigo-600 cursor-pointer"
+                          >
+                            {rec.staff_name}
+                          </button>
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-600 font-bold">{rec.staff_number}</td>
+                        <td className="p-3.5 text-slate-600">{rec.department}</td>
+                        <td className="p-3.5 text-slate-600">{rec.campus_name}</td>
+                        <td className="p-3.5 font-mono text-slate-500">{rec.attendance_date}</td>
+                        <td className="p-3.5 font-mono text-emerald-600 font-bold">{formattedIn}</td>
+                        <td className="p-3.5 font-mono text-slate-500">{formattedOut}</td>
+                        <td className="p-3.5">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            rec.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                            rec.status === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            rec.status === 'Absent' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                            'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                          }`}>
+                            {rec.status}
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <button
+                            onClick={() => handleOpenDispute(rec)}
+                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border text-center cursor-pointer transition-all ${
+                              rec.review_status === 'REVIEW_REQUIRED' ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 animate-pulse' :
+                              rec.review_status === 'CORRECTED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                              rec.review_status === 'DISMISSED' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                              'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                            title="Toggle dispute / review resolution"
+                          >
+                            {rec.review_status || 'REVIEWED'}
+                          </button>
+                        </td>
+                        <td className="p-3.5 text-center flex justify-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenCorrection(rec)}
+                            className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors"
+                            title="Apply audited correction"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="p-10 text-center text-slate-400 font-medium">
+                      No staff attendance records matched your current query criteria.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MONTHLY SUMMARY TAB */}
+      {activeSubTab === 'monthly_reports' && (
+        <StaffAttendanceReport />
+      )}
+
+      {/* CONFIGURATION TAB */}
+      {activeSubTab === 'hours_configuration' && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6 max-w-xl mx-auto shadow-sm">
+          <div className="border-b border-slate-100 pb-3 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-indigo-600" />
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900">Working Hours & Scheduling parameters</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Configure campus gates expected entry times.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-xs font-bold text-slate-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label>Expected Sign-In Time:</label>
+                <input
+                  type="time"
+                  value={expectedSignIn}
+                  onChange={(e) => setExpectedSignIn(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+              <div className="space-y-1">
+                <label>Expected Sign-Out Time:</label>
+                <input
+                  type="time"
+                  value={expectedSignOut}
+                  onChange={(e) => setExpectedSignOut(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label>Late threshold (Mins):</label>
+                <input
+                  type="number"
+                  value={lateThresholdMins}
+                  onChange={(e) => setLateThresholdMins(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+              <div className="space-y-1">
+                <label>Early Departure threshold (Mins):</label>
+                <input
+                  type="number"
+                  value={earlyDepartureThresholdMins}
+                  onChange={(e) => setEarlyDepartureThresholdMins(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold">Configured Working Days:</label>
+              <div className="grid grid-cols-4 gap-2">
+                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((dayName, idx) => (
+                  <label key={idx} className="flex items-center gap-1.5 p-2 bg-slate-50 border border-slate-150 rounded-xl text-[10px] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={workingDays.includes(idx)}
+                      onChange={() => toggleWorkingDayCheckbox(idx)}
+                      className="rounded text-indigo-600 focus:ring-0"
+                    />
+                    <span>{dayName}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveWorkingHours}
+              disabled={isLoading}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer pt-3"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save & Audit parameters</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ENTRANCE QR MANAGEMENT TAB */}
+      {activeSubTab === 'qr_management' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left panel: Generate code */}
+          <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm">
+            <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-3">
+              <Plus className="w-4 h-4 text-indigo-600" />
+              <span>Generate New Entrance QR</span>
+            </h3>
+
+            <form onSubmit={handleCreateQrCode} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Readable Gate/Entrance Name:</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Main Entrance Gate 1"
+                  value={newQrName}
+                  onChange={(e) => setNewQrName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] text-indigo-900 leading-relaxed font-bold">
+                💡 JIPAS entrance QR codes carry <strong>no client secrets, usernames, or credentials</strong>. They contain only unique, random secure public identifiers validated strictly by the PostgreSQL layer.
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-200 animate-pulse" />
+                <span>Generate secure Token</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Right panel: Active codes table */}
+          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm">
+            <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-3">
+              <QrCode className="w-4 h-4 text-indigo-600" />
+              <span>Active Gate QR Registries</span>
+            </h3>
+
+            <div className="overflow-x-auto border border-slate-100 rounded-xl">
+              <table className="w-full text-left text-xs whitespace-nowrap">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-slate-200">
+                    <th className="p-3">Gate/Entrance Name</th>
+                    <th className="p-3">Creation Date</th>
+                    <th className="p-3">Last-Scanned At</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {qrCodeList.length > 0 ? (
+                    qrCodeList.map(qr => (
+                      <tr key={qr.id} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-bold text-slate-900">{qr.name}</td>
+                        <td className="p-3 font-mono text-slate-500">
+                          {new Date(qr.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="p-3 font-mono text-slate-500">
+                          {qr.last_used_at ? new Date(qr.last_used_at).toLocaleTimeString() : 'Never'}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                            qr.is_active 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                              : 'bg-rose-50 text-rose-700 border-rose-100'
+                          }`}>
+                            {qr.is_active ? 'Active' : 'Deactivated / Revoked'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center flex justify-center gap-2">
+                          {qr.is_active && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  const campusObj = campuses.find(c => c.id === selectedCampusId);
+                                  const rawToken = `JIPAS_ENTRANCE_${selectedCampusId}_demo_${qr.id}`;
+                                  setActivePrintPayload({
+                                    qrCode: qr,
+                                    rawToken,
+                                    campusName: campusObj ? campusObj.name : 'Main Campus'
+                                  });
+                                }}
+                                className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 flex items-center gap-1 font-bold text-[10px] cursor-pointer"
+                                title="Print entrance A4 poster"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-slate-600" /> Print Poster
+                              </button>
+                              <button
+                                onClick={() => handleRevokeQrCode(qr.id)}
+                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                                title="Deactivate and revoke QR gate token"
+                              >
+                                <Power className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400 font-semibold">
+                        No active entrance QR codes configured for this campus.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RECONCILIATION CORRECTION MODAL */}
+      {editingRecord && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 space-y-4 shadow-2xl my-auto animate-in fade-in">
+            <div className="flex items-center gap-2 text-indigo-600 border-b border-slate-100 pb-3">
+              <Edit className="w-5 h-5 shrink-0" />
+              <h3 className="font-extrabold text-base text-slate-900">Audited Attendance Correction</h3>
+            </div>
+
+            {correctionError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-bold rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{correctionError}</span>
+              </div>
+            )}
+
+            <div className="space-y-3.5 text-xs text-slate-700">
+              <div className="grid grid-cols-2 gap-2 text-slate-500 font-bold bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div>
+                  <span className="text-[10px] uppercase text-slate-400 block font-black">Staff Name:</span>
+                  <span className="text-slate-900 font-black">{editingRecord.staff_name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-slate-400 block font-black">Roster Date:</span>
+                  <span className="text-slate-900 font-mono">{editingRecord.attendance_date}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Attendance Status:</label>
+                <select
+                  value={correctionStatus}
+                  onChange={(e: any) => setCorrectionStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                >
+                  <option value="Present">Present</option>
+                  <option value="Late">Late</option>
+                  <option value="Absent">Absent</option>
+                  <option value="Excused">Excused</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Sign In Time:</label>
+                  <input
+                    type="datetime-local"
+                    value={correctionSignIn}
+                    onChange={(e) => setCorrectionSignIn(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Sign Out Time:</label>
+                  <input
+                    type="datetime-local"
+                    value={correctionSignOut}
+                    onChange={(e) => setCorrectionSignOut(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Administrative Correction Reason *</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="e.g. Staff member clock-in bypassed due to verified device camera network error."
+                  value={correctionReason}
+                  onChange={(e) => setCorrectionReason(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium leading-normal animate-in duration-200"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setEditingRecord(null)}
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCorrection}
+                disabled={isLoading}
+                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl cursor-pointer shadow-sm disabled:bg-indigo-400"
+              >
+                Apply & Audit Log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ATTENDANCE DISPUTE REVIEW DIALOG */}
+      {disputingRecord && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 space-y-4 shadow-2xl my-auto animate-in fade-in">
+            <div className="flex items-center gap-2 text-indigo-600 border-b border-slate-100 pb-3">
+              <ShieldCheck className="w-5 h-5 shrink-0" />
+              <h3 className="font-extrabold text-base text-slate-900">Attendance Dispute Resolution</h3>
+            </div>
+
+            {disputeError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-bold rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{disputeError}</span>
+              </div>
+            )}
+
+            <div className="space-y-3.5 text-xs text-slate-700">
+              <div className="grid grid-cols-2 gap-2 text-slate-500 font-bold bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div>
+                  <span className="text-[10px] uppercase text-slate-400 block font-black">Staff Name:</span>
+                  <span className="text-slate-900 font-black">{disputingRecord.staff_name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-slate-400 block font-black">Roster Date:</span>
+                  <span className="text-slate-900 font-mono">{disputingRecord.attendance_date}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Select Dispute State:</label>
+                <select
+                  value={targetDisputeState}
+                  onChange={(e: any) => setTargetDisputeState(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none"
+                >
+                  <option value="REVIEW_REQUIRED">REVIEW_REQUIRED</option>
+                  <option value="REVIEWED">REVIEWED</option>
+                  <option value="CORRECTED">CORRECTED</option>
+                  <option value="DISMISSED">DISMISSED</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Audit Statement Statement *</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="e.g. Employee provided physical log confirmation; cleared record status from Late to Present."
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium leading-normal"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setDisputingRecord(null)}
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDisputeState}
+                disabled={isLoading}
+                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl cursor-pointer shadow-sm disabled:bg-indigo-400"
+              >
+                Transition & Audit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT AREA PREVIEW */}
+      {activePrintPayload && (
+        <EntranceQRPrintPage
+          qrCode={activePrintPayload.qrCode}
+          rawToken={activePrintPayload.rawToken}
+          campusName={activePrintPayload.campusName}
+          onClose={() => setActivePrintPayload(null)}
+        />
+      )}
+
+    </div>
+  );
+}

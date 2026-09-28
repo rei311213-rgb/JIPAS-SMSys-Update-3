@@ -1,0 +1,12 @@
+{
+  "projectId": "jipas-school-management",
+  "appId": "1:250527049003:web:a0a04620194eb1a622116e",
+  "apiKey": "AIzaSyBIUVSkyEP4TLmYjXc1y3T2dgxYoZsOHSQ",
+  "authDomain": "jipas-school-management.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-jipas-b61eff80-5f1a-48b5-8f47-9b6fa98b798b",
+  "storageBucket": "jipas-school-management.firebasestorage.app",
+  "messagingSenderId": "250527049003",
+  "measurementId": "G-QYGRN79WY9",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

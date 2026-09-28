@@ -1,0 +1,425 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // =============================================================
+    // JIPAS AUTHORIZATION & SECURITY HELPERS
+    // =============================================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isSuperAdminUser() {
+      return isSignedIn() && (request.auth.token.email == 'rei311213@gmail.com' || (hasUserDoc() && getUserData().role in ['super_admin', 'admin']));
+    }
+
+    function isAdmin() {
+      return isSuperAdminUser();
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && hasUserDoc() && getUserData().role == role;
+    }
+
+    function hasAnyRole(roles) {
+      return isSignedIn() && hasUserDoc() && getUserData().role in roles;
+    }
+
+    function isAuthorizedStaff() {
+      return isAdmin() || hasAnyRole([
+        'teacher', 'accountant', 'sub_accountant', 'secretary', 'clerk',
+        'ceo', 'director', 'headmaster', 'headteacher', 'hod', 'hr'
+      ]);
+    }
+
+    function isStaff() {
+      return isAuthorizedStaff();
+    }
+
+    function isTeacher() {
+      return isAdmin() || hasAnyRole(['teacher', 'headmaster', 'headteacher', 'hod']);
+    }
+
+    function isAccountant() {
+      return isAdmin() || hasAnyRole(['accountant', 'sub_accountant', 'ceo', 'director']);
+    }
+
+    function isSecretary() {
+      return isAdmin() || hasAnyRole(['secretary', 'clerk', 'headmaster']);
+    }
+
+    function isHeadmaster() {
+      return isAdmin() || hasAnyRole(['headmaster', 'headteacher', 'ceo', 'director']);
+    }
+
+    function isStudent() {
+      return isSignedIn() && hasUserDoc() && getUserData().role == 'student';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function sameCampus(resource) {
+      return isAdmin() || (
+        isSignedIn() && (
+          !('campus' in resource.data) || 
+          resource.data.campus == null || 
+          resource.data.campus == '' || 
+          resource.data.campus == 'All' || 
+          (hasUserDoc() && resource.data.campus == getUserData().campus)
+        )
+      );
+    }
+
+    // =============================================================
+    // GLOBAL DEFAULT DENY CATCH-ALL
+    // =============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection test (Restricted to authenticated sessions)
+    match /test/connection {
+      allow read, write: if isSignedIn();
+    }
+
+    // =============================================================
+    // 1. PUBLIC SCHOOL METADATA (Strictly segregated public data)
+    // =============================================================
+    match /publicSchoolProfile/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =============================================================
+    // 2. ACADEMIC SETUP & CURRICULUM (Private institutional data)
+    // =============================================================
+    match /academicYears/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /terms/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /departments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /courses/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /classes/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /houses/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /subjects/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /classFeeTariffs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /classReportBroadcasts/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAuthorizedStaff();
+    }
+    match /examSchedules/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isHeadmaster();
+    }
+    match /scoreApprovals/{id} {
+      allow read: if isStaff();
+      allow write: if isHeadmaster() || isTeacher() || isAdmin();
+    }
+
+    // =============================================================
+    // 3. SYSTEM & ADMINISTRATIVE CONFIGURATION
+    // =============================================================
+    match /settings/{id} {
+      allow read: if isSignedIn() && isStaff();
+      allow write: if isAdmin();
+    }
+    match /systemSettings/{id} {
+      allow read: if isSignedIn() && isStaff();
+      allow write: if isAdmin();
+    }
+
+    // =============================================================
+    // 4. USER ACCOUNTS & ROLE ESCALATION PROTECTION
+    // =============================================================
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isStaff());
+      // Users can only create their own profile as 'student', or admin can create any role
+      allow create: if isSignedIn() && (
+        (request.auth.uid == userId && (!('role' in incoming()) || incoming().role == 'student' || request.auth.token.email == 'rei311213@gmail.com')) ||
+        isAdmin()
+      );
+      // Users can only update their own profile fields, preventing self-assigned roles / privilege escalation
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (isOwner(userId) && !incoming().diff(existing()).affectedKeys().hasAny(['role', 'isSuperAdmin', 'permissions', 'allowedModules', 'isAdmin', 'campus']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // =============================================================
+    // 5. STAFF LOGIN UPDATE REQUESTS (Controlled workflow)
+    // =============================================================
+    match /staffLoginUpdateRequests/{id} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.staffId == request.auth.uid));
+      // Must be authenticated staff member requesting their own change, with status 'Pending'
+      allow create: if isSignedIn() && 
+        (incoming().userId == request.auth.uid || incoming().staffId == request.auth.uid) &&
+        incoming().status == 'Pending' &&
+        !incoming().diff({}).affectedKeys().hasAny(['approvedRole', 'isAdmin', 'role']);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // =============================================================
+    // 6. STUDENTS & STATUTORY DOCUMENT VERIFICATION
+    // =============================================================
+    match /students/{studentId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        isOwner(studentId) || 
+        (isStudent() && hasUserDoc() && resource.data.admissionNo == getUserData().admissionNo)
+      );
+      allow create: if isAuthorizedStaff();
+      // Ordinary staff cannot tamper with verified documents without administrative privileges
+      allow update: if isAuthorizedStaff() && (
+        isAdmin() || isHeadmaster() ||
+        (sameCampus(resource) && !incoming().diff(existing()).affectedKeys().hasAny(['verifiedBy', 'verifiedAt', 'verificationStatus', 'documentsVerified']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // =============================================================
+    // 7. STUDENT TRANSFERS & LEAVING CERTIFICATES
+    // =============================================================
+    match /studentTransfers/{transferId} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow create: if isAuthorizedStaff();
+      allow update: if hasAnyRole(['admin', 'super_admin', 'headmaster', 'headteacher', 'secretary']);
+      allow delete: if isAdmin();
+    }
+
+    // =============================================================
+    // 8. TEACHERS & STAFF DIRECTORY
+    // =============================================================
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn() && (isStaff() || isOwner(teacherId));
+      allow write: if isAdmin() || hasRole('hr');
+    }
+    match /staffSecretCodes/{id} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+    match /past_employees/{id} {
+      allow read: if isAdmin() || hasRole('hr');
+      allow write: if isAdmin() || hasRole('hr');
+    }
+
+    // =============================================================
+    // 9. ACADEMIC REPORTS & ASSESSMENT RESULTS
+    // =============================================================
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        (isStudent() && hasUserDoc() && (resource.data.studentId == request.auth.uid || resource.data.admissionNo == getUserData().admissionNo))
+      );
+      allow write: if isAuthorizedStaff() && sameCampus(resource);
+    }
+    match /termReports/{reportId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        (isStudent() && hasUserDoc() && (resource.data.studentId == request.auth.uid || resource.data.admissionNo == getUserData().admissionNo))
+      );
+      allow write: if isAuthorizedStaff() && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 10. BILLING, PAYMENTS, TRANSACTIONS & REFUNDS
+    // =============================================================
+    match /bills/{billId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        (isStudent() && hasUserDoc() && (resource.data.studentId == request.auth.uid || resource.data.admissionNo == getUserData().admissionNo))
+      );
+      allow write: if isAccountant() && sameCampus(resource);
+    }
+    match /transactions/{txId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        (isStudent() && hasUserDoc() && (resource.data.studentId == request.auth.uid || resource.data.admissionNo == getUserData().admissionNo))
+      );
+      allow write: if (isAccountant() || isSecretary()) && sameCampus(resource);
+    }
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        isStaff() || 
+        (isStudent() && hasUserDoc() && (resource.data.studentId == request.auth.uid || resource.data.admissionNo == getUserData().admissionNo))
+      );
+      allow write: if (isAccountant() || isSecretary()) && sameCampus(resource);
+    }
+    match /feeSubmissions/{id} {
+      allow read: if isStaff() || (isSignedIn() && (resource.data.studentId == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isAccountant();
+      allow delete: if isAdmin();
+    }
+    match /refunds/{refundId} {
+      allow read: if isAccountant() && sameCampus(resource);
+      allow write: if isAccountant() && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 11. FINANCIAL ACCOUNTING, EXPENSES & PAYROLL
+    // =============================================================
+    match /expenses/{expId} {
+      allow read: if isAccountant() && sameCampus(resource);
+      allow write: if isAccountant() && sameCampus(resource);
+    }
+    match /bankDeposits/{depId} {
+      allow read: if isAccountant() && sameCampus(resource);
+      allow write: if isAccountant() && sameCampus(resource);
+    }
+    match /payrollRuns/{id} {
+      allow read: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+      allow write: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+    }
+    match /staffSalaries/{id} {
+      allow read: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+      allow write: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+    }
+    match /staffLoans/{id} {
+      allow read: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+      allow write: if (isAccountant() || hasRole('hr')) && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 12. LOGISTICS: TRANSPORT ROUTES & BOARDING HOSTELS
+    // =============================================================
+    match /transportRoutes/{id} {
+      allow read: if isSignedIn() && isStaff();
+      allow write: if isAdmin();
+    }
+    match /boardingRooms/{id} {
+      allow read: if isSignedIn() && isStaff();
+      allow write: if isAdmin();
+    }
+
+    // =============================================================
+    // 13. NOTIFICATIONS & ANNOUNCEMENTS
+    // =============================================================
+    match /notifications/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.isPublic == true ||
+        resource.data.targetRole == null ||
+        resource.data.targetRole == 'all' ||
+        (hasUserDoc() && resource.data.targetRole == getUserData().role) ||
+        resource.data.recipientId == request.auth.uid ||
+        isStaff()
+      );
+      allow write: if isAuthorizedStaff();
+    }
+    match /events/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isHeadmaster();
+    }
+    match /communications/{id} {
+      allow read: if isSignedIn() && sameCampus(resource);
+      allow write: if isStaff() && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 14. ATTENDANCE & DISCIPLINE
+    // =============================================================
+    match /attendance/{id} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow write: if isStaff() && sameCampus(resource);
+    }
+    match /teacherAttendance/{id} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow write: if (isAdmin() || hasRole('hr') || isHeadmaster()) && sameCampus(resource);
+    }
+    match /studentAttendance/{id} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow write: if isStaff() && sameCampus(resource);
+    }
+    match /disciplineLogs/{id} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow write: if isStaff() && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 15. LIBRARY & ASSETS
+    // =============================================================
+    match /libraryBooks/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /libraryLoans/{id} {
+      allow read: if isSignedIn() && sameCampus(resource);
+      allow write: if isStaff() && sameCampus(resource);
+    }
+    match /schoolAssets/{id} {
+      allow read: if isStaff() && sameCampus(resource);
+      allow write: if isAdmin() && sameCampus(resource);
+    }
+
+    // =============================================================
+    // 16. GRADUATED ALUMNI & SECURITY AUDIT
+    // =============================================================
+    match /graduated_batches/{id} {
+      allow read: if isSignedIn() && sameCampus(resource);
+      allow write: if isAdmin() && sameCampus(resource);
+    }
+    match /graduated_students/{id} {
+      allow read: if isSignedIn() && (isStaff() || isOwner(resource.data.studentId)) && sameCampus(resource);
+      allow write: if isAdmin() && sameCampus(resource);
+    }
+    match /securityAuditLogs/{logId} {
+      allow read: if isAdmin() || hasAnyRole(['ceo', 'director']);
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Immutable append-only audit trail
+    }
+    match /emailVerifications/{id} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() || !exists(/databases/$(database)/documents/emailVerifications/$(id));
+    }
+    match /mail/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+    match /feedback/{feedbackId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn();
+    }
+  }
+}

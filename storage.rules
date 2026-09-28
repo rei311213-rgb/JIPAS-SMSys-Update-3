@@ -1,0 +1,31 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'secretary') &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+    match /receipts/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'accountant' || request.auth.token.role == 'secretary');
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'accountant') &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*|application/pdf');
+    }
+    match /documents/{userId}/{allPaths=**} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'teacher' || request.auth.token.role == 'secretary');
+      allow write: if request.auth != null &&
+        (request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'teacher') &&
+        request.resource.size < 10 * 1024 * 1024;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
