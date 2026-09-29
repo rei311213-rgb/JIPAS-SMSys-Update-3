@@ -80,7 +80,7 @@ export default function EntranceQRPrintPage({ qrCode, rawToken, campusName, onCl
 
           {/* Large QR Container */}
           <div className="flex justify-center py-4">
-            <div className="border-4 border-slate-900 p-3 rounded-2xl bg-white shadow-md">
+            <div className="border-4 border-slate-900 p-3 rounded-2xl bg-white shadow-md space-y-2">
               {qrImageUrl ? (
                 <img src={qrImageUrl} className="w-64 h-64 mx-auto" alt="Entrance QR" />
               ) : (
@@ -88,6 +88,7 @@ export default function EntranceQRPrintPage({ qrCode, rawToken, campusName, onCl
                   Generating QR Image...
                 </div>
               )}
+              <div className="font-black text-lg tracking-widest text-slate-900 uppercase">JIPAS</div>
             </div>
           </div>
 
