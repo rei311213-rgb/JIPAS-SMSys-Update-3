@@ -32,6 +32,7 @@ import DisciplineTracker from './admin/DisciplineTracker';
 import SyncNowButton from './common/SyncNowButton';
 import CeoRoleManager from './admin/CeoRoleManager';
 import FinancialAuditManager from './admin/FinancialAuditManager';
+import FinancialReconciliationDashboard from './admin/FinancialReconciliationDashboard';
 import SecurityAuditLogsManager from './admin/SecurityAuditLogsManager';
 import DepartmentalFinancialSummary from './common/DepartmentalFinancialSummary';
 import FinancialAuditTrail from './common/FinancialAuditTrail';
@@ -59,6 +60,7 @@ import ReleaseManagementPanel from './admin/ReleaseManagementPanel';
 import ChangeAuditPanel from './admin/ChangeAuditPanel';
 import { useI18n } from '../i18n/I18nContext';
 import { PDFGeneratorService } from '../services/pdfService';
+import { addMoney } from '../utils/financeUtils';
 
 import { 
   INITIAL_ACADEMIC_YEARS, INITIAL_TERMS, INITIAL_DEPARTMENTS, 
@@ -73,7 +75,7 @@ import {
   Send, Eye, History, RefreshCw, CheckCircle2, Mail, Clock, AlertTriangle, LogOut, Printer, Wallet, TrendingUp, ChevronRight, ChevronDown,
   PanelLeftClose, PanelLeftOpen, MessageCircle, Database, Trash2, X, Sparkles, Palette, Download, Menu, Presentation, ShieldCheck,
   GitCompare, Activity, Upload, Crown, FolderTree, Briefcase, Zap, UserPlus, Receipt, Compass, HardDrive,
-  Bus, ShieldAlert, ArrowRightLeft, Wrench, QrCode
+  Bus, ShieldAlert, ArrowRightLeft, Wrench, QrCode, Scale
 } from 'lucide-react';
 import Draggable from 'react-draggable';
 
@@ -161,6 +163,7 @@ const VALID_ADMIN_MODULES = new Set([
   'fee_collection', 'fee_bulk_entry', 'payments', 'fee_payment_history', 'fee_payment_stats',
   'fee_income_expenses', 'income_expenses', 'fee_overdue_alerts', 'fee_audit_activity', 'audit_activity', 'payment_settings',
   'fee_refunds', 'refunds',
+  'financial_reconciliation', 'reconciliation_audit',
   'financial_audit', 'financial_records_audit', 'audit_financial', 'departmental_financial_summary', 'dept_financial_summary',
   'institutional_expenses', 'school_expenses', 'expenses', 'student_services',
   'secretary_handover', 'secretary_records',
@@ -209,7 +212,7 @@ const getCategoryForModule = (mod: string): string => {
   if (norm === 'admin_terminal_reports' || norm === 'terminal_reports' || norm === 'class_broadcasts') return 'exam';
   if (norm.startsWith('student_') || norm === 'students' || norm === 'enroll_student' || norm === 'enrolled_students' || norm === 'promote_students' || norm === 'promotion_history' || norm === 'discipline' || norm === 'bulk_upload' || norm === 'bulk_data_import' || norm === 'data_import' || norm === 'bulk_import') return 'student';
   if (norm.startsWith('exam_') || norm === 'grading_system' || norm === 'score_conversion' || norm === 'enter_results' || norm === 'report_sheets') return 'exam';
-  if (norm.startsWith('fee_') || norm === 'fees' || norm === 'bills' || norm === 'payments' || norm === 'income_expenses' || norm === 'audit_activity' || norm === 'financial_audit' || norm === 'financial_records_audit' || norm === 'institutional_expenses' || norm === 'expenses' || norm === 'secretary_handover') return 'fee';
+  if (norm.startsWith('fee_') || norm === 'fees' || norm === 'bills' || norm === 'payments' || norm === 'income_expenses' || norm === 'audit_activity' || norm === 'financial_audit' || norm === 'financial_records_audit' || norm === 'financial_reconciliation' || norm === 'reconciliation_audit' || norm === 'institutional_expenses' || norm === 'expenses' || norm === 'secretary_handover') return 'fee';
   if (norm.startsWith('payroll_') || norm === 'payroll') return 'payroll';
   if (norm === 'session_controls' || norm === 'active_sessions' || norm === 'session_security') return 'system';
   if (norm === 'boarding_management' || norm === 'boarding' || norm === 'library_assets') return 'resources';
@@ -321,6 +324,7 @@ const ADMIN_NAV_GROUPS = [
     title: 'Fee Management',
     icon: DollarSign,
     items: [
+      { id: 'financial_reconciliation', label: 'Financial Reconciliation', icon: Scale },
       { id: 'financial_audit', label: 'Financial Records Audit', icon: ShieldCheck },
       { id: 'audit_trail', label: 'Financial Audit Trail', icon: ShieldCheck },
       { id: 'departmental_financial_summary', label: 'Departmental Financial Summary', icon: Building2 },
@@ -683,8 +687,8 @@ export default function AdminPortal({
   };
 
   // Financial calculations
-  const totalRevenue = payments.reduce((acc, p) => acc + (p.paid || 0), 0);
-  const totalPending = bills.reduce((acc, b) => acc + (b.balance || 0), 0);
+  const totalRevenue = useMemo(() => addMoney(...payments.map(p => p.paid || 0)), [payments]);
+  const totalPending = useMemo(() => addMoney(...bills.map(b => b.balance || 0)), [bills]);
   
   // Notification calculations
   const unreadNotifications = notifications.filter(n => !n.read).length;
@@ -1376,7 +1380,7 @@ export default function AdminPortal({
               >
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-purple-200">{t('dashboard.pendingPayments', 'Pending Payments')}</p>
-                  <h3 className="text-3xl font-black mt-1 font-mono">{(totalPending ?? 0).toFixed(2)} CFA</h3>
+                  <h3 className="text-3xl font-black mt-1 font-mono">{(totalPending ?? 0).toFixed(2)} GHS</h3>
                   <p className="text-xs text-purple-100 font-semibold mt-1">{t('dashboard.outstandingBalances', 'Outstanding Balances')}</p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
@@ -2143,6 +2147,17 @@ export default function AdminPortal({
             onAddNotification={onAddNotification}
             preselectedStudentId={selectedStudentForFees?.id}
             currentUser={currentUser}
+          />
+        )}
+
+        {/* 7A.0 FINANCIAL RECONCILIATION & EXCEPTION DETECTION (PHASE 30) */}
+        {(activeModule === 'financial_reconciliation' || activeModule === 'reconciliation_audit') && (
+          <FinancialReconciliationDashboard
+            currentUser={currentUser}
+            students={students}
+            bills={bills}
+            payments={payments}
+            onClose={() => handleNavigate('dashboard')}
           />
         )}
 

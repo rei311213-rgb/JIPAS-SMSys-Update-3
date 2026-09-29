@@ -389,7 +389,7 @@ export function useRealtimeDashboardData(options: UseRealtimeDashboardOptions = 
     let executiveInsight = 'Executive insight will appear when sufficient institutional data is available.';
     if (totalStudents > 0 || feesCollected > 0) {
       const netStatus = netPosition >= 0 ? 'positive surplus' : 'operating deficit';
-      executiveInsight = `Institutional roster records ${totalStudents} active student${totalStudents === 1 ? '' : 's'} across ${activeCampus}. Desk collections report CFA ${feesCollected.toLocaleString()} in verified revenue with a ${netStatus} of CFA ${Math.abs(netPosition).toLocaleString()}.`;
+      executiveInsight = `Institutional roster records ${totalStudents} active student${totalStudents === 1 ? '' : 's'} across ${activeCampus}. Desk collections report GHS ${feesCollected.toLocaleString()} in verified revenue with a ${netStatus} of GHS ${Math.abs(netPosition).toLocaleString()}.`;
     }
 
     return {

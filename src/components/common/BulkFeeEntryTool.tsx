@@ -451,7 +451,7 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
                       <th className="p-3 w-12 text-center">S/N</th>
                       <th className="p-3 w-36">Admission No *</th>
                       <th className="p-3 w-40">Particulars (Note)</th>
-                      <th className="p-3 w-28">Amount (CFA) *</th>
+                      <th className="p-3 w-28">Amount (GHS) *</th>
                       <th className="p-3 w-28">Type</th>
                       <th className="p-3 w-28">Payment Mode</th>
                       <th className="p-3">Reference / Notes</th>
@@ -583,7 +583,7 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
                   <th className="p-3 font-mono">Admission No</th>
                   <th className="p-3">Class</th>
                   <th className="p-3">Particulars</th>
-                  <th className="p-3 text-right">Amount (CFA)</th>
+                  <th className="p-3 text-right">Amount (GHS)</th>
                   <th className="p-3 text-center">Type</th>
                   <th className="p-3 text-center">Status / Integrity</th>
                 </tr>
@@ -605,7 +605,7 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
                       {row.particulars || '-'}
                     </td>
                     <td className="p-3 text-right font-black font-mono text-slate-900">
-                      {row.amount ? `${row.amount.toLocaleString()} CFA` : '-'}
+                      {row.amount ? `${row.amount.toLocaleString()} GHS` : '-'}
                     </td>
                     <td className="p-3 text-center">
                       {row.status === 'success' ? (

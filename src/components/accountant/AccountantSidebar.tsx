@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileText, DollarSign, Plus, Settings, AlertTriangle, 
   Pin, PinOff, ChevronRight, Menu, X, CheckCircle2, 
-  TrendingUp, Sparkles, User, ShieldCheck, Wallet, Receipt, Layers, Building, Building2, BellRing, BarChart3, Clock, Users
+  TrendingUp, Sparkles, User, ShieldCheck, Wallet, Receipt, Layers, Building, Building2, BellRing, BarChart3, Clock, Users, Scale
 } from 'lucide-react';
 import JIPASLogo from '../common/JIPASLogo';
 
@@ -22,6 +22,7 @@ export type AccountantTabType =
   | 'staff'
   | 'staff-attendance'
   | 'dept-financial-summary' 
+  | 'financial-reconciliation'
   | 'audit-trail';
 
 interface AccountantSidebarProps {
@@ -197,6 +198,14 @@ export default function AccountantSidebar({
       icon: Building2,
       badge: 'Summary',
       badgeColor: 'bg-indigo-100 text-indigo-800'
+    },
+    {
+      id: 'financial-reconciliation',
+      label: 'Financial Reconciliation',
+      sublabel: 'Phase 30 Exception Detection',
+      icon: Scale,
+      badge: 'Audit',
+      badgeColor: 'bg-emerald-600 text-white'
     },
     {
       id: 'audit-trail',
@@ -494,7 +503,7 @@ export default function AccountantSidebar({
                 <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
                   <span>Outstanding:</span>
                   <span className="font-mono font-bold text-rose-600">
-                    {totalOutstanding.toLocaleString()} CFA
+                    {totalOutstanding.toLocaleString()} GHS
                   </span>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { StudentBill, Student, NotificationItem, DailyFeeAuditSummary } from '../types';
+import { addMoney, formatCurrency } from '../utils/financeUtils';
 
 const AUDIT_STORAGE_KEY = 'jipas_daily_fee_audit_summary';
 const LAST_AUDIT_DATE_KEY = 'jipas_last_daily_fee_audit_date';
@@ -92,7 +93,7 @@ export const runDailyFeeAudit = (
     }
 
     // Has balance: compute severity and reason
-    totalOverdue += bill.balance;
+    totalOverdue = addMoney(totalOverdue, bill.balance);
 
     let severity: 'Critical' | 'Moderate' | 'Warning' = 'Warning';
     if (bill.balance >= 300 || (bill.arrears && bill.arrears > 0)) {
@@ -106,9 +107,9 @@ export const runDailyFeeAudit = (
       warningCount++;
     }
 
-    let reason = `Overdue tuition balance of ${(bill.balance ?? 0).toFixed(2)} CFA requires immediate settlement.`;
+    let reason = `Overdue tuition balance of ${(bill.balance ?? 0).toFixed(2)} GHS requires immediate settlement.`;
     if (bill.arrears && bill.arrears > 0) {
-      reason = `Accumulated arrears of ${(bill.arrears ?? 0).toFixed(2)} CFA + current term balance unpaid.`;
+      reason = `Accumulated arrears of ${(bill.arrears ?? 0).toFixed(2)} GHS + current term balance unpaid.`;
     }
 
     const itemSummary = {
@@ -171,7 +172,7 @@ export const runDailyFeeAudit = (
       const newNotif: NotificationItem = {
         id: `audit-notif-${Date.now()}`,
         title: `🚨 Daily Fee Audit: ${auditItems.length} Accounts Require Action`,
-        message: `Automated daily fee audit completed on ${nowFormatted}. ${auditItems.length} students have overdue balances totaling ${(totalOverdue || 0).toFixed(2)} CFA (${criticalCount} Critical). Flagged for immediate accountant follow-up.`,
+        message: `Automated daily fee audit completed on ${nowFormatted}. ${auditItems.length} students have overdue balances totaling ${(totalOverdue || 0).toFixed(2)} GHS (${criticalCount} Critical). Flagged for immediate accountant follow-up.`,
         recipientGroup: 'Bursar & Accounts',
         targetAudience: 'accountant',
         dateSent: nowFormatted,
@@ -200,8 +201,8 @@ export const runDailyFeeAudit = (
         
         const overdueNotif: NotificationItem = {
           id: `fee-overdue-student-notif-${studentId}-${Date.now()}-${index}`,
-          title: `⚠️ Overdue Fee Notice: Balance of ${(item.balance ?? 0).toFixed(2)} CFA`,
-          message: `Dear ${parentName}, this is a reminder from the Bursary Department. ${studentName}'s terminal bill has an outstanding balance of ${(item.balance ?? 0).toFixed(2)} CFA. Please ensure prompt payment to prevent any educational disruption.`,
+          title: `⚠️ Overdue Fee Notice: Balance of ${(item.balance ?? 0).toFixed(2)} GHS`,
+          message: `Dear ${parentName}, this is a reminder from the Bursary Department. ${studentName}'s terminal bill has an outstanding balance of ${(item.balance ?? 0).toFixed(2)} GHS. Please ensure prompt payment to prevent any educational disruption.`,
           recipientGroup: studentName, // matches student.fullName exactly for StudentPortal filter
           targetAudience: 'Parents & Students',
           targetClass: item.className,

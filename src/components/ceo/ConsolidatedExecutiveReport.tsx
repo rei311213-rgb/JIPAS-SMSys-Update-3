@@ -14,6 +14,7 @@ import { getStoredStudents, getStoredPayments, getStoredExpenses, getStoredStude
 import { getActiveCampus, filterStudentsByCampus, filterPaymentsByCampus, filterExpensesByCampus, filterTeachersByCampus } from '../../lib/campusUtils';
 import { StaffAttendanceService } from '../../services/supabase/staffAttendanceService';
 import { useRealtimeDashboardData } from '../../hooks/useRealtimeDashboardData';
+import { addMoney, subtractMoney } from '../../utils/financeUtils';
 
 type TimeRange = 'Daily' | 'Weekly' | 'Monthly' | 'Termly' | 'Annual';
 
@@ -92,11 +93,11 @@ export default function ConsolidatedExecutiveReport() {
   }, [allPayments, allExpenses, allStudents, timeRange]);
 
   const totalRevenue = useMemo(() => {
-    return filteredPayments.reduce((acc, p) => acc + (p.paid || (p as any).amount || 0), 0);
+    return addMoney(...filteredPayments.map(p => p.paid || (p as any).amount || 0));
   }, [filteredPayments]);
 
   const totalExpenses = useMemo(() => {
-    return filteredExpenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+    return addMoney(...filteredExpenses.map(e => e.amount || 0));
   }, [filteredExpenses]);
 
   // Real financial trends grouped by date
@@ -106,13 +107,13 @@ export default function ConsolidatedExecutiveReport() {
     filteredPayments.forEach(p => {
       const dateKey = p.date ? p.date.split('-').slice(1).join('/') : 'Recent';
       if (!dateMap[dateKey]) dateMap[dateKey] = { revenue: 0, expense: 0 };
-      dateMap[dateKey].revenue += (p.paid || (p as any).amount || 0);
+      dateMap[dateKey].revenue = addMoney(dateMap[dateKey].revenue, p.paid || (p as any).amount || 0);
     });
 
     filteredExpenses.forEach(e => {
       const dateKey = e.date ? e.date.split('-').slice(1).join('/') : 'Recent';
       if (!dateMap[dateKey]) dateMap[dateKey] = { revenue: 0, expense: 0 };
-      dateMap[dateKey].expense += (e.amount || 0);
+      dateMap[dateKey].expense = addMoney(dateMap[dateKey].expense, e.amount || 0);
     });
 
     const keys = Object.keys(dateMap).slice(-10);
@@ -131,7 +132,7 @@ export default function ConsolidatedExecutiveReport() {
     const catMap: Record<string, number> = {};
     filteredPayments.forEach(p => {
       const category = (p as any).category || p.method || 'General Fees';
-      catMap[category] = (catMap[category] || 0) + (p.paid || (p as any).amount || 0);
+      catMap[category] = addMoney(catMap[category] || 0, p.paid || (p as any).amount || 0);
     });
 
     const entries = Object.entries(catMap).map(([name, value]) => ({ name, value }));
@@ -235,7 +236,7 @@ export default function ConsolidatedExecutiveReport() {
           },
           { 
             label: 'Fees Collected', 
-            value: totalRevenue > 0 ? `CFA ${totalRevenue.toLocaleString()}` : 'CFA 0', 
+            value: totalRevenue > 0 ? `GHS ${totalRevenue.toLocaleString()}` : 'GHS 0', 
             icon: DollarSign, 
             color: 'text-emerald-400', 
             bg: 'bg-emerald-400/10', 
@@ -243,7 +244,7 @@ export default function ConsolidatedExecutiveReport() {
           },
           { 
             label: 'Operating Expenses', 
-            value: totalExpenses > 0 ? `CFA ${totalExpenses.toLocaleString()}` : 'CFA 0', 
+            value: totalExpenses > 0 ? `GHS ${totalExpenses.toLocaleString()}` : 'GHS 0', 
             icon: TrendingUp, 
             color: 'text-rose-400', 
             bg: 'bg-rose-400/10', 
@@ -345,7 +346,7 @@ export default function ConsolidatedExecutiveReport() {
               <div key={i} className="flex justify-between items-center text-xs">
                 <span className="text-slate-400 font-bold">{item.name}</span>
                 <span className="text-white font-black">
-                  {totalRevenue > 0 ? `CFA ${item.value.toLocaleString()}` : '—'}
+                  {totalRevenue > 0 ? `GHS ${item.value.toLocaleString()}` : '—'}
                 </span>
               </div>
             ))}
@@ -402,8 +403,8 @@ export default function ConsolidatedExecutiveReport() {
                 <Search className="w-4 h-4 text-slate-500" />
                 <span className="text-xs text-slate-300 font-bold">Net Cash Position</span>
               </div>
-              <span className={`text-sm font-black ${totalRevenue - totalExpenses >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                CFA {(totalRevenue - totalExpenses).toLocaleString()}
+              <span className={`text-sm font-black ${subtractMoney(totalRevenue, totalExpenses) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                GHS {subtractMoney(totalRevenue, totalExpenses).toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800">

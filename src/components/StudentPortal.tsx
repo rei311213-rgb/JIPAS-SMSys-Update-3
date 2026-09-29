@@ -259,7 +259,7 @@ export default function StudentPortal({
       const adminNotif: NotificationItem = {
         id: `notif-${Date.now()}`,
         title: `⚡ New Fee Payment Submission: ${newSubmission.studentName}`,
-        message: `${newSubmission.studentName} (${newSubmission.className}, Adm: ${newSubmission.admissionNo}) submitted fee payment of ${(newSubmission.amount ?? 0).toFixed(2)} CFA via ${newSubmission.paymentMethod}. Transaction ID: ${newSubmission.transactionId}. Awaiting verification.`,
+        message: `${newSubmission.studentName} (${newSubmission.className}, Adm: ${newSubmission.admissionNo}) submitted fee payment of ${(newSubmission.amount ?? 0).toFixed(2)} GHS via ${newSubmission.paymentMethod}. Transaction ID: ${newSubmission.transactionId}. Awaiting verification.`,
         date: new Date().toISOString().split('T')[0],
         type: 'General',
         recipientGroup: 'Admin',
@@ -401,17 +401,17 @@ export default function StudentPortal({
             <thead>
               <tr>
                 <th>Description</th>
-                <th style="text-align: right;">Amount Paid (CFA)</th>
+                <th style="text-align: right;">Amount Paid (GHS)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>${receipt.paidAs || 'Fee Payment'}</td>
-                <td class="amount">${(receipt.paid ?? 0).toFixed(2)} CFA</td>
+                <td class="amount">${(receipt.paid ?? 0).toFixed(2)} GHS</td>
               </tr>
               <tr style="background: #f8fafc; font-weight: bold;">
                 <td>Remaining Balance Outstanding</td>
-                <td class="amount" style="color: #be123c;">${(receipt.balance ?? 0).toFixed(2)} CFA</td>
+                <td class="amount" style="color: #be123c;">${(receipt.balance ?? 0).toFixed(2)} GHS</td>
               </tr>
             </tbody>
           </table>
@@ -659,9 +659,9 @@ export default function StudentPortal({
 
           <div class="summary-card">
             <div class="summary-title">OUTSTANDING REMAINING ARREARS BALANCE</div>
-            <div class="summary-amount">${(balanceDue ?? 0).toFixed(2)} CFA</div>
+            <div class="summary-amount">${(balanceDue ?? 0).toFixed(2)} GHS</div>
             <div style="font-size: 11px; color: #475569; font-weight: 600;">
-              Total Billed: <strong>${(totalPayable ?? 0).toFixed(2)} CFA</strong> &bull; Total Payments Received: <strong>${(totalPaid ?? 0).toFixed(2)} CFA</strong>
+              Total Billed: <strong>${(totalPayable ?? 0).toFixed(2)} GHS</strong> &bull; Total Payments Received: <strong>${(totalPaid ?? 0).toFixed(2)} GHS</strong>
             </div>
           </div>
 
@@ -670,14 +670,14 @@ export default function StudentPortal({
             <thead>
               <tr>
                 <th>Item Description</th>
-                <th style="text-align: right;">Amount (CFA)</th>
+                <th style="text-align: right;">Amount (GHS)</th>
               </tr>
             </thead>
             <tbody>
               ${(studentBill?.items || []).map(it => `
                 <tr>
                   <td>${it.name || (it as any).description || 'Fee Item'}</td>
-                  <td class="amount">${(it.amount ?? 0).toFixed(2)} CFA</td>
+                  <td class="amount">${(it.amount ?? 0).toFixed(2)} GHS</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -691,7 +691,7 @@ export default function StudentPortal({
                 <th>Date Paid</th>
                 <th>Description</th>
                 <th>Payment Channel</th>
-                <th style="text-align: right;">Amount Paid (CFA)</th>
+                <th style="text-align: right;">Amount Paid (GHS)</th>
               </tr>
             </thead>
             <tbody>
@@ -701,7 +701,7 @@ export default function StudentPortal({
                   <td>${p.date}</td>
                   <td>${p.paidAs || 'Tuition Fee Payment'}</td>
                   <td>${p.paymentMethod || 'Cash / Bank / MoMo'}</td>
-                  <td class="amount">${((p.paid ?? (p as any).amount) ?? 0).toFixed(2)} CFA</td>
+                  <td class="amount">${((p.paid ?? (p as any).amount) ?? 0).toFixed(2)} GHS</td>
                 </tr>
               `).join('')}
               ${studentPayments.length === 0 ? `
@@ -803,7 +803,7 @@ export default function StudentPortal({
               <AlertTriangle className="w-4 h-4 text-amber-300 animate-bounce shrink-0" />
               <div className="text-left leading-tight">
                 <span className="block text-[9px] uppercase tracking-wider text-rose-200 font-black">Fee Arrears</span>
-                <span className="text-xs sm:text-sm font-black font-mono">{(balanceDue ?? 0).toFixed(2)} CFA</span>
+                <span className="text-xs sm:text-sm font-black font-mono">{(balanceDue ?? 0).toFixed(2)} GHS</span>
               </div>
               <span className="bg-white text-rose-800 text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs ml-1 hover:bg-rose-50">
                 Pay Now →
@@ -849,11 +849,11 @@ export default function StudentPortal({
                   Unpaid Fee Arrears Alert
                 </span>
                 <span className="text-xs font-mono font-black text-rose-700">
-                  {(balanceDue ?? 0).toFixed(2)} CFA
+                  {(balanceDue ?? 0).toFixed(2)} GHS
                 </span>
               </div>
               <p className="text-xs text-rose-950 font-bold mt-1">
-                Notice: Your ward has an outstanding fee balance of <span className="underline font-mono font-black text-rose-700">{(balanceDue ?? 0).toFixed(2)} CFA</span>. Click here to open fee payment and submit your transaction proof.
+                Notice: Your ward has an outstanding fee balance of <span className="underline font-mono font-black text-rose-700">{(balanceDue ?? 0).toFixed(2)} GHS</span>. Click here to open fee payment and submit your transaction proof.
               </p>
             </div>
           </div>
@@ -1217,7 +1217,7 @@ export default function StudentPortal({
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Fee Balance</p>
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{(balanceDue ?? 0).toFixed(2)} CFA</h3>
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{(balanceDue ?? 0).toFixed(2)} GHS</h3>
                 <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
                   balanceDue === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                 }`}>
@@ -1725,7 +1725,7 @@ export default function StudentPortal({
                       <td className="p-3 text-slate-600 font-mono text-[11px]">{sub.submissionDate}</td>
                       <td className="p-3 font-semibold text-slate-900">{sub.feeType}</td>
                       <td className="p-3 text-slate-700">{sub.paymentMethod}</td>
-                      <td className="p-3 text-right font-bold text-emerald-700 font-mono">{(sub.amount ?? 0).toFixed(2)} CFA</td>
+                      <td className="p-3 text-right font-bold text-emerald-700 font-mono">{(sub.amount ?? 0).toFixed(2)} GHS</td>
                       <td className="p-3 font-mono font-black text-indigo-700 bg-indigo-50/50 rounded px-2 py-1">{sub.transactionId}</td>
                       <td className="p-3 text-center">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase shadow-2xs ${
@@ -1794,14 +1794,14 @@ export default function StudentPortal({
                 <thead>
                   <tr className="bg-slate-900 text-white uppercase text-[10px] font-bold">
                     <th className="p-3">Fee Item / Approved Bill Description</th>
-                    <th className="p-3 text-right">Standard Amount (CFA)</th>
+                    <th className="p-3 text-right">Standard Amount (GHS)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
                   {studentBill?.items.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="p-3 text-slate-900 font-semibold">{item.name}</td>
-                      <td className="p-3 text-right text-slate-800 font-mono font-bold">{(item.amount ?? 0).toFixed(2)} CFA</td>
+                      <td className="p-3 text-right text-slate-800 font-mono font-bold">{(item.amount ?? 0).toFixed(2)} GHS</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1812,28 +1812,28 @@ export default function StudentPortal({
             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 max-w-md ml-auto space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-200">
                 <span className="text-slate-600 font-medium">Gross Tuition Subtotal:</span>
-                <span className="font-bold text-slate-900 font-mono">{(studentBill?.subTotal ?? 1200).toFixed(2)} CFA</span>
+                <span className="font-bold text-slate-900 font-mono">{(studentBill?.subTotal ?? 1200).toFixed(2)} GHS</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200">
                 <span className="text-slate-600 font-medium">Previous Arrears:</span>
-                <span className="font-bold text-slate-700 font-mono">{(studentBill?.arrears ?? 0).toFixed(2)} CFA</span>
+                <span className="font-bold text-slate-700 font-mono">{(studentBill?.arrears ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200">
                 <span className="text-slate-600 font-medium">Discount / Scholar Exemption:</span>
-                <span className="font-bold text-emerald-700 font-mono">- {(studentBill?.discount ?? 0).toFixed(2)} CFA</span>
+                <span className="font-bold text-emerald-700 font-mono">- {(studentBill?.discount ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="flex justify-between py-1 font-bold text-slate-900 text-sm">
                 <span>Net Payable:</span>
-                <span className="font-mono text-emerald-700">{(totalPayable ?? 0).toFixed(2)} CFA</span>
+                <span className="font-mono text-emerald-700">{(totalPayable ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="flex justify-between py-1 text-slate-700">
                 <span>Total Amount Paid to Date:</span>
-                <span className="font-bold text-emerald-600 font-mono">{(totalPaid ?? 0).toFixed(2)} CFA</span>
+                <span className="font-bold text-emerald-600 font-mono">{(totalPaid ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="border-t-2 border-slate-300 pt-2 flex justify-between text-base font-black">
                 <span className="text-slate-900">Current Balance Due:</span>
                 <span className={`font-mono ${balanceDue === 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {(balanceDue ?? 0).toFixed(2)} CFA
+                  {(balanceDue ?? 0).toFixed(2)} GHS
                 </span>
               </div>
             </div>
@@ -1876,7 +1876,7 @@ export default function StudentPortal({
                         </span>
                       </td>
                       <td className="p-3 text-slate-700">{pay.method}</td>
-                      <td className="p-3 text-right font-bold text-emerald-700 font-mono">{(pay.amount ?? pay.paid ?? 0).toFixed(2)} CFA</td>
+                      <td className="p-3 text-right font-bold text-emerald-700 font-mono">{(pay.amount ?? pay.paid ?? 0).toFixed(2)} GHS</td>
                       <td className="p-3 text-center">
                         <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded shadow-2xs">
                           {pay.status}
@@ -2097,11 +2097,11 @@ export default function StudentPortal({
             <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200 text-xs flex justify-between items-center">
               <div>
                 <span className="text-[10px] font-bold uppercase text-emerald-800 block">Amount Paid</span>
-                <span className="text-lg font-black text-emerald-700 font-mono">{((selectedReceipt.paid ?? (selectedReceipt as any).amount) ?? 0).toFixed(2)} CFA</span>
+                <span className="text-lg font-black text-emerald-700 font-mono">{((selectedReceipt.paid ?? (selectedReceipt as any).amount) ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-bold uppercase text-slate-500 block">Remaining Balance</span>
-                <span className="text-sm font-bold text-slate-700 font-mono">{(selectedReceipt.balance ?? 0).toFixed(2)} CFA</span>
+                <span className="text-sm font-bold text-slate-700 font-mono">{(selectedReceipt.balance ?? 0).toFixed(2)} GHS</span>
               </div>
             </div>
 
@@ -2156,17 +2156,17 @@ export default function StudentPortal({
                 {studentBill?.items.map((it, i) => (
                   <div key={i} className="flex justify-between p-2.5 bg-white text-slate-700">
                     <span>{it.name}</span>
-                    <span className="font-mono font-bold">{(it.amount ?? 0).toFixed(2)} CFA</span>
+                    <span className="font-mono font-bold">{(it.amount ?? 0).toFixed(2)} GHS</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="flex justify-between text-xs font-bold bg-slate-100 p-3 rounded-xl">
-              <span>Total Fees Payable: {(totalPayable ?? 0).toFixed(2)} CFA</span>
-              <span className="text-emerald-700">Total Paid: {(totalPaid ?? 0).toFixed(2)} CFA</span>
+              <span>Total Fees Payable: {(totalPayable ?? 0).toFixed(2)} GHS</span>
+              <span className="text-emerald-700">Total Paid: {(totalPaid ?? 0).toFixed(2)} GHS</span>
               <span className={balanceDue === 0 ? 'text-emerald-700' : 'text-rose-600'}>
-                Balance: {(balanceDue ?? 0).toFixed(2)} CFA
+                Balance: {(balanceDue ?? 0).toFixed(2)} GHS
               </span>
             </div>
 
@@ -2431,7 +2431,7 @@ export default function StudentPortal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Amount Paid (CFA) *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Amount Paid (GHS) *</label>
                     <input
                       type="number"
                       required

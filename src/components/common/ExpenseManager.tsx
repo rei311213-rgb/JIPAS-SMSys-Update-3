@@ -7,6 +7,7 @@ import {
   getStoredExpenses, 
   saveStoredExpenses 
 } from '../../services/storageService';
+import { addMoney } from '../../utils/financeUtils';
 import { 
   DollarSign, 
   Plus, 
@@ -272,24 +273,24 @@ export default function ExpenseManager({
 
   // Aggregate Metrics
   const totalExpenditure = useMemo(() => {
-    return expenses.reduce((sum, e) => sum + (e.status !== 'Void' ? e.amount : 0), 0);
+    return addMoney(...expenses.map(e => (e.status !== 'Void' ? e.amount || 0 : 0)));
   }, [expenses]);
 
   const secretaryExpenditure = useMemo(() => {
-    return expenses.filter(e => e.recorderRole === 'secretary' && e.status !== 'Void').reduce((sum, e) => sum + e.amount, 0);
+    return addMoney(...expenses.filter(e => e.recorderRole === 'secretary' && e.status !== 'Void').map(e => e.amount || 0));
   }, [expenses]);
 
   const pettyCashTotal = useMemo(() => {
-    return expenses.filter(e => e.paymentMethod === 'Petty Cash' && e.status !== 'Void').reduce((sum, e) => sum + e.amount, 0);
+    return addMoney(...expenses.filter(e => e.paymentMethod === 'Petty Cash' && e.status !== 'Void').map(e => e.amount || 0));
   }, [expenses]);
 
   const approvedExpenditure = useMemo(() => {
-    return expenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + e.amount, 0);
+    return addMoney(...expenses.filter(e => e.status === 'Approved').map(e => e.amount || 0));
   }, [expenses]);
 
   // Export to CSV
   const handleExportCSV = () => {
-    const headers = ['Voucher No', 'Date', 'Category', 'Title', 'Amount (CFA)', 'Payment Method', 'Vendor / Payee', 'Department', 'Recorded By', 'Status', 'Reference No'];
+    const headers = ['Voucher No', 'Date', 'Category', 'Title', 'Amount (GHS)', 'Payment Method', 'Vendor / Payee', 'Department', 'Recorded By', 'Status', 'Reference No'];
     const rows = filteredExpenses.map(exp => [
       exp.voucherNo,
       exp.date,
@@ -381,7 +382,7 @@ export default function ExpenseManager({
 
           <div class="amount-box">
             <div style="font-size: 13px; text-transform: uppercase; font-weight: bold; color: #64748b; margin-bottom: 6px;">Total Amount Paid</div>
-            <div class="amount-val">CFA {(exp.amount ?? 0).toFixed(2)}</div>
+            <div class="amount-val">GHS {(exp.amount ?? 0).toFixed(2)}</div>
             <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Status: <strong>${exp.status.toUpperCase()}</strong></div>
           </div>
 
@@ -468,7 +469,7 @@ export default function ExpenseManager({
               <DollarSign className="w-4 h-4 text-rose-500" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900">
-              CFA {totalExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              GHS {totalExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <span className="text-[10px] text-slate-500 mt-1">{expenses.length} total logged vouchers</span>
           </div>
@@ -479,7 +480,7 @@ export default function ExpenseManager({
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-emerald-900">
-              CFA {approvedExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              GHS {approvedExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <span className="text-[10px] text-emerald-700 mt-1">Reconciled in financial records</span>
           </div>
@@ -490,7 +491,7 @@ export default function ExpenseManager({
               <Wallet className="w-4 h-4 text-amber-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-amber-900">
-              CFA {pettyCashTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              GHS {pettyCashTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <span className="text-[10px] text-amber-700 mt-1">Direct cash & minor desk expenses</span>
           </div>
@@ -501,7 +502,7 @@ export default function ExpenseManager({
               <Layers className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-blue-900">
-              CFA {secretaryExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              GHS {secretaryExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <span className="text-[10px] text-blue-700 mt-1">Front desk operational expenses</span>
           </div>
@@ -628,7 +629,7 @@ export default function ExpenseManager({
                   <th className="py-3.5 px-4">Expense Title & Category</th>
                   <th className="py-3.5 px-4">Payee / Vendor</th>
                   <th className="py-3.5 px-4">Payment Method</th>
-                  <th className="py-3.5 px-4 text-right">Amount (CFA)</th>
+                  <th className="py-3.5 px-4 text-right">Amount (GHS)</th>
                   <th className="py-3.5 px-4">Recorded By</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -674,7 +675,7 @@ export default function ExpenseManager({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-black text-rose-700 font-mono text-sm">
-                      CFA {(exp.amount ?? 0).toFixed(2)}
+                      GHS {(exp.amount ?? 0).toFixed(2)}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="text-[11px] font-bold text-slate-800">{exp.recordedBy}</div>
@@ -817,7 +818,7 @@ export default function ExpenseManager({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Amount (CFA) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Amount (GHS) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -957,7 +958,7 @@ export default function ExpenseManager({
                 <div className="p-3 bg-slate-50 rounded-xl">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Amount Paid</span>
                   <span className="text-lg font-black text-rose-600 font-mono">
-                    CFA {(selectedExpenseForView.amount ?? 0).toFixed(2)}
+                    GHS {(selectedExpenseForView.amount ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">

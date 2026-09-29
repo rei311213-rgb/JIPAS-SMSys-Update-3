@@ -10,7 +10,7 @@ import {
   RefreshCw, CheckCircle2, Mail, Clock, LogOut, Printer, Wallet, 
   ChevronRight, ChevronDown, 
   MessageCircle, Database, Trash2, X, Sparkles, Palette, Download, Menu,
-  ShieldAlert, Trophy, Grid, ArrowLeft, ExternalLink, Lock
+  ShieldAlert, Trophy, Grid, ArrowLeft, ExternalLink, Lock, Scale
 } from 'lucide-react';
 import { 
   Student, Teacher, TermReport, StudentBill, PaymentRecord, CalendarEvent, NotificationItem, LoginLog,
@@ -30,12 +30,14 @@ import DisciplineTracker from './admin/DisciplineTracker';
 import AcademicSetupManager from './AcademicSetupManager';
 import ExpenseManager from './common/ExpenseManager';
 import PerformanceOverview from './admin/PerformanceOverview';
+import FinancialReconciliationDashboard from './admin/FinancialReconciliationDashboard';
 import GraduatedBatchManager from './common/GraduatedBatchManager';
 import PastEmployeeHistoryManager from './common/PastEmployeeHistoryManager';
 import JIPASLogo from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
 import { getStoredExpenses } from '../services/storageService';
 import { filterExpensesByCampus } from '../lib/campusUtils';
+import { addMoney, subtractMoney, formatCurrency } from '../utils/financeUtils';
 
 interface CEOPortalProps {
   currentUser: any;
@@ -59,7 +61,7 @@ const VALID_CEO_MODULES = new Set([
   'dashboard', 'reports', 'executive_report', 'alert_feed', 'class_rankings', 'school_overview', 'students', 'teachers', 
   'attendance', 'staff_attendance', 'discipline',
   'academic_performance', 'performance_analytics', 'school_finances',
-  'fees_payments', 'expenses', 'income_expenses', 'financial_trends', 'staff_queries',
+  'fees_payments', 'expenses', 'income_expenses', 'financial_trends', 'financial_reconciliation', 'staff_queries',
   'graduated_batches', 'graduated_batch_registry', 'employee_history', 'past_employees'
 ]);
 
@@ -227,21 +229,21 @@ export default function CEOPortal({
     if (mod === 'discipline') return privileges.canViewDisciplineLogs ?? true;
     if (mod === 'academic_performance' || mod === 'performance_analytics' || mod === 'class_rankings') return privileges.canViewAcademicReports ?? true;
     if (mod === 'expenses') return (privileges.canViewFinancials ?? true) && (privileges.canViewDetailedExpenses ?? true);
-    if (mod === 'school_finances' || mod === 'fees_payments' || mod === 'income_expenses' || mod === 'financial_trends') return privileges.canViewFinancials ?? true;
+    if (mod === 'school_finances' || mod === 'fees_payments' || mod === 'income_expenses' || mod === 'financial_trends' || mod === 'financial_reconciliation') return privileges.canViewFinancials ?? true;
     return true;
   };
 
   const totalRevenue = useMemo(() => {
-    return payments.reduce((acc, p) => acc + (p.paid || p.amount || 0), 0);
+    return addMoney(...payments.map(p => p.paid || p.amount || 0));
   }, [payments]);
 
   const totalExpenditure = useMemo(() => {
     const rawExpenses = getStoredExpenses();
     const campusFiltered = filterExpensesByCampus(rawExpenses, selectedCampus);
-    return campusFiltered.reduce((acc, e) => acc + (e.amount || 0), 0);
+    return addMoney(...campusFiltered.map(e => e.amount || 0));
   }, [selectedCampus]);
 
-  const netSurplus = totalRevenue - totalExpenditure;
+  const netSurplus = subtractMoney(totalRevenue, totalExpenditure);
 
   // CEO Thumbnail Groups
   const ceoThumbnailGroups = [
@@ -450,6 +452,15 @@ export default function CEOPortal({
           badge: 'Growth Index',
           color: 'from-indigo-600 to-violet-600',
           badgeBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+        },
+        {
+          id: 'financial_reconciliation',
+          label: 'Financial Reconciliation & Exceptions',
+          description: 'Phase 30 cross-ledger mathematical audit & discrepancy analysis',
+          icon: Scale,
+          badge: 'Phase 30 Audit',
+          color: 'from-emerald-600 to-teal-700',
+          badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
         }
       ]
     },
@@ -811,6 +822,16 @@ export default function CEOPortal({
                 </div>
               )}
 
+              {activeModule === 'financial_reconciliation' && (
+                <FinancialReconciliationDashboard
+                  currentUser={currentUser}
+                  students={students}
+                  bills={bills}
+                  payments={payments}
+                  onClose={() => setActiveModule('dashboard')}
+                />
+              )}
+
               {activeModule === 'attendance' && (
                 <AttendanceManager 
                   type="student"
@@ -892,15 +913,15 @@ export default function CEOPortal({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="p-6 bg-blue-900/10 rounded-2xl border border-blue-900/30">
                              <span className="text-[10px] font-black text-blue-400 uppercase">Total Revenue</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalRevenue.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">GHS {totalRevenue.toLocaleString()}</h3>
                           </div>
                           <div className="p-6 bg-rose-900/10 rounded-2xl border border-rose-900/30">
                              <span className="text-[10px] font-black text-rose-400 uppercase">Total Expenditure</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalExpenditure.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">GHS {totalExpenditure.toLocaleString()}</h3>
                           </div>
                           <div className="p-6 bg-emerald-900/10 rounded-2xl border border-emerald-900/30">
                              <span className="text-[10px] font-black text-emerald-400 uppercase">Net Surplus</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {netSurplus.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">GHS {netSurplus.toLocaleString()}</h3>
                           </div>
                       </div>
                     </div>

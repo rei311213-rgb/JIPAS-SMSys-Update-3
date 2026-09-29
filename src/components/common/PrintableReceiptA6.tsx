@@ -51,7 +51,7 @@ function numberToWordsEN(num: number): string {
   if (numCopy > 0) {
     word += convertLessThanOneThousand(numCopy);
   }
-  return word.trim() + ' CFA Francs Only';
+  return word.trim() + ' Ghana Cedis Only';
 }
 
 // French Number to Words Converter
@@ -93,7 +93,7 @@ function numberToWordsFR(num: number): string {
   if (numCopy > 0) {
     word += convert(numCopy);
   }
-  return word.trim() + ' Francs CFA Seulement';
+  return word.trim() + ' Cedis Ghana Seulement';
 }
 
 interface PrintableReceiptA6Props {
@@ -487,7 +487,7 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
                 <thead>
                   <tr className="bg-slate-950 text-white text-[7.5px] uppercase font-bold tracking-wider">
                     <th className="p-1 border border-slate-950">{language === 'FR' ? 'Libellé' : 'Particulars'}</th>
-                    <th className="p-1 text-right border border-slate-950">{language === 'FR' ? 'Montant (CFA)' : 'Amount (CFA)'}</th>
+                    <th className="p-1 text-right border border-slate-950">{language === 'FR' ? 'Montant (GHS)' : 'Amount (GHS)'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-mono">
@@ -495,32 +495,32 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
                   {arrearsVal > 0 && (
                     <tr className="text-slate-600">
                       <td className="p-1 font-sans">{dict.previousArrears}</td>
-                      <td className="p-1 text-right">{arrearsVal.toLocaleString()} CFA</td>
+                      <td className="p-1 text-right">{arrearsVal.toLocaleString()} GHS</td>
                     </tr>
                   )}
                   {discountVal > 0 && (
                     <tr className="text-rose-600">
                       <td className="p-1 font-sans">{dict.discount}</td>
-                      <td className="p-1 text-right">-{discountVal.toLocaleString()} CFA</td>
+                      <td className="p-1 text-right">-{discountVal.toLocaleString()} GHS</td>
                     </tr>
                   )}
                   <tr>
                     <td className="p-1 font-semibold text-slate-800 font-sans">{receipt.notes || receipt.paidAs || (language === 'FR' ? 'Frais de Scolarité' : 'Tuition & Academic Fees')}</td>
-                    <td className="p-1 text-right font-bold text-slate-900">{(payableVal - arrearsVal + discountVal).toLocaleString()} CFA</td>
+                    <td className="p-1 text-right font-bold text-slate-900">{(payableVal - arrearsVal + discountVal).toLocaleString()} GHS</td>
                   </tr>
                   
                   {/* Totals & Net summaries */}
                   <tr className="bg-slate-100 font-bold text-slate-900 border-t border-slate-900">
                     <td className="p-1 text-[7.5px] font-sans">{dict.totalPayable}</td>
-                    <td className="p-1 text-right">{payableVal.toLocaleString()} CFA</td>
+                    <td className="p-1 text-right">{payableVal.toLocaleString()} GHS</td>
                   </tr>
                   <tr className="bg-emerald-50 font-black text-emerald-800 text-[8.5px] border-t-2 border-slate-900">
                     <td className="p-1 text-[7.5px] font-sans">{dict.amountPaid}</td>
-                    <td className="p-1 text-right">{amountPaidVal.toLocaleString()} CFA</td>
+                    <td className="p-1 text-right">{amountPaidVal.toLocaleString()} GHS</td>
                   </tr>
                   <tr className="bg-rose-50 font-bold text-rose-800">
                     <td className="p-1 text-[7.5px] font-sans">{dict.currentBalance}</td>
-                    <td className="p-1 text-right">{balanceVal.toLocaleString()} CFA</td>
+                    <td className="p-1 text-right">{balanceVal.toLocaleString()} GHS</td>
                   </tr>
                 </tbody>
               </table>
@@ -684,38 +684,38 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
             <thead>
               <tr className="bg-black text-white text-[7px] uppercase font-bold tracking-wider">
                 <th className="p-0.5 border border-black">{language === 'FR' ? 'Libellé' : 'Particulars'}</th>
-                <th className="p-0.5 text-right border border-black">{language === 'FR' ? 'Montant (CFA)' : 'Amount (CFA)'}</th>
+                <th className="p-0.5 text-right border border-black">{language === 'FR' ? 'Montant (GHS)' : 'Amount (GHS)'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-mono">
               {arrearsVal > 0 && (
                 <tr className="text-black">
                   <td className="p-0.5 font-sans">{dict.previousArrears}</td>
-                  <td className="p-0.5 text-right">{arrearsVal.toLocaleString()} CFA</td>
+                  <td className="p-0.5 text-right">{arrearsVal.toLocaleString()} GHS</td>
                 </tr>
               )}
               {discountVal > 0 && (
                 <tr className="text-black">
                   <td className="p-0.5 font-sans">{dict.discount}</td>
-                  <td className="p-0.5 text-right">-{discountVal.toLocaleString()} CFA</td>
+                  <td className="p-0.5 text-right">-{discountVal.toLocaleString()} GHS</td>
                 </tr>
               )}
               <tr>
                 <td className="p-0.5 font-semibold font-sans">{receipt.notes || receipt.paidAs || (language === 'FR' ? 'Frais de Scolarité' : 'Tuition & Academic Fees')}</td>
-                <td className="p-0.5 text-right font-bold">{(payableVal - arrearsVal + discountVal).toLocaleString()} CFA</td>
+                <td className="p-0.5 text-right font-bold">{(payableVal - arrearsVal + discountVal).toLocaleString()} GHS</td>
               </tr>
               
               <tr className="bg-white font-bold text-black border-t border-black">
                 <td className="p-0.5 text-[7px] font-sans">{dict.totalPayable}</td>
-                <td className="p-0.5 text-right">{payableVal.toLocaleString()} CFA</td>
+                <td className="p-0.5 text-right">{payableVal.toLocaleString()} GHS</td>
               </tr>
               <tr className="bg-white font-black text-black text-[8px] border-t-2 border-black">
                 <td className="p-0.5 text-[7px] font-sans">{dict.amountPaid}</td>
-                <td className="p-0.5 text-right">{amountPaidVal.toLocaleString()} CFA</td>
+                <td className="p-0.5 text-right">{amountPaidVal.toLocaleString()} GHS</td>
               </tr>
               <tr className="bg-white font-bold text-black">
                 <td className="p-0.5 text-[7px] font-sans">{dict.currentBalance}</td>
-                <td className="p-0.5 text-right">{balanceVal.toLocaleString()} CFA</td>
+                <td className="p-0.5 text-right">{balanceVal.toLocaleString()} GHS</td>
               </tr>
             </tbody>
           </table>

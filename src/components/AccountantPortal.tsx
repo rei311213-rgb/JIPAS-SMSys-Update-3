@@ -20,6 +20,7 @@ import BankDepositManager from './common/BankDepositManager';
 import FinancialDataImporter from './common/FinancialDataImporter';
 import DepartmentalFinancialSummary from './common/DepartmentalFinancialSummary';
 import FinancialAuditTrail from './common/FinancialAuditTrail';
+import FinancialReconciliationDashboard from './admin/FinancialReconciliationDashboard';
 import RevenueTrendsModule from './accountant/RevenueTrendsModule';
 import AutomatedFeeReminderUtility from './accountant/AutomatedFeeReminderUtility';
 import StaffAttendanceTracker from './common/StaffAttendanceTracker';
@@ -40,9 +41,10 @@ import {
   Calculator, CreditCard, DollarSign, Plus, FileText, 
   Search, Printer, Download, CheckCircle2, ArrowDownRight, ArrowLeft, Calendar, User, Check, Settings, AlertTriangle, Send,
   RotateCw, Filter, Phone, MessageSquare, Clock, Sparkles, Wallet, Receipt, Layers, ShieldCheck,
-  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3
+  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { addMoney, formatCurrency, calculateBillBalance, CURRENCY } from '../utils/financeUtils';
 
 interface AccountantPortalProps {
   bills: StudentBill[];
@@ -72,6 +74,7 @@ export const VALID_ACCOUNTANT_TABS = new Set<string>([
   'staff-attendance',
   'bank-deposits',
   'dept-financial-summary',
+  'financial-reconciliation',
   'audit-trail'
 ]);
 
@@ -92,6 +95,7 @@ export type AccountantTab =
   | 'staff-attendance'
   | 'bank-deposits' 
   | 'dept-financial-summary' 
+  | 'financial-reconciliation'
   | 'audit-trail';
 
 export const getInitialAccountantTab = (): AccountantTab => {
@@ -204,9 +208,9 @@ export default function AccountantPortal({
     const student = students.find(s => s.id === receipt.studentId || s.admissionNo === receipt.admissionNo);
     const parentName = student?.parentName || student?.guardianName || 'Parent / Guardian';
     const parentPhone = student?.parentPhone || 'N/A';
-    const totalPayable = ((receipt.paid ?? 0) + (receipt.balance ?? 0)).toFixed(2);
-    const amountPaid = (receipt.paid ?? 0).toFixed(2);
-    const balanceRemaining = (receipt.balance ?? 0).toFixed(2);
+    const totalPayable = formatCurrency((receipt.paid ?? 0) + (receipt.balance ?? 0));
+    const amountPaid = formatCurrency(receipt.paid ?? 0);
+    const balanceRemaining = formatCurrency(receipt.balance ?? 0);
 
     const logoSrc = getSchoolLogo();
     const absoluteLogoSrc = logoSrc.startsWith('http') || logoSrc.startsWith('data:') 
@@ -286,23 +290,23 @@ export default function AccountantPortal({
                   <th>Description / Fee Item</th>
                   <th>Academic Session</th>
                   <th style="text-align: right;">Total Billed</th>
-                  <th style="text-align: right;">Amount Paid (CFA)</th>
+                  <th style="text-align: right;">Amount Paid (GHS)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><strong>${receipt.paidAs || 'Tuition & Terminal Instruction Fee'}</strong></td>
                   <td>2025/2026 Academic Session</td>
-                  <td class="amount">${totalPayable} CFA</td>
-                  <td class="amount" style="font-weight: bold; color: #047857;">${amountPaid} CFA</td>
+                  <td class="amount">${totalPayable} GHS</td>
+                  <td class="amount" style="font-weight: bold; color: #047857;">${amountPaid} GHS</td>
                 </tr>
                 <tr class="paid-row">
                   <td colspan="3">Net Amount Paid This Transaction</td>
-                  <td class="amount">${amountPaid} CFA</td>
+                  <td class="amount">${amountPaid} GHS</td>
                 </tr>
                 <tr class="balance-row">
                   <td colspan="3">Net Remaining Outstanding Balance</td>
-                  <td class="amount">${balanceRemaining} CFA</td>
+                  <td class="amount">${balanceRemaining} GHS</td>
                 </tr>
               </tbody>
             </table>
@@ -484,9 +488,9 @@ export default function AccountantPortal({
   const [selectedBillsForBatchAlert, setSelectedBillsForBatchAlert] = useState<string[]>([]);
 
   // Financial calculations
-  const totalCollected = payments.reduce((acc, p) => acc + p.paid, 0);
-  const totalOutstanding = bills.reduce((acc, b) => acc + b.balance, 0);
-  const totalBilled = bills.reduce((acc, b) => acc + b.payable, 0);
+  const totalCollected = useMemo(() => addMoney(...payments.map(p => p.paid)), [payments]);
+  const totalOutstanding = useMemo(() => addMoney(...bills.map(b => b.balance)), [bills]);
+  const totalBilled = useMemo(() => addMoney(...bills.map(b => b.payable)), [bills]);
 
   // Unpaid & Partially Paid breakdown
   const unpaidBills = bills.filter(b => b.balance > 0 && b.paid === 0);
@@ -495,7 +499,8 @@ export default function AccountantPortal({
 
   // Action Required overdue fee accounts
   const actionRequiredBills = bills.filter(b => b.actionRequired || b.balance > 0);
-  const totalActionRequiredBalance = actionRequiredBills.reduce((acc, b) => acc + b.balance, 0);
+  const totalActionRequiredBalance = useMemo(() => addMoney(...actionRequiredBills.map(b => b.balance)), [actionRequiredBills]);
+
   const criticalCount = actionRequiredBills.filter(
     b => b.actionSeverity === 'Critical' || b.balance >= 300 || (b.arrears && b.arrears > 0)
   ).length;
@@ -679,7 +684,7 @@ export default function AccountantPortal({
   }, [students, payments]);
 
   // Financial Dashboard Totals
-  const totalCollections = useMemo(() => bills.reduce((sum, b) => sum + (b.paid || 0), 0), [bills]);
+  const totalCollections = useMemo(() => addMoney(...bills.map(b => b.paid || 0)), [bills]);
 
   // Group bills by class for the dashboard bar chart
   const barDataByClass = useMemo(() => {
@@ -689,8 +694,8 @@ export default function AccountantPortal({
       if (!groups[cls]) {
         groups[cls] = { class: cls, collected: 0, outstanding: 0 };
       }
-      groups[cls].collected += b.paid || 0;
-      groups[cls].outstanding += b.balance || 0;
+      groups[cls].collected = addMoney(groups[cls].collected, b.paid || 0);
+      groups[cls].outstanding = addMoney(groups[cls].outstanding, b.balance || 0);
     });
     // Return top 6-8 classes to prevent overcrowding in the visual chart
     return Object.values(groups).slice(0, 6);
@@ -798,8 +803,8 @@ export default function AccountantPortal({
       'Class',
       'Paid As / Description',
       'Payment Method',
-      'Amount Paid (CFA)',
-      'Remaining Balance (CFA)',
+      'Amount Paid (GHS)',
+      'Remaining Balance (GHS)',
       'Payment Status',
       'Collected By / Cashier',
       'Academic Term'
@@ -1003,7 +1008,7 @@ export default function AccountantPortal({
               {actionRequiredBills.length} Student Accounts Flagged with &ldquo;Action Required&rdquo;
             </h3>
             <p className="text-xs text-rose-200/90 mt-0.5">
-              Identified overdue fees totaling <span className="font-mono font-bold text-white">{(totalActionRequiredBalance ?? 0).toFixed(2)} CFA</span> ({criticalCount} Critical Arrears) needing quick bursary follow-up.
+              Identified overdue fees totaling <span className="font-mono font-bold text-white">{(totalActionRequiredBalance ?? 0).toFixed(2)} GHS</span> ({criticalCount} Critical Arrears) needing quick bursary follow-up.
             </p>
           </div>
         </div>
@@ -1046,7 +1051,7 @@ export default function AccountantPortal({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-600">
           <span className="text-xl sm:text-2xl font-black text-emerald-700">
-            {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })} GHS
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Total Collections</p>
           <span className="text-[10px] text-slate-500">{payments.length} verified receipts</span>
@@ -1054,7 +1059,7 @@ export default function AccountantPortal({
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-rose-600">
           <span className="text-xl sm:text-2xl font-black text-rose-600">
-            {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} GHS
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Outstanding Balance</p>
           <span className="text-[10px] text-slate-500">Uncollected arrears</span>
@@ -1062,7 +1067,7 @@ export default function AccountantPortal({
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-blue-600">
           <span className="text-xl sm:text-2xl font-black text-blue-700">
-            {totalBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {totalBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })} GHS
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Total Billable Amount</p>
           <span className="text-[10px] text-slate-500">{bills.length} student term bills</span>
@@ -1503,6 +1508,44 @@ export default function AccountantPortal({
             </button>
 
             <button
+              onClick={() => setActiveTab('financial-reconciliation')}
+              className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
+                activeTab === 'financial-reconciliation'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.02]'
+                  : 'bg-gradient-to-br from-emerald-50/80 to-slate-50 hover:from-emerald-600 hover:to-emerald-700 border-emerald-100 hover:border-emerald-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
+                  activeTab === 'financial-reconciliation'
+                    ? 'bg-white text-emerald-700'
+                    : 'bg-emerald-600 text-white group-hover:bg-white group-hover:text-emerald-700'
+                }`}>
+                  <Scale className="w-5 h-5" />
+                </div>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
+                  activeTab === 'financial-reconciliation'
+                    ? 'bg-emerald-800 text-emerald-100'
+                    : 'bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white'
+                }`}>
+                  Phase 30
+                </span>
+              </div>
+              <div>
+                <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
+                  activeTab === 'financial-reconciliation' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                }`}>
+                  Reconciliation & Audit
+                </h4>
+                <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
+                  activeTab === 'financial-reconciliation' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
+                }`}>
+                  Cross-ledger verification, duplicate detection & exception report
+                </p>
+              </div>
+            </button>
+
+            <button
               onClick={() => setActiveTab('audit-trail')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
                 activeTab === 'audit-trail'
@@ -1650,6 +1693,17 @@ export default function AccountantPortal({
         />
       )}
 
+      {/* FINANCIAL RECONCILIATION TAB (PHASE 30) */}
+      {activeTab === 'financial-reconciliation' && (
+        <FinancialReconciliationDashboard
+          currentUser={currentUser}
+          students={students}
+          bills={bills}
+          payments={payments}
+          onClose={() => setActiveTab('dashboard')}
+        />
+      )}
+
       {/* AUDIT TRAIL TAB */}
       {activeTab === 'audit-trail' && (
         <FinancialAuditTrail 
@@ -1732,17 +1786,17 @@ export default function AccountantPortal({
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Billed Fees</span>
                 <h4 className="text-2xl font-black text-slate-900 font-mono">
-                  {((totalCollections || 0) + (totalOutstanding || 0)).toFixed(2)} CFA
+                  {((totalCollections || 0) + (totalOutstanding || 0)).toFixed(2)} GHS
                 </h4>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-100/60 border border-emerald-200 p-3 rounded-2xl">
                   <span className="text-[9px] font-black uppercase text-emerald-800">Collected</span>
-                  <h5 className="text-base font-bold text-emerald-950 font-mono">{(totalCollections || 0).toFixed(2)} CFA</h5>
+                  <h5 className="text-base font-bold text-emerald-950 font-mono">{(totalCollections || 0).toFixed(2)} GHS</h5>
                 </div>
                 <div className="bg-rose-100/60 border border-rose-200 p-3 rounded-2xl">
                   <span className="text-[9px] font-black uppercase text-rose-800">Outstanding</span>
-                  <h5 className="text-base font-bold text-rose-950 font-mono">{(totalOutstanding || 0).toFixed(2)} CFA</h5>
+                  <h5 className="text-base font-bold text-rose-950 font-mono">{(totalOutstanding || 0).toFixed(2)} GHS</h5>
                 </div>
               </div>
             </div>
@@ -1769,7 +1823,7 @@ export default function AccountantPortal({
                       <Cell fill="#f43f5e" />
                     </Pie>
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} CFA`, '']}
+                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} GHS`, '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                   </PieChart>
@@ -1791,7 +1845,7 @@ export default function AccountantPortal({
                     <XAxis dataKey="class" tick={{ fontSize: 9, fontWeight: 'bold', fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} CFA`, '']}
+                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} GHS`, '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                     <Bar dataKey="collected" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -2041,7 +2095,7 @@ export default function AccountantPortal({
                           </span>
                         </td>
                         <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm">
-                          {((p.paid ?? (p as any).amount) ?? 0).toFixed(2)} CFA
+                          {((p.paid ?? (p as any).amount) ?? 0).toFixed(2)} GHS
                         </td>
                         <td className="p-3">
                           <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
@@ -2232,7 +2286,7 @@ export default function AccountantPortal({
                             <thead>
                               <tr>
                                 <th>Description</th>
-                                <th>Amount (CFA)</th>
+                                <th>Amount (GHS)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2376,8 +2430,8 @@ export default function AccountantPortal({
                   <span className="text-cyan-400/60">•</span>
                   <span className="text-cyan-200">
                     Combined Arrears: <strong className="text-white font-mono">{
-                      bills.filter(b => selectedBillsForBatchAlert.includes(b.id)).reduce((acc, b) => acc + (b.balance ?? 0), 0).toFixed(2)
-                    } CFA</strong>
+                      addMoney(...bills.filter(b => selectedBillsForBatchAlert.includes(b.id)).map(b => b.balance ?? 0)).toFixed(2)
+                    } GHS</strong>
                   </span>
                 </div>
 
@@ -2474,7 +2528,7 @@ export default function AccountantPortal({
                       const studentObj = students.find(s => s.id === b.studentId || s.admissionNo === b.admissionNo);
                       const phoneClean = (studentObj?.parentPhone || '0240000000').replace(/[^0-9]/g, '');
                       const waPhone = phoneClean.startsWith('0') ? '233' + phoneClean.substring(1) : phoneClean;
-                      const waText = `Dear ${studentObj?.parentName || 'Parent'}, gentle fee reminder from JIPAS: ${b.studentName} (${b.className}, ${b.admissionNo}) has an outstanding balance of ${(b.balance ?? 0).toFixed(2)} CFA (Total bill: ${(b.payable ?? 0).toFixed(2)} CFA). Kindly arrange settlement at the bursary office.`;
+                      const waText = `Dear ${studentObj?.parentName || 'Parent'}, gentle fee reminder from JIPAS: ${b.studentName} (${b.className}, ${b.admissionNo}) has an outstanding balance of ${(b.balance ?? 0).toFixed(2)} GHS (Total bill: ${(b.payable ?? 0).toFixed(2)} GHS). Kindly arrange settlement at the bursary office.`;
                       const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
                       return (
@@ -2521,10 +2575,10 @@ export default function AccountantPortal({
                             ) : null}
                           </td>
                           <td className="p-3 text-slate-700">{b.className}</td>
-                          <td className="p-3 text-right font-mono font-bold text-slate-800">{(b.payable ?? 0).toFixed(2)} CFA</td>
-                          <td className="p-3 text-right font-mono font-bold text-emerald-600">{(b.paid ?? 0).toFixed(2)} CFA</td>
+                          <td className="p-3 text-right font-mono font-bold text-slate-800">{(b.payable ?? 0).toFixed(2)} GHS</td>
+                          <td className="p-3 text-right font-mono font-bold text-emerald-600">{(b.paid ?? 0).toFixed(2)} GHS</td>
                           <td className={`p-3 text-right font-mono font-black text-sm ${(b.balance ?? 0) === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {(b.balance ?? 0).toFixed(2)} CFA
+                            {(b.balance ?? 0).toFixed(2)} GHS
                           </td>
                           <td className="p-3">
                             {isUnpaid ? (
@@ -2533,7 +2587,7 @@ export default function AccountantPortal({
                                   <AlertTriangle className="w-2.5 h-2.5 text-rose-600" /> Unpaid (0% Paid)
                                 </span>
                                 <div className="text-[10px] text-rose-700 font-bold">
-                                  Bal: {(b.balance ?? 0).toFixed(2)} CFA
+                                  Bal: {(b.balance ?? 0).toFixed(2)} GHS
                                 </div>
                               </div>
                             ) : isPartial ? (
@@ -2873,7 +2927,7 @@ export default function AccountantPortal({
                         <div className="text-right shrink-0">
                           {hasArrears ? (
                             <span className="text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg block">
-                              {(balance ?? 0).toFixed(2)} CFA
+                              {(balance ?? 0).toFixed(2)} GHS
                               <span className="block text-[9px] font-medium text-rose-500 uppercase">Balance Due</span>
                             </span>
                           ) : (
@@ -2945,22 +2999,22 @@ export default function AccountantPortal({
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>
-                            <span className="font-mono font-black text-rose-600 text-base">{(selectedBill.balance ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-mono font-black text-rose-600 text-base">{(selectedBill.balance ?? 0).toFixed(2)} GHS</span>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center text-xs">
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Payable</span>
-                            <span className="font-bold text-slate-800">{(selectedBill.payable ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-bold text-slate-800">{(selectedBill.payable ?? 0).toFixed(2)} GHS</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Paid to Date</span>
-                            <span className="font-bold text-emerald-600">{(selectedBill.paid ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-bold text-emerald-600">{(selectedBill.paid ?? 0).toFixed(2)} GHS</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Net Balance</span>
-                            <span className="font-black text-rose-600">{(selectedBill.balance ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-black text-rose-600">{(selectedBill.balance ?? 0).toFixed(2)} GHS</span>
                           </div>
                         </div>
                       </div>
@@ -2970,7 +3024,7 @@ export default function AccountantPortal({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Amount Paid (CFA) *
+                          Amount Paid (GHS) *
                         </label>
                         {selectedBill && selectedBill.balance > 0 && (
                           <div className="flex gap-1.5">
@@ -2979,7 +3033,7 @@ export default function AccountantPortal({
                               onClick={() => setAmountPaid(selectedBill.balance.toString())}
                               className="text-[10px] font-black bg-rose-100 hover:bg-rose-200 text-rose-800 px-2 py-0.5 rounded cursor-pointer transition-colors"
                             >
-                              Pay Full Balance ({(selectedBill.balance ?? 0).toFixed(0)} CFA)
+                              Pay Full Balance ({(selectedBill.balance ?? 0).toFixed(0)} GHS)
                             </button>
                             <button
                               type="button"
@@ -3152,7 +3206,7 @@ export default function AccountantPortal({
                       <span className="text-slate-600 font-medium">Logged by: {summary.secretaryName}</span>
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Collections: <strong className="text-emerald-700 font-mono">CFA {(summary.totalFeesCollected ?? 0).toFixed(2)}</strong> ({summary.receiptsCount} receipts) • Expenses: <strong className="text-rose-600 font-mono">CFA {((summary.totalExpensesIncurred ?? summary.totalExpensesLogged) ?? 0).toFixed(2)}</strong> • Net Cash to Bursary: <strong className="text-slate-900 font-mono">CFA {(summary.netCashOnHand ?? 0).toFixed(2)}</strong>
+                      Collections: <strong className="text-emerald-700 font-mono">GHS {(summary.totalFeesCollected ?? 0).toFixed(2)}</strong> ({summary.receiptsCount} receipts) • Expenses: <strong className="text-rose-600 font-mono">GHS {((summary.totalExpensesIncurred ?? summary.totalExpensesLogged) ?? 0).toFixed(2)}</strong> • Net Cash to Bursary: <strong className="text-slate-900 font-mono">GHS {(summary.netCashOnHand ?? 0).toFixed(2)}</strong>
                     </div>
                   </div>
 
@@ -3411,10 +3465,10 @@ export default function AccountantPortal({
                         2025/2026 Academic Session
                       </td>
                       <td className="p-3 text-right font-mono text-slate-700 font-bold">
-                        {(totalPayable ?? 0).toFixed(2)} CFA
+                        {(totalPayable ?? 0).toFixed(2)} GHS
                       </td>
                       <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm">
-                        {(amountPaid ?? 0).toFixed(2)} CFA
+                        {(amountPaid ?? 0).toFixed(2)} GHS
                       </td>
                     </tr>
                     <tr className="bg-emerald-50 font-bold text-emerald-900">
@@ -3422,7 +3476,7 @@ export default function AccountantPortal({
                         Net Amount Received (This Transaction):
                       </td>
                       <td className="p-2.5 text-right font-mono font-black text-emerald-800 text-sm">
-                        {(amountPaid ?? 0).toFixed(2)} CFA
+                        {(amountPaid ?? 0).toFixed(2)} GHS
                       </td>
                     </tr>
                     <tr className="bg-rose-50 font-bold text-rose-900">
@@ -3430,7 +3484,7 @@ export default function AccountantPortal({
                         Remaining Outstanding Balance:
                       </td>
                       <td className="p-2.5 text-right font-mono font-black text-rose-700 text-sm">
-                        {(balanceRemaining ?? 0).toFixed(2)} CFA
+                        {(balanceRemaining ?? 0).toFixed(2)} GHS
                       </td>
                     </tr>
                   </tbody>

@@ -1306,7 +1306,7 @@ export async function savePayment(payment: PaymentRecord) {
       saveStoredPayments(getStoredPayments());
     },
     undefined,
-    `Payment: CFA ${payment.amount} - ${payment.studentName || payment.studentId} (Receipt: ${payment.receiptNo || payment.id})`
+    `Payment: GHS ${payment.amount} - ${payment.studentName || payment.studentId} (Receipt: ${payment.receiptNo || payment.id})`
   );
 
   return payment;
@@ -2155,7 +2155,7 @@ export async function saveExpense(expense: SchoolExpenseRecord) {
       saveStoredExpenses(updated);
     },
     undefined,
-    `Expense: CFA ${expense.amount} - ${expense.title}`
+    `Expense: GHS ${expense.amount} - ${expense.title}`
   );
 }
 
@@ -2187,7 +2187,7 @@ export async function saveBankDeposit(deposit: BankDepositRecord) {
       saveStoredBankDeposits(updated);
     },
     undefined,
-    `Bank Deposit: CFA ${deposit.amount} (${deposit.bankName})`
+    `Bank Deposit: GHS ${deposit.amount} (${deposit.bankName})`
   );
 }
 
@@ -2815,7 +2815,7 @@ export async function saveFeeSubmission(submission: FeeSubmissionItem): Promise<
       saveStoredFeeSubmissions(updated);
     },
     undefined,
-    `Fee Submission: ${submission.studentName} (CFA ${submission.amount})`
+    `Fee Submission: ${submission.studentName} (GHS ${submission.amount})`
   );
 }
 

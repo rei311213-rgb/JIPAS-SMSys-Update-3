@@ -29,6 +29,7 @@ import {
   getStoredClassFeeTariffs
 } from '../../services/dbService';
 import { INITIAL_PAYMENT_SETTINGS, INITIAL_CLASS_FEE_TARIFFS } from '../../services/storageService';
+import { addMoney } from '../../utils/financeUtils';
 import { 
   Plus, 
   Edit3, 
@@ -352,15 +353,17 @@ export default function FeesSettingsManager({
 
   // Statistics
   const totalMandatoryTermFees = useMemo(() => {
-    return feeOptions
+    const list = feeOptions
       .filter(f => f.mandatory && f.isActive !== false && f.frequency === 'Termly')
-      .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+      .map(curr => curr.amount || 0);
+    return addMoney(...list);
   }, [feeOptions]);
 
   const totalOptionalFees = useMemo(() => {
-    return feeOptions
+    const list = feeOptions
       .filter(f => !f.mandatory && f.isActive !== false)
-      .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+      .map(curr => curr.amount || 0);
+    return addMoney(...list);
   }, [feeOptions]);
 
   // Handle Save / Add Item
@@ -393,7 +396,7 @@ export default function FeesSettingsManager({
       };
       const updated = [newItem, ...feeOptions];
       triggerUpdateFeeOptions(updated);
-      showNotification(`New fee tariff "${newItem.name}" (${newItem.amount} CFA) added!`);
+      showNotification(`New fee tariff "${newItem.name}" (${newItem.amount} GHS) added!`);
       setIsAddingItem(false);
     }
 
@@ -618,7 +621,7 @@ export default function FeesSettingsManager({
     const studentNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
       title: '✅ Fee Payment Verified & Approved',
-      message: `Your payment proof of ${(verifyingSubmission.amount ?? 0).toFixed(2)} CFA (Txn ID: ${verifyingSubmission.transactionId}) for ${verifyingSubmission.studentName} has been verified and approved. Official Receipt No: ${receiptNo}.`,
+      message: `Your payment proof of ${(verifyingSubmission.amount ?? 0).toFixed(2)} GHS (Txn ID: ${verifyingSubmission.transactionId}) for ${verifyingSubmission.studentName} has been verified and approved. Official Receipt No: ${receiptNo}.`,
       date: new Date().toISOString().split('T')[0],
       type: 'General',
       recipientGroup: verifyingSubmission.studentName,
@@ -627,7 +630,7 @@ export default function FeesSettingsManager({
     await saveNotification(studentNotif);
     if (onAddNotification) onAddNotification(studentNotif);
 
-    showNotification(`Payment from ${verifyingSubmission.studentName} (${verifyingSubmission.amount} CFA) approved! Receipt: ${receiptNo}`);
+    showNotification(`Payment from ${verifyingSubmission.studentName} (${verifyingSubmission.amount} GHS) approved! Receipt: ${receiptNo}`);
     setVerifyingSubmission(null);
   };
 
@@ -645,7 +648,7 @@ export default function FeesSettingsManager({
     const studentNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
       title: '⚠️ Fee Payment Submission Update',
-      message: `Your payment proof submission of ${(rejectingSubmission.amount ?? 0).toFixed(2)} CFA (Txn ID: ${rejectingSubmission.transactionId}) for ${rejectingSubmission.studentName} was rejected: "${rejectionReasonInput.trim()}". Please review and re-submit.`,
+      message: `Your payment proof submission of ${(rejectingSubmission.amount ?? 0).toFixed(2)} GHS (Txn ID: ${rejectingSubmission.transactionId}) for ${rejectingSubmission.studentName} was rejected: "${rejectionReasonInput.trim()}". Please review and re-submit.`,
       date: new Date().toISOString().split('T')[0],
       type: 'General',
       recipientGroup: rejectingSubmission.studentName,
@@ -929,7 +932,7 @@ export default function FeesSettingsManager({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Fee Value / Amount (CFA) *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Fee Value / Amount (GHS) *</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -940,7 +943,7 @@ export default function FeesSettingsManager({
                       onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
                       className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-xl font-mono font-black text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 text-sm"
                     />
-                    <span className="absolute left-2.5 top-2.5 font-bold text-slate-400 text-xs">CFA</span>
+                    <span className="absolute left-2.5 top-2.5 font-bold text-slate-400 text-xs">GHS</span>
                   </div>
                 </div>
 
@@ -1098,7 +1101,7 @@ export default function FeesSettingsManager({
                     <th className="p-3">Applicable Class</th>
                     <th className="p-3">Frequency</th>
                     <th className="p-3">Type</th>
-                    <th className="p-3 text-right">Amount (CFA)</th>
+                    <th className="p-3 text-right">Amount (GHS)</th>
                     <th className="p-3 text-center">Status</th>
                     <th className="p-3 text-center">Actions</th>
                   </tr>
@@ -1150,7 +1153,7 @@ export default function FeesSettingsManager({
                             )}
                           </td>
                           <td className="p-3 text-right font-mono font-black text-slate-900 text-sm">
-                            {item.amount.toLocaleString()} CFA
+                            {item.amount.toLocaleString()} GHS
                           </td>
                           <td className="p-3 text-center">
                             <button
@@ -1510,7 +1513,7 @@ export default function FeesSettingsManager({
                     </div>
                     <div className="text-right">
                       <span className="font-mono font-black text-indigo-700 text-lg block">
-                        {totalCompulsory.toLocaleString()} CFA
+                        {totalCompulsory.toLocaleString()} GHS
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">Total Compulsory</span>
                     </div>
@@ -1519,29 +1522,29 @@ export default function FeesSettingsManager({
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between text-slate-600 items-center">
                       <span className="font-medium">Tuition Fee</span>
-                      <span className="font-mono font-bold text-slate-900">{cls.baseTuition.toLocaleString()} CFA</span>
+                      <span className="font-mono font-bold text-slate-900">{cls.baseTuition.toLocaleString()} GHS</span>
                     </div>
                     <div className="flex justify-between text-slate-600 items-center">
                       <span className="font-medium">PTA Development Dues</span>
-                      <span className="font-mono font-bold text-slate-900">{cls.ptaDues.toLocaleString()} CFA</span>
+                      <span className="font-mono font-bold text-slate-900">{cls.ptaDues.toLocaleString()} GHS</span>
                     </div>
                     <div className="flex justify-between text-slate-600 items-center">
                       <span className="font-medium">ICT & Computer Lab</span>
-                      <span className="font-mono font-bold text-slate-900">{cls.ictFee.toLocaleString()} CFA</span>
+                      <span className="font-mono font-bold text-slate-900">{cls.ictFee.toLocaleString()} GHS</span>
                     </div>
                     <div className="flex justify-between text-slate-600 items-center">
                       <span className="font-medium">Exam & Printing Fee</span>
-                      <span className="font-mono font-bold text-slate-900">{cls.examFee.toLocaleString()} CFA</span>
+                      <span className="font-mono font-bold text-slate-900">{cls.examFee.toLocaleString()} GHS</span>
                     </div>
                     <div className="flex justify-between text-slate-600 items-center">
                       <span className="font-medium">Infirmary Health Levy</span>
-                      <span className="font-mono font-bold text-slate-900">{cls.healthLevy.toLocaleString()} CFA</span>
+                      <span className="font-mono font-bold text-slate-900">{cls.healthLevy.toLocaleString()} GHS</span>
                     </div>
                   </div>
 
                   <div className="pt-2.5 border-t border-slate-200 flex justify-between items-center text-xs text-slate-600">
                     <span className="font-medium text-indigo-700">Optional Bus Transit</span>
-                    <span className="font-mono font-bold text-slate-800">+{cls.busTransit.toLocaleString()} CFA</span>
+                    <span className="font-mono font-bold text-slate-800">+{cls.busTransit.toLocaleString()} GHS</span>
                   </div>
 
                   {cls.notes && (
@@ -1952,7 +1955,7 @@ export default function FeesSettingsManager({
                     <th className="p-3">Student & Class</th>
                     <th className="p-3">Fee Category</th>
                     <th className="p-3">Payment Channel</th>
-                    <th className="p-3 text-right">Amount (CFA)</th>
+                    <th className="p-3 text-right">Amount (GHS)</th>
                     <th className="p-3 font-mono">Transaction ID / Ref</th>
                     <th className="p-3 text-center">Status</th>
                     <th className="p-3 text-center">Action / Verification</th>
@@ -1971,7 +1974,7 @@ export default function FeesSettingsManager({
                       <td className="p-3 font-semibold text-slate-800">{sub.feeType}</td>
                       <td className="p-3 text-slate-700">{sub.paymentMethod}</td>
                       <td className="p-3 text-right font-bold text-emerald-700 font-mono text-xs">
-                        {(sub.amount ?? 0).toFixed(2)} CFA
+                        {(sub.amount ?? 0).toFixed(2)} GHS
                       </td>
                       <td className="p-3 font-mono font-black text-indigo-700 bg-indigo-50/50 rounded px-2 py-1">
                         {sub.transactionId}
@@ -2196,12 +2199,12 @@ export default function FeesSettingsManager({
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-slate-200 font-bold">
                 <span className="text-slate-900">Amount Paid:</span>
-                <span className="font-mono text-emerald-700">{(verifyingSubmission.amount ?? 0).toFixed(2)} CFA</span>
+                <span className="font-mono text-emerald-700">{(verifyingSubmission.amount ?? 0).toFixed(2)} GHS</span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Approving this submission will generate an official receipt, post a <strong>{(verifyingSubmission.amount ?? 0).toFixed(2)} CFA</strong> payment to the student's ledger, and notify the student/parent via portal alert.
+              Approving this submission will generate an official receipt, post a <strong>{(verifyingSubmission.amount ?? 0).toFixed(2)} GHS</strong> payment to the student's ledger, and notify the student/parent via portal alert.
             </p>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -2408,12 +2411,12 @@ export default function FeesSettingsManager({
               <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-3">
                 <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4 text-indigo-600" />
-                  Fee Amounts (CFA Francs)
+                  Fee Amounts (GHS Francs)
                 </h4>
 
                 <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Tuition Fee (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">Tuition Fee (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2424,7 +2427,7 @@ export default function FeesSettingsManager({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">PTA Dues (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">PTA Dues (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2435,7 +2438,7 @@ export default function FeesSettingsManager({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">ICT & Lab Fee (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">ICT & Lab Fee (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2446,7 +2449,7 @@ export default function FeesSettingsManager({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Exam & Printing (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">Exam & Printing (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2457,7 +2460,7 @@ export default function FeesSettingsManager({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Infirmary Health Levy (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">Infirmary Health Levy (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2468,7 +2471,7 @@ export default function FeesSettingsManager({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Optional Bus Transit (CFA)</label>
+                    <label className="block text-slate-700 font-bold mb-1">Optional Bus Transit (GHS)</label>
                     <input
                       type="number"
                       min="0"
@@ -2482,7 +2485,7 @@ export default function FeesSettingsManager({
                 <div className="pt-2 border-t border-indigo-200/60 flex justify-between items-center text-xs">
                   <span className="font-bold text-indigo-900">Calculated Compulsory Total:</span>
                   <span className="font-mono font-black text-indigo-700 text-sm">
-                    {((tariffFormData.baseTuition || 0) + (tariffFormData.ptaDues || 0) + (tariffFormData.ictFee || 0) + (tariffFormData.examFee || 0) + (tariffFormData.healthLevy || 0)).toLocaleString()} CFA
+                    {((tariffFormData.baseTuition || 0) + (tariffFormData.ptaDues || 0) + (tariffFormData.ictFee || 0) + (tariffFormData.examFee || 0) + (tariffFormData.healthLevy || 0)).toLocaleString()} GHS
                   </span>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import {
   RefreshCw, Sparkles, MessageSquare, ChevronRight, ArrowUpRight, CreditCard
 } from 'lucide-react';
 import { Student, StudentBill, NotificationItem } from '../../types';
+import { addMoney } from '../../utils/financeUtils';
 import { 
   identifyStudentsForFeeReminder, 
   createNotificationFromReminder, 
@@ -65,7 +66,7 @@ export default function AutomatedFeeReminderUtility({
   const stats = useMemo(() => {
     const unpaidCount = allReminders.filter(r => r.status === 'Unpaid').length;
     const partialCount = allReminders.filter(r => r.status === 'Partially Paid').length;
-    const totalOutstanding = allReminders.reduce((sum, r) => sum + r.balance, 0);
+    const totalOutstanding = addMoney(...allReminders.map(r => r.balance || 0));
 
     return {
       totalStudents: allReminders.length,
@@ -126,9 +127,9 @@ export default function AutomatedFeeReminderUtility({
       'Parent Name',
       'Parent Phone',
       'Status',
-      'Total Billed (CFA)',
-      'Amount Paid (CFA)',
-      'Balance Due (CFA)',
+      'Total Billed (GHS)',
+      'Amount Paid (GHS)',
+      'Balance Due (GHS)',
       'Due Date',
       'Pre-formatted Notification Message'
     ];
@@ -266,7 +267,7 @@ export default function AutomatedFeeReminderUtility({
         <div className="bg-indigo-50 border border-indigo-200/80 rounded-2xl p-4">
           <span className="text-xs font-bold text-indigo-700 block uppercase">Outstanding Total</span>
           <p className="text-2xl font-black text-indigo-900 mt-1 font-mono">
-            {stats.totalOutstanding.toLocaleString()} <span className="text-xs font-bold text-indigo-400">CFA</span>
+            {stats.totalOutstanding.toLocaleString()} <span className="text-xs font-bold text-indigo-400">GHS</span>
           </p>
           <span className="text-[11px] text-indigo-600">Target collection balance</span>
         </div>
@@ -389,7 +390,7 @@ export default function AutomatedFeeReminderUtility({
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 block uppercase font-bold">Outstanding Balance</span>
                     <span className="font-mono font-black text-rose-600 text-sm">
-                      {reminder.balance.toLocaleString()} CFA
+                      {reminder.balance.toLocaleString()} GHS
                     </span>
                     <span className="text-[10px] text-slate-500 block">
                       Paid: {reminder.paid.toLocaleString()} / {reminder.totalPayable.toLocaleString()}

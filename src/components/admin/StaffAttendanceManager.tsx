@@ -42,6 +42,8 @@ export default function StaffAttendanceManager() {
   const [newQrName, setNewQrName] = useState<string>('');
   const [qrCodeList, setQrCodeList] = useState<EntranceQrCode[]>([]);
   const [activePrintPayload, setActivePrintPayload] = useState<{ qrCode: EntranceQrCode; rawToken: string; campusName: string } | null>(null);
+  const [editingQrCode, setEditingQrCode] = useState<EntranceQrCode | null>(null);
+  const [editQrName, setEditQrName] = useState<string>('');
 
   // Attendance Records State
   const [attendanceRecords, setAttendanceRecords] = useState<StaffAttendanceRecord[]>([]);
@@ -270,6 +272,47 @@ export default function StaffAttendanceManager() {
       fetchQrCodes();
     } catch (err: any) {
       alert('Failed to generate QR: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefreshQrCode = async (qr: EntranceQrCode) => {
+    setIsLoading(true);
+    try {
+      const rawToken = await EntranceQrService.refreshQrToken(qr.id, selectedCampusId);
+      const campusObj = campuses.find(c => c.id === selectedCampusId);
+      
+      setActivePrintPayload({
+        qrCode: { ...qr, is_active: true },
+        rawToken,
+        campusName: campusObj ? campusObj.name : 'Main Campus'
+      });
+      
+      setActionSuccessMsg('Entrance QR code updated with a fresh secure token. You must print and replace the physical poster.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchQrCodes();
+    } catch (err: any) {
+      alert('Failed to refresh QR: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateQrName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQrCode || !editQrName.trim()) return;
+
+    setIsLoading(true);
+    try {
+      await EntranceQrService.updateQrCode(editingQrCode.id, { name: editQrName.trim() });
+      setEditingQrCode(null);
+      setEditQrName('');
+      setActionSuccessMsg('Entrance gate name updated successfully.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchQrCodes();
+    } catch (err: any) {
+      alert('Failed to update gate name: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -974,19 +1017,18 @@ export default function StaffAttendanceManager() {
                           {qr.is_active && (
                             <>
                               <button
-                                onClick={() => {
-                                  const campusObj = campuses.find(c => c.id === selectedCampusId);
-                                  const rawToken = `JIPAS_ENTRANCE_${selectedCampusId}_${Date.now()}_${qr.id}`;
-                                  setActivePrintPayload({
-                                    qrCode: qr,
-                                    rawToken,
-                                    campusName: campusObj ? campusObj.name : 'Main Campus'
-                                  });
-                                }}
-                                className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 flex items-center gap-1 font-bold text-[10px] cursor-pointer"
-                                title="Print entrance A4 poster"
+                                onClick={() => { setEditingQrCode(qr); setEditQrName(qr.name); }}
+                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors"
+                                title="Edit Gate Name"
                               >
-                                <Printer className="w-3.5 h-3.5 text-slate-600" /> Print / Refresh Poster
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleRefreshQrCode(qr)}
+                                className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 flex items-center gap-1 font-bold text-[10px] cursor-pointer"
+                                title="Update token and print fresh poster"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5 text-indigo-600" /> Update Token
                               </button>
                               <button
                                 onClick={() => handleRevokeQrCode(qr.id)}
@@ -1010,6 +1052,48 @@ export default function StaffAttendanceManager() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR GATE EDIT MODAL */}
+      {editingQrCode && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-sm w-full p-6 space-y-4 shadow-2xl my-auto animate-in fade-in">
+            <div className="flex items-center gap-2 text-indigo-600 border-b border-slate-100 pb-3">
+              <Edit className="w-5 h-5 shrink-0" />
+              <h3 className="font-extrabold text-base text-slate-900">Edit Gate Information</h3>
+            </div>
+
+            <form onSubmit={handleUpdateQrName} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase text-slate-400">Gate/Entrance Name:</label>
+                <input
+                  type="text"
+                  required
+                  value={editQrName}
+                  onChange={(e) => setEditQrName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingQrCode(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl cursor-pointer shadow-sm disabled:bg-indigo-400"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -60,7 +60,7 @@ export default function GettingStartedTour({
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
       highlights: [
         'Live student statistics synced with real-time class rosters',
-        'Financial balance totals in CFA currency with pending audit indicators',
+        'Financial balance totals in GHS currency with pending audit indicators',
         'Unread notification counter and institutional event alerts'
       ],
       actionLabel: 'View Dashboard Analytics',

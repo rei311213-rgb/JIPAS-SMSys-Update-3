@@ -14,6 +14,7 @@ import {
   INITIAL_STAFF_LOANS 
 } from '../data/mockPayrollData';
 import { executeCloudWrite, executeCloudDelete } from './syncService';
+import { addMoney, subtractMoney } from '../utils/financeUtils';
 
 const STORAGE_KEY_PAYROLL_RUNS = 'jipas_payroll_runs';
 const STORAGE_KEY_SALARY_STRUCTURES = 'jipas_staff_salaries';
@@ -151,27 +152,28 @@ export function computeStaffPayslip(
   paymentDate: string
 ): StaffPayslipItem {
   const allow = structure.allowances;
-  const totalAllowances = 
-    (allow.responsibility || 0) +
-    (allow.transport || 0) +
-    (allow.housing || 0) +
-    (allow.utilityHardship || 0) +
-    (allow.overtime || 0) +
-    (allow.bonus || 0) +
-    (allow.other || 0);
+  const totalAllowances = addMoney(
+    allow.responsibility || 0,
+    allow.transport || 0,
+    allow.housing || 0,
+    allow.utilityHardship || 0,
+    allow.overtime || 0,
+    allow.bonus || 0,
+    allow.other || 0
+  );
 
-  const grossEarnings = structure.basicSalary + totalAllowances;
+  const grossEarnings = addMoney(structure.basicSalary, totalAllowances);
   
   const pensionEmployee = Math.round((structure.basicSalary * (settings.pensionEmployeeRate / 100)) * 100) / 100;
-  const taxableIncome = Math.max(0, grossEarnings - pensionEmployee);
+  const taxableIncome = Math.max(0, subtractMoney(grossEarnings, pensionEmployee));
   const payeTax = calculatePAYETax(taxableIncome);
 
   const welfareFund = settings.defaultWelfareDeduction || 25;
   const loanRepayment = activeLoan && activeLoan.status === 'Active' ? Math.min(activeLoan.monthlyDeduction, activeLoan.remainingBalance) : 0;
   const absenteeismPenalty = 0;
 
-  const totalDeductions = Math.round((pensionEmployee + payeTax + welfareFund + loanRepayment + absenteeismPenalty) * 100) / 100;
-  const netSalary = Math.round((grossEarnings - totalDeductions) * 100) / 100;
+  const totalDeductions = addMoney(pensionEmployee, payeTax, welfareFund, loanRepayment, absenteeismPenalty);
+  const netSalary = subtractMoney(grossEarnings, totalDeductions);
 
   const voucherNumber = `VOU-${month.replace(' ', '-').toUpperCase()}-${String(voucherIndex + 1).padStart(3, '0')}`;
 
@@ -245,16 +247,16 @@ export function generateBatchPayrollRun(
     );
   });
 
-  const totalBasicSalary = payslips.reduce((sum, p) => sum + p.basicSalary, 0);
-  const totalAllowances = payslips.reduce((sum, p) => sum + p.totalAllowances, 0);
-  const totalGrossEarnings = payslips.reduce((sum, p) => sum + p.grossEarnings, 0);
-  const totalPAYETax = payslips.reduce((sum, p) => sum + p.deductions.payeTax, 0);
-  const totalPensionEmployee = payslips.reduce((sum, p) => sum + p.deductions.pensionEmployee, 0);
+  const totalBasicSalary = addMoney(...payslips.map(p => p.basicSalary || 0));
+  const totalAllowances = addMoney(...payslips.map(p => p.totalAllowances || 0));
+  const totalGrossEarnings = addMoney(...payslips.map(p => p.grossEarnings || 0));
+  const totalPAYETax = addMoney(...payslips.map(p => p.deductions?.payeTax || 0));
+  const totalPensionEmployee = addMoney(...payslips.map(p => p.deductions?.pensionEmployee || 0));
   const totalPensionEmployer = Math.round((totalBasicSalary * (settings.pensionEmployerRate / 100)) * 100) / 100;
-  const totalWelfare = payslips.reduce((sum, p) => sum + p.deductions.welfareFund, 0);
-  const totalLoanDeductions = payslips.reduce((sum, p) => sum + p.deductions.loanRepayment, 0);
-  const totalDeductions = payslips.reduce((sum, p) => sum + p.totalDeductions, 0);
-  const totalNetPay = payslips.reduce((sum, p) => sum + p.netSalary, 0);
+  const totalWelfare = addMoney(...payslips.map(p => p.deductions?.welfareFund || 0));
+  const totalLoanDeductions = addMoney(...payslips.map(p => p.deductions?.loanRepayment || 0));
+  const totalDeductions = addMoney(...payslips.map(p => p.totalDeductions || 0));
+  const totalNetPay = addMoney(...payslips.map(p => p.netSalary || 0));
 
   return {
     id: runId,

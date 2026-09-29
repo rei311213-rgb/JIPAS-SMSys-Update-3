@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
   CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, Legend 
 } from 'recharts';
+import { addMoney, subtractMoney } from '../../utils/financeUtils';
 import { 
   StaffSalaryStructure, 
   PayrollRun, 
@@ -128,11 +129,11 @@ export default function PayrollManager({
   // -------------------------------------------------------------
   const analytics = useMemo(() => {
     const latestRun = activePayrollRun;
-    const totalMonthlyGross = latestRun ? latestRun.totalGrossPay : 0;
-    const totalNetPayout = latestRun ? latestRun.totalNetPayout : 0;
-    const totalPensionCombined = latestRun ? (latestRun.totalPensionEmployee + latestRun.totalPensionEmployer) : 0;
-    const totalPAYETax = latestRun ? latestRun.totalPAYETax : 0;
-    const totalAllowances = latestRun ? latestRun.totalAllowances : 0;
+    const totalMonthlyGross = latestRun ? latestRun.totalGrossPay || 0 : 0;
+    const totalNetPayout = latestRun ? latestRun.totalNetPayout || 0 : 0;
+    const totalPensionCombined = latestRun ? addMoney(latestRun.totalPensionEmployee || 0, latestRun.totalPensionEmployer || 0) : 0;
+    const totalPAYETax = latestRun ? latestRun.totalPAYETax || 0 : 0;
+    const totalAllowances = latestRun ? latestRun.totalAllowances || 0 : 0;
     const activeStaffCount = salaryStructures.filter(s => s.isActive).length;
     const avgSalary = activeStaffCount > 0 ? (totalMonthlyGross / activeStaffCount) : 0;
 
@@ -144,8 +145,8 @@ export default function PayrollManager({
         if (!deptMap[d]) {
           deptMap[d] = { gross: 0, net: 0, count: 0 };
         }
-        deptMap[d].gross += ps.grossEarnings;
-        deptMap[d].net += ps.netSalary;
+        deptMap[d].gross = addMoney(deptMap[d].gross, ps.grossEarnings || 0);
+        deptMap[d].net = addMoney(deptMap[d].net, ps.netSalary || 0);
         deptMap[d].count += 1;
       });
     }
@@ -317,16 +318,16 @@ export default function PayrollManager({
     );
 
     // Recalculate totals
-    const totalBasicSalary = updatedPayslips.reduce((acc, p) => acc + p.basicSalary, 0);
-    const totalAllowances = updatedPayslips.reduce((acc, p) => acc + p.totalAllowances, 0);
-    const totalGrossPay = updatedPayslips.reduce((acc, p) => acc + p.grossEarnings, 0);
-    const totalPensionEmployee = updatedPayslips.reduce((acc, p) => acc + p.deductions.pensionEmployee, 0);
-    const totalPensionEmployer = updatedPayslips.reduce((acc, p) => acc + p.employerContribution.pensionEmployer, 0);
-    const totalPAYETax = updatedPayslips.reduce((acc, p) => acc + p.deductions.payeTax, 0);
-    const totalWelfare = updatedPayslips.reduce((acc, p) => acc + p.deductions.welfareFund, 0);
-    const totalLoanDeductions = updatedPayslips.reduce((acc, p) => acc + p.deductions.loanRepayment, 0);
-    const totalDeductions = updatedPayslips.reduce((acc, p) => acc + p.totalDeductions, 0);
-    const totalNetPayout = updatedPayslips.reduce((acc, p) => acc + p.netSalary, 0);
+    const totalBasicSalary = addMoney(...updatedPayslips.map(p => p.basicSalary || 0));
+    const totalAllowances = addMoney(...updatedPayslips.map(p => p.totalAllowances || 0));
+    const totalGrossPay = addMoney(...updatedPayslips.map(p => p.grossEarnings || 0));
+    const totalPensionEmployee = addMoney(...updatedPayslips.map(p => p.deductions?.pensionEmployee || 0));
+    const totalPensionEmployer = addMoney(...updatedPayslips.map(p => p.employerContribution?.pensionEmployer || 0));
+    const totalPAYETax = addMoney(...updatedPayslips.map(p => p.deductions?.payeTax || 0));
+    const totalWelfare = addMoney(...updatedPayslips.map(p => p.deductions?.welfareFund || 0));
+    const totalLoanDeductions = addMoney(...updatedPayslips.map(p => p.deductions?.loanRepayment || 0));
+    const totalDeductions = addMoney(...updatedPayslips.map(p => p.totalDeductions || 0));
+    const totalNetPayout = addMoney(...updatedPayslips.map(p => p.netSalary || 0));
 
     const updatedRun: PayrollRun = {
       ...activePayrollRun,

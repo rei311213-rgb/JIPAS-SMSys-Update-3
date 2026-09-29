@@ -474,12 +474,12 @@ export interface StudentBill {
   academicYear: string;
   term: string;
   campus?: string;
+  billNo?: string;
   items: { name: string; amount: number }[];
   subTotal: number;
   arrears: number;
   discount: number;
   payable: number;
-  amount?: number;
   paid: number;
   balance: number;
   status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid';
@@ -501,6 +501,8 @@ export interface StudentBill {
   lastContactDate?: string;
   promisedDate?: string;
   followUpNotes?: string;
+  paidAmount?: number; // Added for backward compatibility with schema.sql
+  totalAmount?: number; // Added for backward compatibility with schema.sql
 }
 
 export interface DailyFeeAuditSummary {
@@ -592,6 +594,98 @@ export interface CalendarEvent {
 }
 
 export type Bill = StudentBill;
+
+export type FinancialDiscrepancyType =
+  | 'DUPLICATE_RECEIPT'
+  | 'DUPLICATE_PAYMENT'
+  | 'BALANCE_MISMATCH'
+  | 'UNALLOCATED_PAYMENT'
+  | 'UNEXPLAINED_CREDIT'
+  | 'UNVERIFIED_EXTERNAL_EVIDENCE'
+  | 'TARIFF_DEVIATION'
+  | 'PERIOD_INCONSISTENCY'
+  | 'EXPENSE_VARIANCE'
+  | 'PAYROLL_VARIANCE'
+  | 'DASHBOARD_VARIANCE';
+
+export type DiscrepancySeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type ExternalEvidenceStatus = 'VERIFIED' | 'NOT VERIFIED' | 'SUSPECTED_DUPLICATE' | 'MATHEMATICAL_ERROR';
+
+export interface FinancialExceptionItem {
+  id: string;
+  studentRef?: string;
+  studentName?: string;
+  admissionNo?: string;
+  campus: string;
+  academicPeriod: string;
+  academicYear?: string;
+  term?: string;
+  category: FinancialDiscrepancyType;
+  severity: DiscrepancySeverity;
+  expectedAmount: number;
+  recordedAmount: number;
+  variance: number;
+  transactionRefs: string[];
+  description: string;
+  verificationStatus: ExternalEvidenceStatus;
+  recommendedInvestigation: string;
+  detectedAt: string;
+  rawDetails?: Record<string, any>;
+}
+
+export interface FinancialReconciliationReport {
+  id: string;
+  reconciliationDate: string;
+  academicPeriod: string;
+  academicYear?: string;
+  term?: string;
+  campus: string;
+  status: 'Clean' | 'Discrepancies Detected' | 'Under Investigation' | 'Resolved';
+  reviewerName: string;
+  reviewerRole: string;
+  
+  // Dashboard Core Metrics
+  totalPostedCharges: number;
+  totalValidCollections: number;
+  totalOutstandingBalances: number;
+  unallocatedPaymentsAmount: number;
+  unexplainedCreditsAmount: number;
+  reversedPaymentsAmount: number;
+  totalRefundsAmount: number;
+  
+  // Account counts
+  totalAccountsReconciled: number;
+  totalDiscrepanciesCount: number;
+  unresolvedDiscrepanciesAmount: number;
+  
+  // Exceptions
+  exceptions: FinancialExceptionItem[];
+
+  // Cross-system dashboard reconciliations
+  dashboardReconciliations: {
+    accountantDashboardReconciled: boolean;
+    accountantVariance: number;
+    secretaryDashboardReconciled: boolean;
+    secretaryVariance: number;
+    ceoDashboardReconciled: boolean;
+    ceoVariance: number;
+    notes: string;
+  };
+
+  // Operational summaries
+  expenseReconciliation: {
+    totalExpensesRecorded: number;
+    unverifiedExpensesCount: number;
+    variance: number;
+  };
+  payrollReconciliation: {
+    totalPayrollDisbursed: number;
+    payslipDiscrepanciesCount: number;
+    variance: number;
+  };
+  createdAt: string;
+}
 
 export interface NotificationItem {
   id: string;

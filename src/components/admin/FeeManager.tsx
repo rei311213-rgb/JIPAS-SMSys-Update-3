@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CreditCard, Plus, Pencil, Trash2, DollarSign, Receipt, Printer, 
   Download, Search, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, 
@@ -10,6 +10,7 @@ import {
   PieChart as RechartsPieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { Student, StudentBill, PaymentRecord, IncomeExpenseItem, FinancialAuditItem, FeeOptionItem, NotificationItem, ClassFeeTariffItem, FeeRefundRecord } from '../../types';
+import { calculateBillBalance, getPaymentStatus, formatCurrency, addMoney, subtractMoney } from '../../utils/financeUtils';
 import { PDFGeneratorService } from '../../services/pdfService';
 import PrintableReceiptA6 from '../common/PrintableReceiptA6';
 import JIPASLogo from '../common/JIPASLogo';
@@ -173,12 +174,13 @@ export default function FeeManager({
         const studentBill = billsList.find(b => b.studentId === targetStudent.id || b.admissionNo === targetStudent.admissionNo);
         if (studentBill) {
           const newPaid = Math.max(0, (studentBill.paid || 0) - refundAmount);
-          const newBalance = Math.max(0, (studentBill.payable || 0) - newPaid);
+          const newBalance = calculateBillBalance(studentBill.payable, newPaid, studentBill.discount, studentBill.arrears);
           const updatedBill: StudentBill = {
             ...studentBill,
             paid: newPaid,
+            paidAmount: newPaid,
             balance: newBalance,
-            status: newBalance === 0 ? 'Fully Paid' : newPaid > 0 ? 'Partially Paid' : 'Unpaid',
+            status: getPaymentStatus(newBalance, newPaid),
             history: [
               ...(studentBill.history || []),
               {
@@ -196,7 +198,7 @@ export default function FeeManager({
         }
       }
 
-      triggerRefundToast(`✓ Refund voucher ${voucherNo} for ${targetStudent.fullName} (${refundAmount} CFA) processed!`);
+      triggerRefundToast(`✓ Refund voucher ${voucherNo} for ${targetStudent.fullName} (${refundAmount} GHS) processed!`);
       setShowAddRefundModal(false);
       setRefundStudentId('');
       setRefundAmount(50);
@@ -241,7 +243,7 @@ export default function FeeManager({
         <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 25px;">
           <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: bold; color: #991b1b;">Total Refund Amount Paid Out</p>
           <h2 style="margin: 5px 0 0 0; font-size: 24px; font-weight: 900; color: #b91c1c; font-family: monospace;">
-            ${refund.amount.toLocaleString()} CFA
+            ${refund.amount.toLocaleString()} GHS
           </h2>
         </div>
 
@@ -484,14 +486,13 @@ export default function FeeManager({
         const currentPaid = b.paid ?? b.paidAmount ?? 0;
         const currentPayable = b.payable ?? b.totalAmount ?? 0;
         const newPaid = currentPaid + collectAmount;
-        const newBal = Math.max(0, currentPayable - newPaid);
-        const statusStr = newBal === 0 ? 'Fully Paid' : (newPaid > 0 ? 'Partially Paid' : 'Unpaid');
+        const newBal = calculateBillBalance(currentPayable, newPaid, b.discount, b.arrears);
         const updatedB = {
           ...b,
           paid: newPaid,
           paidAmount: newPaid,
           balance: newBal,
-          status: statusStr as any
+          status: getPaymentStatus(newBal, newPaid)
         };
         targetBill = updatedB;
         return updatedB;
@@ -533,7 +534,7 @@ export default function FeeManager({
       user: 'Accountant (Grace Tetteh)',
       studentAdmNo: student.admissionNo,
       amount: collectAmount,
-      details: `Collected ${(collectAmount ?? 0).toFixed(2)} CFA via ${collectMethod} for ${student.fullName}`
+      details: `Collected ${(collectAmount ?? 0).toFixed(2)} GHS via ${collectMethod} for ${student.fullName}`
     };
     setAuditLogs(prev => [newAudit, ...prev]);
 
@@ -579,13 +580,13 @@ export default function FeeManager({
   };
 
   // Compute Totals
-  const totalIncome = incomeExpenses.filter(i => i.type === 'Income').reduce((sum, i) => sum + i.amount, 0);
-  const totalExpense = incomeExpenses.filter(i => i.type === 'Expense').reduce((sum, i) => sum + i.amount, 0);
-  const netBalance = totalIncome - totalExpense;
+  const totalIncome = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Income').map(i => i.amount || 0)), [incomeExpenses]);
+  const totalExpense = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Expense').map(i => i.amount || 0)), [incomeExpenses]);
+  const netBalance = subtractMoney(totalIncome, totalExpense);
 
-  const totalBilled = billsList.reduce((sum, b) => sum + (b.payable ?? b.totalAmount ?? 0), 0);
-  const totalPaid = billsList.reduce((sum, b) => sum + (b.paid ?? b.paidAmount ?? 0), 0);
-  const totalOutstanding = billsList.reduce((sum, b) => sum + (b.balance ?? 0), 0);
+  const totalBilled = useMemo(() => addMoney(...billsList.map(b => b.payable ?? b.totalAmount ?? 0)), [billsList]);
+  const totalPaid = useMemo(() => addMoney(...billsList.map(b => b.paid ?? b.paidAmount ?? 0)), [billsList]);
+  const totalOutstanding = useMemo(() => addMoney(...billsList.map(b => b.balance ?? 0)), [billsList]);
 
   const filteredPayments = paymentsList.filter(p => 
     p.studentName.toLowerCase().includes(paymentSearch.toLowerCase()) ||
@@ -685,9 +686,9 @@ export default function FeeManager({
                               <th style="padding: 8px; border: 1px solid #cbd5e1;">Admission No</th>
                               <th style="padding: 8px; border: 1px solid #cbd5e1;">Student Name</th>
                               <th style="padding: 8px; border: 1px solid #cbd5e1;">Class</th>
-                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Total Billed (CFA)</th>
-                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Paid (CFA)</th>
-                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Balance Due (CFA)</th>
+                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Total Billed (GHS)</th>
+                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Paid (GHS)</th>
+                              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Balance Due (GHS)</th>
                               <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Status</th>
                             </tr>
                           </thead>
@@ -767,9 +768,9 @@ export default function FeeManager({
                     <th className="p-3">Admission No</th>
                     <th className="p-3">Student Name</th>
                     <th className="p-3">Class</th>
-                    <th className="p-3 text-right">Total Billed (CFA)</th>
-                    <th className="p-3 text-right">Paid (CFA)</th>
-                    <th className="p-3 text-right">Balance Due (CFA)</th>
+                    <th className="p-3 text-right">Total Billed (GHS)</th>
+                    <th className="p-3 text-right">Paid (GHS)</th>
+                    <th className="p-3 text-right">Balance Due (GHS)</th>
                     <th className="p-3 text-center">Status</th>
                   </tr>
                 </thead>
@@ -788,9 +789,9 @@ export default function FeeManager({
                         <td className="p-3 font-mono font-bold text-indigo-700">{bill.admissionNo}</td>
                         <td className="p-3 font-bold text-slate-900">{bill.studentName}</td>
                         <td className="p-3 text-slate-700">{bill.className}</td>
-                        <td className="p-3 text-right font-mono font-bold text-slate-900">{(bill.payable ?? bill.totalAmount ?? 0).toFixed(2)} CFA</td>
-                        <td className="p-3 text-right font-mono font-bold text-emerald-700">{(bill.paid ?? bill.paidAmount ?? 0).toFixed(2)} CFA</td>
-                        <td className="p-3 text-right font-mono font-black text-rose-700">{(bill.balance ?? 0).toFixed(2)} CFA</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-900">{(bill.payable ?? bill.totalAmount ?? 0).toFixed(2)} GHS</td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-700">{(bill.paid ?? bill.paidAmount ?? 0).toFixed(2)} GHS</td>
+                        <td className="p-3 text-right font-mono font-black text-rose-700">{(bill.balance ?? 0).toFixed(2)} GHS</td>
                         <td className="p-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             bill.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
@@ -978,7 +979,7 @@ export default function FeeManager({
             <div className="bg-emerald-600 text-white px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                Payment of {(collectAmount ?? 0).toFixed(2)} CFA successfully logged! Bill balance adjusted and receipt generated.
+                Payment of {(collectAmount ?? 0).toFixed(2)} GHS successfully logged! Bill balance adjusted and receipt generated.
               </span>
               <button onClick={() => setCollectToast(false)} className="text-white font-black ml-4">✕</button>
             </div>
@@ -1075,7 +1076,7 @@ export default function FeeManager({
                         <div className="text-right shrink-0">
                           {hasArrears ? (
                             <span className="text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg block">
-                              {(balance ?? 0).toFixed(2)} CFA
+                              {(balance ?? 0).toFixed(2)} GHS
                               <span className="block text-[9px] font-medium text-rose-500 uppercase">Balance Due</span>
                             </span>
                           ) : (
@@ -1147,22 +1148,22 @@ export default function FeeManager({
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>
-                            <span className="font-mono font-black text-rose-600 text-base">{(selectedBill.balance ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-mono font-black text-rose-600 text-base">{(selectedBill.balance ?? 0).toFixed(2)} GHS</span>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center text-xs">
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Payable</span>
-                            <span className="font-bold text-slate-800">{(selectedBill.payable ?? selectedBill.totalAmount ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-bold text-slate-800">{(selectedBill.payable ?? selectedBill.totalAmount ?? 0).toFixed(2)} GHS</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Paid to Date</span>
-                            <span className="font-bold text-emerald-600">{(selectedBill.paid ?? selectedBill.paidAmount ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-bold text-emerald-600">{(selectedBill.paid ?? selectedBill.paidAmount ?? 0).toFixed(2)} GHS</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Net Balance</span>
-                            <span className="font-black text-rose-600">{(selectedBill.balance ?? 0).toFixed(2)} CFA</span>
+                            <span className="font-black text-rose-600">{(selectedBill.balance ?? 0).toFixed(2)} GHS</span>
                           </div>
                         </div>
                       </div>
@@ -1172,7 +1173,7 @@ export default function FeeManager({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Amount Paid (CFA) *
+                          Amount Paid (GHS) *
                         </label>
                         {selectedBill && selectedBill.balance > 0 && (
                           <div className="flex gap-1.5">
@@ -1181,7 +1182,7 @@ export default function FeeManager({
                               onClick={() => setCollectAmount(selectedBill.balance)}
                               className="text-[10px] font-black bg-rose-100 hover:bg-rose-200 text-rose-800 px-2 py-0.5 rounded cursor-pointer transition-colors"
                             >
-                              Pay Full Balance ({(selectedBill.balance ?? 0).toFixed(0)} CFA)
+                              Pay Full Balance ({(selectedBill.balance ?? 0).toFixed(0)} GHS)
                             </button>
                             <button
                               type="button"
@@ -1336,7 +1337,7 @@ export default function FeeManager({
                   <th className="p-3">Class</th>
                   <th className="p-3">Paid As (Description)</th>
                   <th className="p-3">Method</th>
-                  <th className="p-3 text-right">Amount (CFA)</th>
+                  <th className="p-3 text-right">Amount (GHS)</th>
                   <th className="p-3">Received By</th>
                   <th className="p-3 text-center">Receipt</th>
                 </tr>
@@ -1356,7 +1357,7 @@ export default function FeeManager({
                     </td>
                     <td className="p-3 font-semibold">{p.method}</td>
                     <td className="p-3 text-right font-mono font-black text-emerald-700">
-                      {(p.amount ?? p.paid ?? 0).toFixed(2)} CFA
+                      {(p.amount ?? p.paid ?? 0).toFixed(2)} GHS
                     </td>
                     <td className="p-3 text-slate-600">{p.receivedBy || p.collectedBy}</td>
                     <td className="p-3 text-center">
@@ -1408,15 +1409,15 @@ export default function FeeManager({
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-sm">
-                <span className="text-3xl font-black font-mono">{(totalBilled ?? 0).toFixed(2)} CFA</span>
+                <span className="text-3xl font-black font-mono">{(totalBilled ?? 0).toFixed(2)} GHS</span>
                 <p className="text-xs uppercase font-bold mt-1 text-indigo-200">Total Billed Invoices</p>
               </div>
               <div className="bg-emerald-600 text-white p-5 rounded-2xl shadow-sm">
-                <span className="text-3xl font-black font-mono">{(totalPaid ?? 0).toFixed(2)} CFA</span>
+                <span className="text-3xl font-black font-mono">{(totalPaid ?? 0).toFixed(2)} GHS</span>
                 <p className="text-xs uppercase font-bold mt-1 text-emerald-100">Total Revenue Collected ({(((totalPaid ?? 0) / Math.max(1, totalBilled)) * 100).toFixed(1)}%)</p>
               </div>
               <div className="bg-rose-600 text-white p-5 rounded-2xl shadow-sm">
-                <span className="text-3xl font-black font-mono">{(totalOutstanding ?? 0).toFixed(2)} CFA</span>
+                <span className="text-3xl font-black font-mono">{(totalOutstanding ?? 0).toFixed(2)} GHS</span>
                 <p className="text-xs uppercase font-bold mt-1 text-rose-100">Outstanding Arrears</p>
               </div>
             </div>
@@ -1445,14 +1446,14 @@ export default function FeeManager({
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                       <XAxis dataKey="className" stroke="#64748b" fontSize={10} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={10} tickLine={false} tickFormatter={(v) => `${v/1000}k CFA`} />
+                      <YAxis stroke="#64748b" fontSize={10} tickLine={false} tickFormatter={(v) => `${v/1000}k GHS`} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#0f172a', borderRadius: '10px', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                        formatter={(val: any) => [`${Number(val).toLocaleString()} CFA`, '']}
+                        formatter={(val: any) => [`${Number(val).toLocaleString()} GHS`, '']}
                       />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                      <Bar dataKey="billed" name="Billed (CFA)" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="paid" name="Collected (CFA)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="billed" name="Billed (GHS)" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="paid" name="Collected (GHS)" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1530,15 +1531,15 @@ export default function FeeManager({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
               <span className="text-xs uppercase font-bold text-emerald-800 block">Total Inflow (Income)</span>
-              <span className="text-2xl font-black text-emerald-700 font-mono">{(totalIncome ?? 0).toFixed(2)} CFA</span>
+              <span className="text-2xl font-black text-emerald-700 font-mono">{(totalIncome ?? 0).toFixed(2)} GHS</span>
             </div>
             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200">
               <span className="text-xs uppercase font-bold text-rose-800 block">Total Outflow (Expenses)</span>
-              <span className="text-2xl font-black text-rose-700 font-mono">{(totalExpense ?? 0).toFixed(2)} CFA</span>
+              <span className="text-2xl font-black text-rose-700 font-mono">{(totalExpense ?? 0).toFixed(2)} GHS</span>
             </div>
             <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200">
               <span className="text-xs uppercase font-bold text-indigo-800 block">Net Liquidity Balance</span>
-              <span className="text-2xl font-black text-indigo-700 font-mono">{(netBalance ?? 0).toFixed(2)} CFA</span>
+              <span className="text-2xl font-black text-indigo-700 font-mono">{(netBalance ?? 0).toFixed(2)} GHS</span>
             </div>
           </div>
 
@@ -1553,7 +1554,7 @@ export default function FeeManager({
                   <th className="p-3">Category</th>
                   <th className="p-3">Description</th>
                   <th className="p-3">Reference No</th>
-                  <th className="p-3 text-right">Amount (CFA)</th>
+                  <th className="p-3 text-right">Amount (GHS)</th>
                   <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -1577,7 +1578,7 @@ export default function FeeManager({
                       <td className={`p-3 text-right font-mono font-bold ${
                         txn.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
-                        {(txn.amount ?? 0).toFixed(2)} CFA
+                        {(txn.amount ?? 0).toFixed(2)} GHS
                       </td>
                       <td className="p-3 text-center">
                         <button
@@ -1627,7 +1628,7 @@ export default function FeeManager({
                   <th className="p-3">Action Event</th>
                   <th className="p-3">Operator</th>
                   <th className="p-3">Target Student / Entity</th>
-                  <th className="p-3 text-right">Value (CFA)</th>
+                  <th className="p-3 text-right">Value (GHS)</th>
                   <th className="p-3">Log Details</th>
                 </tr>
               </thead>
@@ -1639,7 +1640,7 @@ export default function FeeManager({
                     <td className="p-3 font-bold text-slate-900">{log.action}</td>
                     <td className="p-3 font-semibold text-indigo-700">{log.user}</td>
                     <td className="p-3 font-mono text-slate-700">{log.studentAdmNo}</td>
-                    <td className="p-3 text-right font-mono font-bold text-slate-900">{(log.amount ?? 0).toFixed(2)} CFA</td>
+                    <td className="p-3 text-right font-mono font-bold text-slate-900">{(log.amount ?? 0).toFixed(2)} GHS</td>
                     <td className="p-3 text-slate-600 max-w-sm truncate">{log.details}</td>
                   </tr>
                 ))}
@@ -1687,7 +1688,7 @@ export default function FeeManager({
               </div>
               <div className="flex justify-between py-2 border-b-2 border-slate-900 text-sm">
                 <span className="font-black text-slate-900">Amount Paid:</span>
-                <span className="font-mono font-black text-emerald-700">{(activeReceipt.amount ?? activeReceipt.paid ?? 0).toFixed(2)} CFA</span>
+                <span className="font-mono font-black text-emerald-700">{(activeReceipt.amount ?? activeReceipt.paid ?? 0).toFixed(2)} GHS</span>
               </div>
               <div className="flex justify-between py-1 text-slate-500 text-[10px]">
                 <span>Received By:</span>
@@ -1773,7 +1774,7 @@ export default function FeeManager({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Amount (CFA) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Amount (GHS) *</label>
                   <input
                     type="number"
                     min="1"
@@ -1843,7 +1844,7 @@ export default function FeeManager({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Amount (CFA) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Amount (GHS) *</label>
                   <input
                     type="number"
                     min="1"
@@ -1941,7 +1942,7 @@ export default function FeeManager({
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
               <p className="text-[10px] font-black uppercase tracking-wider text-rose-700">Total Refunded</p>
               <h4 className="text-2xl font-black text-rose-900 mt-1 font-mono">
-                {refundsList.reduce((acc, r) => acc + (r.amount || 0), 0).toLocaleString()} CFA
+                {addMoney(...refundsList.map(r => r.amount || 0)).toLocaleString()} GHS
               </h4>
               <p className="text-[11px] text-rose-600 mt-0.5">{refundsList.length} Total Vouchers Issued</p>
             </div>
@@ -1958,8 +1959,8 @@ export default function FeeManager({
               <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">Average Refund</p>
               <h4 className="text-2xl font-black text-blue-900 mt-1 font-mono">
                 {refundsList.length > 0 
-                  ? Math.round(refundsList.reduce((acc, r) => acc + (r.amount || 0), 0) / refundsList.length).toLocaleString()
-                  : 0} CFA
+                  ? Math.round(addMoney(...refundsList.map(r => r.amount || 0)) / refundsList.length).toLocaleString()
+                  : 0} GHS
               </h4>
               <p className="text-[11px] text-blue-600 mt-0.5">Per voucher claim</p>
             </div>
@@ -2032,7 +2033,7 @@ export default function FeeManager({
                         <td className="p-3 text-slate-700">{refund.reason}</td>
                         <td className="p-3 text-slate-600">{refund.refundMethod}</td>
                         <td className="p-3 text-right font-black font-mono text-rose-700 text-sm">
-                          {refund.amount.toLocaleString()} CFA
+                          {refund.amount.toLocaleString()} GHS
                         </td>
                         <td className="p-3 text-center">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
@@ -2096,7 +2097,7 @@ export default function FeeManager({
                     const b = billsList.find(bill => bill.studentId === s.id);
                     return (
                       <option key={s.id} value={s.id}>
-                        {s.fullName} ({s.admissionNo} • {s.className}) — Paid: {b?.paid ?? 0} CFA
+                        {s.fullName} ({s.admissionNo} • {s.className}) — Paid: {b?.paid ?? 0} GHS
                       </option>
                     );
                   })}
@@ -2105,7 +2106,7 @@ export default function FeeManager({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Refund Amount (CFA) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Refund Amount (GHS) *</label>
                   <input
                     type="number"
                     min={1}

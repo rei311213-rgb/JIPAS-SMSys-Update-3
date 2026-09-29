@@ -10,11 +10,12 @@ import { evaluateDisasterRecoveryReadiness } from './disasterRecoveryService';
 import { verifyReleaseReadiness } from './releaseManagementService';
 import { recordChangeEvent } from './changeAuditService';
 import { getStoredStudents, getStoredPayments, getStoredClasses } from './storageService';
+import { runFinancialReconciliationAudit } from './financialReconciliationService';
 
 export interface TestResult {
   id: string;
   name: string;
-  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY';
+  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY' | 'PHASE_30_FINANCIAL_RECONCILIATION';
   status: 'PASS' | 'FAIL' | 'BLOCKED';
   durationMs: number;
   message?: string;
@@ -1352,6 +1353,223 @@ export async function runAutomatedTestSuite(): Promise<QATestSummary> {
     const token = 'JIPAS_ENTRANCE_J1_abc123_1750000000';
     const isFormatted = token.startsWith('JIPAS_ENTRANCE_');
     if (!isFormatted) throw new Error('Token format invalid.');
+  });
+
+  // ==========================================
+  // PHASE 30: FINANCIAL RECONCILIATION & EXCEPTION DETECTION
+  // ==========================================
+
+  await runTest('Test 96: Phase 30 - Detect duplicate receipt numbers across distinct payment records', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const p1: any = { id: 'p1', receiptNo: 'REC-DUP-001', studentId: 'st-1', studentName: 'Kwame Mensah', paid: 200, date: '2026-02-10', method: 'Cash' };
+    const p2: any = { id: 'p2', receiptNo: 'REC-DUP-001', studentId: 'st-2', studentName: 'Ama Serwaa', paid: 300, date: '2026-02-11', method: 'Cash' };
+    const report = runFinancialReconciliationAudit({
+      payments: [p1, p2],
+      students: [{ id: 'st-1', fullName: 'Kwame Mensah', campus: 'JIPAS 1' } as any, { id: 'st-2', fullName: 'Ama Serwaa', campus: 'JIPAS 1' } as any],
+      bills: []
+    });
+    const dupExc = report.exceptions.find(e => e.category === 'DUPLICATE_RECEIPT' && e.verificationStatus === 'SUSPECTED_DUPLICATE');
+    if (!dupExc) throw new Error('Duplicate receipt exception was not detected.');
+    if (dupExc.recordedAmount !== 500) throw new Error(`Recorded amount expected 500, got ${dupExc.recordedAmount}`);
+  });
+
+  await runTest('Test 97: Phase 30 - Detect duplicate transactions (same student, date, amount, method)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const p1: any = { id: 'p1', receiptNo: 'REC-101', studentId: 'st-1', studentName: 'Kofi Manu', paid: 450, date: '2026-03-01', method: 'Cash' };
+    const p2: any = { id: 'p2', receiptNo: 'REC-102', studentId: 'st-1', studentName: 'Kofi Manu', paid: 450, date: '2026-03-01', method: 'Cash' };
+    const report = runFinancialReconciliationAudit({
+      payments: [p1, p2],
+      students: [{ id: 'st-1', fullName: 'Kofi Manu', campus: 'JIPAS 1' } as any],
+      bills: []
+    });
+    const dupPmt = report.exceptions.find(e => e.category === 'DUPLICATE_PAYMENT');
+    if (!dupPmt) throw new Error('Duplicate transaction exception was not detected.');
+  });
+
+  await runTest('Test 98: Phase 30 - Detect missing counterfoil receipt numbers on payment entries', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const p1: any = { id: 'p-no-rec', receiptNo: '', studentId: 'st-1', studentName: 'Yaw Boateng', paid: 150, date: '2026-03-02', method: 'Cash' };
+    const report = runFinancialReconciliationAudit({
+      payments: [p1],
+      students: [{ id: 'st-1', fullName: 'Yaw Boateng', campus: 'JIPAS 1' } as any],
+      bills: []
+    });
+    const missingReceipt = report.exceptions.find(e => e.id.includes('missing-receipt'));
+    if (!missingReceipt) throw new Error('Payment with missing receipt number was not flagged.');
+  });
+
+  await runTest('Test 99: Phase 30 - Detect unallocated payments (orphan payments with unknown student ID)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const p1: any = { id: 'p-orphan', receiptNo: 'REC-999', studentId: 'st-nonexistent', studentName: 'Ghost Student', paid: 600, date: '2026-03-03', method: 'Cash' };
+    const report = runFinancialReconciliationAudit({
+      payments: [p1],
+      students: [],
+      bills: []
+    });
+    const unallocated = report.exceptions.find(e => e.category === 'UNALLOCATED_PAYMENT' && e.verificationStatus === 'NOT VERIFIED');
+    if (!unallocated) throw new Error('Unallocated orphan payment was not flagged.');
+    if (report.unallocatedPaymentsAmount !== 600) throw new Error(`Expected 600 unallocated amount, got ${report.unallocatedPaymentsAmount}`);
+  });
+
+  await runTest('Test 100: Phase 30 - Detect unexplained credit balances and overpayments', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const bill: any = {
+      id: 'b-credit',
+      studentId: 'st-1',
+      studentName: 'Esi Annan',
+      admissionNo: 'JIPAS-001',
+      payable: 500,
+      paid: 700,
+      discount: 0,
+      arrears: 0,
+      balance: -200,
+      campus: 'JIPAS 1'
+    };
+    const report = runFinancialReconciliationAudit({
+      bills: [bill],
+      payments: [],
+      students: [{ id: 'st-1', admissionNo: 'JIPAS-001', fullName: 'Esi Annan', campus: 'JIPAS 1' } as any]
+    });
+    const creditExc = report.exceptions.find(e => e.category === 'UNEXPLAINED_CREDIT');
+    if (!creditExc) throw new Error('Unexplained credit exception was not detected.');
+    if (report.unexplainedCreditsAmount !== 200) throw new Error(`Expected 200 credit amount, got ${report.unexplainedCreditsAmount}`);
+  });
+
+  await runTest('Test 101: Phase 30 - Authoritative ledger arithmetic verification (balance mismatch detection)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    // Expected balance = (payable 600 + arrears 100) - (paid 300 + discount 50) = 350
+    // But recorded balance is incorrectly 250
+    const bill: any = {
+      id: 'b-arith',
+      studentId: 'st-1',
+      studentName: 'Akosua Darko',
+      payable: 600,
+      arrears: 100,
+      paid: 300,
+      discount: 50,
+      balance: 250, // WRONG (should be 350)
+      campus: 'JIPAS 1'
+    };
+    const report = runFinancialReconciliationAudit({
+      bills: [bill],
+      payments: [{ id: 'p1', receiptNo: 'R-1', studentId: 'st-1', paid: 300, date: '2026-03-01', method: 'Cash' } as any],
+      students: [{ id: 'st-1', fullName: 'Akosua Darko', campus: 'JIPAS 1' } as any]
+    });
+    const balMismatch = report.exceptions.find(e => e.category === 'BALANCE_MISMATCH' && e.verificationStatus === 'MATHEMATICAL_ERROR');
+    if (!balMismatch) throw new Error('Balance mismatch was not detected.');
+    if (balMismatch.expectedAmount !== 350 || balMismatch.recordedAmount !== 250) {
+      throw new Error(`Expected 350 vs 250, got expected ${balMismatch.expectedAmount} vs recorded ${balMismatch.recordedAmount}`);
+    }
+  });
+
+  await runTest('Test 102: Phase 30 - Cross-reference bank external evidence (unverified marked NOT VERIFIED)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const bankPmt: any = {
+      id: 'p-bank',
+      receiptNo: 'REC-BANK-01',
+      referenceNo: 'UNCONFIRMED_TX_999',
+      studentId: 'st-1',
+      paid: 1200,
+      date: '2026-03-05',
+      method: 'Bank Transfer'
+    };
+    const report = runFinancialReconciliationAudit({
+      payments: [bankPmt],
+      bankDeposits: [], // no deposit records exist matching UNCONFIRMED_TX_999
+      students: [{ id: 'st-1', fullName: 'Audited Student', campus: 'JIPAS 1' } as any],
+      bills: []
+    });
+    const unverified = report.exceptions.find(e => e.category === 'UNVERIFIED_EXTERNAL_EVIDENCE');
+    if (!unverified) throw new Error('Unverified bank transfer was not flagged.');
+    if (unverified.verificationStatus !== 'NOT VERIFIED') throw new Error(`Evidence status must be NOT VERIFIED, got ${unverified.verificationStatus}`);
+  });
+
+  await runTest('Test 103: Phase 30 - Exclusion of voided payments from valid collections', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const validPmt: any = { id: 'p-val', receiptNo: 'R-VAL', studentId: 'st-1', paid: 800, status: 'Completed', date: '2026-03-01', method: 'Cash' };
+    const voidedPmt: any = { id: 'p-void', receiptNo: 'R-VOID', studentId: 'st-1', paid: 400, status: 'Voided', date: '2026-03-01', method: 'Cash' };
+    const report = runFinancialReconciliationAudit({
+      payments: [validPmt, voidedPmt],
+      students: [{ id: 'st-1', fullName: 'Student 1', campus: 'JIPAS 1' } as any],
+      bills: []
+    });
+    if (report.totalValidCollections !== 800) throw new Error(`Expected totalValidCollections 800, got ${report.totalValidCollections}`);
+    if (report.reversedPaymentsAmount !== 400) throw new Error(`Expected reversedPaymentsAmount 400, got ${report.reversedPaymentsAmount}`);
+  });
+
+  await runTest('Test 104: Phase 30 - Separate tracking and reconciliation of fee refund vouchers', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const refund: any = {
+      id: 'ref-1',
+      refundVoucherNo: 'VOU-REF-001',
+      studentId: 'st-1',
+      amount: 250,
+      status: 'Approved'
+    };
+    const report = runFinancialReconciliationAudit({
+      bills: [],
+      payments: [],
+      refunds: [refund],
+      students: []
+    });
+    if (report.totalRefundsAmount !== 250) throw new Error(`Expected totalRefundsAmount 250, got ${report.totalRefundsAmount}`);
+  });
+
+  await runTest('Test 105: Phase 30 - Cross-system dashboard reconciliation (Accountant vs CEO vs Ledger)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const bill: any = { id: 'b1', studentId: 'st-1', payable: 1000, paid: 1000, balance: 0, campus: 'JIPAS 1' };
+    const payment: any = { id: 'p1', receiptNo: 'R-1', studentId: 'st-1', paid: 1000, status: 'Completed', date: '2026-03-01', method: 'Cash' };
+    const cleanReport = runFinancialReconciliationAudit({
+      bills: [bill],
+      payments: [payment],
+      students: [{ id: 'st-1', fullName: 'Student One', campus: 'JIPAS 1' } as any]
+    });
+    if (!cleanReport.dashboardReconciliations.accountantDashboardReconciled) {
+      throw new Error('Clean ledger failed accountant dashboard reconciliation.');
+    }
+    if (!cleanReport.dashboardReconciliations.ceoDashboardReconciled) {
+      throw new Error('Clean ledger failed CEO dashboard reconciliation.');
+    }
+
+    // Now test divergent ledger
+    const divergentBill: any = { id: 'b2', studentId: 'st-2', payable: 1000, paid: 1500, balance: 0, campus: 'JIPAS 1' };
+    const divergentReport = runFinancialReconciliationAudit({
+      bills: [divergentBill],
+      payments: [payment], // payments only 1000, but bill claims 1500 paid
+      students: [{ id: 'st-2', fullName: 'Student Two', campus: 'JIPAS 1' } as any]
+    });
+    if (divergentReport.dashboardReconciliations.accountantDashboardReconciled) {
+      throw new Error('Divergent bill paid sum was incorrectly marked reconciled.');
+    }
+    if (divergentReport.dashboardReconciliations.accountantVariance !== 500) {
+      throw new Error(`Expected variance 500, got ${divergentReport.dashboardReconciliations.accountantVariance}`);
+    }
+  });
+
+  await runTest('Test 106: Phase 30 - Campus isolation in reconciliation audits (JIPAS 1 vs JIPAS 2)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const j1Student: any = { id: 'st-j1', fullName: 'J1 Pupil', campus: 'JIPAS 1' };
+    const j2Student: any = { id: 'st-j2', fullName: 'J2 Pupil', campus: 'JIPAS 2' };
+    const j1Bill: any = { id: 'b-j1', studentId: 'st-j1', payable: 700, paid: 700, balance: 0, campus: 'JIPAS 1' };
+    const j2Bill: any = { id: 'b-j2', studentId: 'st-j2', payable: 900, paid: 900, balance: 0, campus: 'JIPAS 2' };
+    const j1Pmt: any = { id: 'p-j1', receiptNo: 'R-J1', studentId: 'st-j1', paid: 700, date: '2026-03-01', method: 'Cash', campus: 'JIPAS 1' };
+    const j2Pmt: any = { id: 'p-j2', receiptNo: 'R-J2', studentId: 'st-j2', paid: 900, date: '2026-03-01', method: 'Cash', campus: 'JIPAS 2' };
+
+    const j1Audit = runFinancialReconciliationAudit({
+      campus: 'JIPAS 1',
+      students: [j1Student, j2Student],
+      bills: [j1Bill, j2Bill],
+      payments: [j1Pmt, j2Pmt]
+    });
+    if (j1Audit.totalPostedCharges !== 700) throw new Error(`JIPAS 1 audit leaked J2 charges: ${j1Audit.totalPostedCharges}`);
+    if (j1Audit.totalValidCollections !== 700) throw new Error(`JIPAS 1 audit leaked J2 payments: ${j1Audit.totalValidCollections}`);
+  });
+
+  await runTest('Test 107: Phase 30 - Strict read-only guarantee (audit produces zero mutations on source ledgers)', 'PHASE_30_FINANCIAL_RECONCILIATION', () => {
+    const originalBill = { id: 'b-ro', studentId: 'st-1', payable: 800, paid: 400, arrears: 50, discount: 20, balance: 430 };
+    const originalPmt = { id: 'p-ro', receiptNo: 'REC-RO', studentId: 'st-1', paid: 400, date: '2026-03-01', method: 'Cash' };
+    const billBefore = JSON.stringify(originalBill);
+    const pmtBefore = JSON.stringify(originalPmt);
+
+    runFinancialReconciliationAudit({
+      bills: [originalBill as any],
+      payments: [originalPmt as any],
+      students: [{ id: 'st-1', fullName: 'Immutable Student', campus: 'JIPAS 1' } as any]
+    });
+
+    const billAfter = JSON.stringify(originalBill);
+    const pmtAfter = JSON.stringify(originalPmt);
+    if (billBefore !== billAfter) throw new Error('Bill was mutated during reconciliation audit!');
+    if (pmtBefore !== pmtAfter) throw new Error('Payment was mutated during reconciliation audit!');
   });
 
   const totalDurationMs = Date.now() - startTime;

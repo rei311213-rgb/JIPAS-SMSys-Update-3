@@ -59,7 +59,7 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettingsConfig = {
   activeTerm: 'Third Term',
   nextTermBegins: '2026-09-15',
   smsSenderId: 'JIPAS',
-  currencySymbol: 'CFA',
+  currencySymbol: 'GHS',
   enableStudentPortal: true,
   enableFeeReceiptPrinting: true,
   allowReportDownload: true,
@@ -101,6 +101,7 @@ export default function SystemSettingsManager({
   // School Attendance Station QR Code State
   const [stationQrUrl, setStationQrUrl] = useState<string>('');
   const [stationTitle, setStationTitle] = useState<string>('JIPAS MAIN OFFICE ATTENDANCE STATION');
+  const [stationNonce, setStationNonce] = useState<number>(Date.now());
 
   useEffect(() => {
     const stationPayload = JSON.stringify({
@@ -109,13 +110,21 @@ export default function SystemSettingsManager({
       date: new Date().toISOString().split('T')[0],
       school: settings.schoolName || 'JIPAS ACADEMY',
       stationTitle: stationTitle,
+      nonce: stationNonce,
       timestamp: Date.now()
     });
 
-    QRCode.toDataURL(stationPayload, { width: 450, margin: 2, color: { dark: '#0a0a0a', light: '#ffffff' } })
+    QRCode.toDataURL(stationPayload, { 
+      width: 450, 
+      margin: 2, 
+      color: { 
+        dark: '#2563eb', // Blue-600
+        light: '#ffffff' 
+      } 
+    })
       .then(url => setStationQrUrl(url))
       .catch(err => console.error('Error generating station QR code:', err));
-  }, [settings.schoolName, stationTitle]);
+  }, [settings.schoolName, stationTitle, stationNonce]);
 
   const handlePrintStationPoster = () => {
     const printWin = window.open('', '_blank');
@@ -127,11 +136,12 @@ export default function SystemSettingsManager({
           <title>${settings.schoolName || 'JIPAS ACADEMY'} - Attendance Station Poster</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 40px; margin: 0; background: #ffffff; color: #0f172a; }
-            .poster-box { border: 8px solid #0f172a; padding: 40px; border-radius: 32px; max-width: 650px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+            .poster-box { border: 8px solid #2563eb; padding: 40px; border-radius: 32px; max-width: 650px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
             .logo-title { font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-            .sub-title { font-size: 18px; color: #0284c7; margin: 0 0 24px 0; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-            .qr-wrapper { background: #0f172a; padding: 20px; border-radius: 24px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+            .sub-title { font-size: 18px; color: #2563eb; margin: 0 0 24px 0; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+            .qr-wrapper { background: #ffffff; border: 4px solid #2563eb; padding: 20px; border-radius: 24px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
             .qr-img { width: 340px; height: 340px; display: block; border-radius: 12px; }
+            .qr-brand { font-size: 24px; font-weight: 900; color: #2563eb; margin-top: 10px; letter-spacing: 2px; }
             .instructions { font-size: 14px; font-weight: 700; color: #334155; line-height: 1.6; margin-top: 28px; text-align: left; background: #f8fafc; padding: 24px; border-radius: 20px; border: 2px solid #e2e8f0; }
             .footer { margin-top: 32px; font-size: 12px; color: #64748b; font-weight: 700; border-top: 2px border-dashed #cbd5e1; padding-top: 16px; }
           </style>
@@ -144,10 +154,11 @@ export default function SystemSettingsManager({
             
             <div class="qr-wrapper">
               ${stationQrUrl ? `<img src="${stationQrUrl}" class="qr-img" />` : ''}
+              <div class="qr-brand">JIPAS</div>
             </div>
 
             <div class="instructions">
-              <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 900; color: #0284c7;">📷 FACULTY & STAFF SIGN-IN INSTRUCTIONS:</p>
+              <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 900; color: #2563eb;">📷 FACULTY & STAFF SIGN-IN INSTRUCTIONS:</p>
               1. Open your smartphone camera or JIPAS Staff Portal.<br/>
               2. Point your camera lens at this station QR Code.<br/>
               3. Your arrival / departure time is recorded instantly into the institutional audit log.
@@ -1630,6 +1641,7 @@ export default function SystemSettingsManager({
                             alt="Attendance Station QR Code"
                             className="w-48 h-48 sm:w-52 sm:h-52 object-contain"
                           />
+                          <div className="font-black text-indigo-600 uppercase tracking-widest mt-1 text-xs">JIPAS</div>
                         </div>
                       ) : (
                         <div className="w-48 h-48 bg-slate-900 rounded-xl animate-pulse flex items-center justify-center text-slate-500 text-xs">
@@ -1644,8 +1656,15 @@ export default function SystemSettingsManager({
                     {/* Station Configuration & Details */}
                     <div className="md:col-span-2 space-y-4">
                       <div>
-                        <label className="block text-slate-200 font-bold mb-1.5 text-xs">
-                          Station Location / Name Tag
+                        <label className="block text-slate-200 font-bold mb-1.5 text-xs flex items-center justify-between">
+                          <span>Station Location / Name Tag</span>
+                          <button
+                            type="button"
+                            onClick={() => setStationNonce(Date.now())}
+                            className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors text-[10px] uppercase font-black"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Refresh QR Token
+                          </button>
                         </label>
                         <input
                           type="text"
@@ -2946,7 +2965,7 @@ export default function SystemSettingsManager({
                 </label>
 
                 <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <label className="block font-bold text-slate-900 mb-1">Arrears Threshold for Result Lock (CFA)</label>
+                  <label className="block font-bold text-slate-900 mb-1">Arrears Threshold for Result Lock (GHS)</label>
                   <input
                     type="number"
                     value={portalControls.lockArrearsAbove}

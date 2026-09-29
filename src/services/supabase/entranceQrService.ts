@@ -99,6 +99,30 @@ export const EntranceQrService = {
   },
 
   /**
+   * Refreshes a QR code by generating a new token hash for it
+   * Returns the new raw secure token
+   */
+  async refreshQrToken(id: string, campusId: string): Promise<string> {
+    const rawToken = `JIPAS_ENTRANCE_${campusId}_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+    const tokenHash = hashToken(rawToken);
+
+    const { error } = await supabase
+      .from('staff_attendance_qr_codes')
+      .update({ 
+        token_hash: tokenHash,
+        is_active: true // Reactivate if it was revoked
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[EntranceQrService] Error refreshing QR token:', error.message);
+      throw error;
+    }
+
+    return rawToken;
+  },
+
+  /**
    * Validates a scanned QR raw token against the database
    * Returns the active QR code record if valid, otherwise throws an error
    */
@@ -144,5 +168,20 @@ export const EntranceQrService = {
     }
 
     return data;
+  },
+
+  /**
+   * Updates a QR code record (e.g., renaming the gate)
+   */
+  async updateQrCode(id: string, updates: Partial<EntranceQrCode>): Promise<void> {
+    const { error } = await supabase
+      .from('staff_attendance_qr_codes')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('[EntranceQrService] Error updating QR code:', error.message);
+      throw error;
+    }
   }
 };
