@@ -38,5 +38,6 @@ export const STORAGE_KEYS = {
   BOARDING_ROOMS: 'jipas_boarding_rooms_records',
   DEMO_CLEARED: 'jipas_demo_data_cleared',
   THEME_PALETTE: 'jipas_global_theme_palette',
-  THERMAL_PRINTER_SETTINGS: 'jipas_thermal_printer_settings_config'
+  THERMAL_PRINTER_SETTINGS: 'jipas_thermal_printer_settings_config',
+  GENERAL_SETTINGS: 'jipas_general_settings'
 } as const;

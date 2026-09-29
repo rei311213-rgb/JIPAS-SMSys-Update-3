@@ -279,12 +279,23 @@ import {
   getStoredSecurityAuditLogs,
   saveStoredSecurityAuditLogs,
   DEFAULT_ACCOUNTANT_PRIVILEGES,
-  DEFAULT_SUB_ACCOUNTANT_PRIVILEGES
+  DEFAULT_SUB_ACCOUNTANT_PRIVILEGES,
+  getStoredSettings,
+  saveStoredSettings,
+  INITIAL_SCHOOL_SETTINGS
 } from './storageService';
+import {
+  JIPAS_LAPTOP_LOGO_KEY,
+  JIPAS_MOBILE_LOGO_KEY,
+  JIPAS_LOGO_STORAGE_KEY,
+  JIPAS_LOGO_EVENT
+} from '../components/common/JIPASLogo';
 
 export {
   DEFAULT_ACCOUNTANT_PRIVILEGES,
-  DEFAULT_SUB_ACCOUNTANT_PRIVILEGES
+  DEFAULT_SUB_ACCOUNTANT_PRIVILEGES,
+  getStoredSettings,
+  saveStoredSettings
 };
 
 export {
@@ -333,6 +344,9 @@ export interface SchoolSettings {
   schoolName: string;
   schoolMotto: string;
   schoolLogo: string;
+  laptopLogo?: string;
+  mobileLogo?: string;
+  thisDeviceLogo?: string;
   phone: string;
   email: string;
   address: string;
@@ -347,28 +361,7 @@ export interface SchoolSettings {
   workingHours?: StaffWorkingHoursConfig;
 }
 
-export const DEFAULT_SETTINGS: SchoolSettings = {
-  schoolName: 'JIPAS',
-  schoolMotto: 'Education is Wealth • Founded 2002',
-  schoolLogo: '',
-  phone: '(00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48',
-  email: 'joyjipas2002@gmail.com',
-  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
-  website: 'www.jipas.edu.gh',
-  activeAcademicYear: '2025-2026',
-  activeTerm: 'Third Term',
-  enableIncompleteReminders: true,
-  reminderFrequency: 'Weekly',
-  notifyParentsForMissingGrades: true,
-  missingGradeThreshold: 1,
-  workingHours: {
-    startTime: '07:30',
-    latenessCutoff: '08:00',
-    closingTime: '15:30',
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    gracePeriodMinutes: 5
-  }
-};
+export const DEFAULT_SETTINGS: SchoolSettings = INITIAL_SCHOOL_SETTINGS;
 
 const DEFAULT_ACADEMIC_YEARS: AcademicYear[] = [
   { id: 'ay-1', name: '2025-2026', startDate: '2025-09-01', endDate: '2026-07-24', isCurrent: true, status: 'Active' },
@@ -569,16 +562,71 @@ export const subscribeClassFeeTariffs = createSyncedSubscription(getStoredClassF
 export const subscribeClassBroadcasts = createSyncedSubscription(getStoredClassBroadcasts);
 
 export function subscribeSettings(callback: (settings: SchoolSettings) => void) {
-  callback(DEFAULT_SETTINGS);
-  const handleSync = () => callback(DEFAULT_SETTINGS);
+  // 1. Immediately emit locally cached settings
+  const initial = getStoredSettings();
+  callback(initial);
+
+  const handleSync = () => {
+    callback(getStoredSettings());
+  };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('jipas_cloud_synced', handleSync);
+    window.addEventListener(JIPAS_LOGO_EVENT, handleSync);
+    window.addEventListener('storage', handleSync);
   }
-  return () => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('jipas_cloud_synced', handleSync);
-    }
-  };
+
+  // 2. Realtime listener from Firestore
+  try {
+    const docRef = doc(db, 'settings', 'general');
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const remoteData = docSnap.data() as Partial<SchoolSettings>;
+        saveStoredSettings(remoteData);
+
+        if (remoteData.laptopLogo && typeof window !== 'undefined') {
+          localStorage.setItem(JIPAS_LAPTOP_LOGO_KEY, remoteData.laptopLogo);
+        }
+        if (remoteData.mobileLogo && typeof window !== 'undefined') {
+          localStorage.setItem(JIPAS_MOBILE_LOGO_KEY, remoteData.mobileLogo);
+        }
+        if (remoteData.schoolLogo && typeof window !== 'undefined') {
+          localStorage.setItem(JIPAS_LOGO_STORAGE_KEY, remoteData.schoolLogo);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(JIPAS_LOGO_EVENT, { detail: { settings: remoteData } }));
+          window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+        }
+
+        callback(getStoredSettings());
+      } else {
+        callback(getStoredSettings());
+      }
+    }, (err) => {
+      if (err instanceof Error && err.message.includes('permission')) {
+        handleFirestoreError(err, OperationType.GET, 'settings');
+      }
+      console.warn('subscribeSettings offline fallback:', err);
+      callback(getStoredSettings());
+    });
+
+    return () => {
+      unsub();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener(JIPAS_LOGO_EVENT, handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
+  } catch (e) {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener(JIPAS_LOGO_EVENT, handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
+  }
 }
 
 export function subscribeThemePalette(callback: (palette: ThemePaletteConfig) => void) {
@@ -1861,11 +1909,26 @@ export async function saveAllTeacherAttendanceRecords(records: TeacherAttendance
 }
 
 export async function saveSettings(settings: Partial<SchoolSettings>) {
-  if (settings.staffSecretCode) {
-    console.log('Settings saved locally');
+  // 1. Immediately persist locally and update stored settings
+  saveStoredSettings(settings);
+  if (settings.laptopLogo && typeof window !== 'undefined') {
+    localStorage.setItem(JIPAS_LAPTOP_LOGO_KEY, settings.laptopLogo);
   }
+  if (settings.mobileLogo && typeof window !== 'undefined') {
+    localStorage.setItem(JIPAS_MOBILE_LOGO_KEY, settings.mobileLogo);
+  }
+  if (settings.schoolLogo && typeof window !== 'undefined') {
+    localStorage.setItem(JIPAS_LOGO_STORAGE_KEY, settings.schoolLogo);
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(JIPAS_LOGO_EVENT, { detail: { settings } }));
+    window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+  }
+
+  // 2. Persist merged settings to Firestore document
   try {
-    await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(settings), { merge: true });
+    const fullMerged = getStoredSettings();
+    await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(fullMerged), { merge: true });
   } catch (err) {
     if (err instanceof Error && err.message.includes('permission')) {
       handleFirestoreError(err, OperationType.WRITE, 'settings');

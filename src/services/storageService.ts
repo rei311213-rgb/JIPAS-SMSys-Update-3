@@ -39,7 +39,8 @@ import {
   ScoreApprovalRecord,
   TransportRouteItem,
   BoardingRoomItem,
-  ThermalPrinterSettingsConfig
+  ThermalPrinterSettingsConfig,
+  SchoolSettings
 } from '../types';
 import { 
   INITIAL_STUDENTS, 
@@ -558,6 +559,48 @@ export function getStoredPaymentSettings(): PaymentSettingsConfig {
 
 export function saveStoredPaymentSettings(settings: PaymentSettingsConfig): void {
   writeStorage(STORAGE_KEYS.PAYMENT_SETTINGS, settings);
+}
+
+export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
+  schoolName: 'JIPAS',
+  schoolMotto: 'Education is Wealth • Founded 2002',
+  schoolLogo: '/logo.jpg',
+  laptopLogo: '/logo.jpg',
+  mobileLogo: '/logo.jpg',
+  phone: '(00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48',
+  email: 'joyjipas2002@gmail.com',
+  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
+  website: 'www.jipas.edu.gh',
+  activeAcademicYear: '2025-2026',
+  activeTerm: 'Third Term',
+  enableIncompleteReminders: true,
+  reminderFrequency: 'Weekly',
+  notifyParentsForMissingGrades: true,
+  missingGradeThreshold: 1,
+  workingHours: {
+    startTime: '07:30',
+    latenessCutoff: '08:00',
+    closingTime: '15:30',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    gracePeriodMinutes: 5
+  }
+};
+
+export function getStoredSettings(): SchoolSettings {
+  const settings = readStorage<SchoolSettings>(STORAGE_KEYS.GENERAL_SETTINGS, INITIAL_SCHOOL_SETTINGS);
+  return {
+    ...INITIAL_SCHOOL_SETTINGS,
+    ...(settings || {})
+  };
+}
+
+export function saveStoredSettings(settings: Partial<SchoolSettings>): void {
+  const current = getStoredSettings();
+  const updated: SchoolSettings = {
+    ...current,
+    ...settings
+  };
+  writeStorage(STORAGE_KEYS.GENERAL_SETTINGS, updated);
 }
 
 export const INITIAL_THERMAL_PRINTER_SETTINGS: ThermalPrinterSettingsConfig = {

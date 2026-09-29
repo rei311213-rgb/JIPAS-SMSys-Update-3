@@ -1048,6 +1048,27 @@ export interface SystemSettingsConfig {
   workingHours?: StaffWorkingHoursConfig;
 }
 
+export interface SchoolSettings {
+  schoolName: string;
+  schoolMotto: string;
+  schoolLogo: string;
+  laptopLogo?: string;
+  mobileLogo?: string;
+  thisDeviceLogo?: string;
+  phone: string;
+  email: string;
+  address: string;
+  website: string;
+  activeAcademicYear: string;
+  activeTerm: string;
+  staffSecretCode?: string;
+  enableIncompleteReminders?: boolean;
+  reminderFrequency?: 'Daily' | 'Weekly' | 'Bi-weekly';
+  notifyParentsForMissingGrades?: boolean;
+  missingGradeThreshold?: number;
+  workingHours?: StaffWorkingHoursConfig;
+}
+
 export interface ThemePaletteConfig {
   id?: string;
   name: string;

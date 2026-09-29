@@ -120,12 +120,12 @@ export const StaffAttendanceService = {
       }
     }
 
-    // 2. Verify and resolve QR details from token
+    // 2. Verify and authenticate the token (Token Authenticity Check)
     const qrCode = await EntranceQrService.verifyQrToken(rawToken);
 
-    // 3. Universal School-Wide QR Support: Allow entrance QR scanning across both campuses (JIPAS 1 & JIPAS 2)
-    // Record attendance under the staff member's assigned campus or fallback to QR campus
-    const targetCampusId = staffCampusId || qrCode.campus_id;
+    // 3. Ignore campus matching checks: allow universal school-wide token authentication.
+    // Verify only the authenticity of the token instead of forcing a match between the QR origin and scanning device's campus.
+    const targetCampusId = profile?.campus_id || staffCampusId || qrCode.campus_id || 'jipas-1-kpehenou';
 
     // 3. Date & calendar validation
     const todayStr = new Date().toISOString().split('T')[0];

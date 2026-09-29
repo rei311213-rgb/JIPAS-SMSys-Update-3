@@ -13,7 +13,18 @@ import {
   Department, HeadteacherPrivilegesConfig, HodPrivilegesConfig, StaffLoginUpdateRequest, Teacher,
   ThermalPrinterSettingsConfig
 } from '../../types';
-import JIPASLogo, { getSchoolLogo, setSchoolLogo, resetSchoolLogo } from '../common/JIPASLogo';
+import JIPASLogo, { 
+  getSchoolLogo, 
+  setSchoolLogo, 
+  resetSchoolLogo,
+  getLaptopLogo,
+  getMobileLogo,
+  getThisDeviceLogo,
+  setLaptopLogo,
+  setMobileLogo,
+  setThisDeviceLogo,
+  isMobileDevice
+} from '../common/JIPASLogo';
 import ThemePaletteManager from './ThemePaletteManager';
 import ImageCropperModal from '../common/ImageCropperModal';
 import { useI18n } from '../../i18n/I18nContext';
@@ -383,8 +394,12 @@ export default function SystemSettingsManager({
   const [manageLoginsTab, setManageLoginsTab] = useState<'students' | 'staff'>('students');
   const [selectedPortalLoginClass, setSelectedPortalLoginClass] = useState<string>('All');
 
-  // Logo customization state
+  // Multi-Device Crest & Logo customization state
   const [currentSchoolLogo, setCurrentSchoolLogo] = useState<string>(getSchoolLogo());
+  const [currentLaptopLogo, setCurrentLaptopLogo] = useState<string>(getLaptopLogo());
+  const [currentMobileLogo, setCurrentMobileLogo] = useState<string>(getMobileLogo());
+  const [currentThisDeviceLogo, setCurrentThisDeviceLogo] = useState<string>(getThisDeviceLogo());
+  const [targetDeviceForLogo, setTargetDeviceForLogo] = useState<'laptop' | 'mobile' | 'this_device' | 'global'>('laptop');
   const [logoInputUrl, setLogoInputUrl] = useState('');
   const [logoSuccessToast, setLogoSuccessToast] = useState(false);
   const [isLogoCropperOpen, setIsLogoCropperOpen] = useState(false);
@@ -447,6 +462,14 @@ export default function SystemSettingsManager({
           missingGradeThreshold: loadedSettings.missingGradeThreshold !== undefined ? loadedSettings.missingGradeThreshold : prev.missingGradeThreshold,
           workingHours: loadedSettings.workingHours || prev.workingHours || INITIAL_SYSTEM_SETTINGS.workingHours
         }));
+
+        if (loadedSettings.laptopLogo) {
+          setCurrentLaptopLogo(loadedSettings.laptopLogo);
+        }
+        if (loadedSettings.mobileLogo) {
+          setCurrentMobileLogo(loadedSettings.mobileLogo);
+        }
+        setCurrentSchoolLogo(getSchoolLogo());
       }
     });
 
@@ -500,6 +523,22 @@ export default function SystemSettingsManager({
     e.target.value = '';
   };
 
+  const handleFileUploadFor = (e: React.ChangeEvent<HTMLInputElement>, target: 'laptop' | 'mobile' | 'this_device' | 'global') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+
+    setTargetDeviceForLogo(target);
+    const objectUrl = URL.createObjectURL(file);
+    setLogoToCrop(objectUrl);
+    setIsLogoCropperOpen(true);
+    e.target.value = '';
+  };
+
   const handleApplyLogoUrl = (e: React.FormEvent) => {
     e.preventDefault();
     if (!logoInputUrl.trim()) return;
@@ -515,9 +554,35 @@ export default function SystemSettingsManager({
     }
   };
 
-  const handleLogoCropComplete = (croppedUrl: string) => {
-    setSchoolLogo(croppedUrl);
-    setCurrentSchoolLogo(croppedUrl);
+  const handleOpenLogoCropperFor = (target: 'laptop' | 'mobile' | 'this_device' | 'global') => {
+    setTargetDeviceForLogo(target);
+    const src = target === 'laptop' 
+      ? currentLaptopLogo 
+      : target === 'mobile' 
+        ? currentMobileLogo 
+        : target === 'this_device' 
+          ? (currentThisDeviceLogo || currentSchoolLogo) 
+          : currentSchoolLogo;
+    if (src) {
+      setLogoToCrop(src);
+      setIsLogoCropperOpen(true);
+    }
+  };
+
+  const handleLogoCropComplete = async (croppedUrl: string) => {
+    setSchoolLogo(croppedUrl, targetDeviceForLogo);
+    if (targetDeviceForLogo === 'laptop') {
+      setCurrentLaptopLogo(croppedUrl);
+      await saveSettings({ laptopLogo: croppedUrl });
+    } else if (targetDeviceForLogo === 'mobile') {
+      setCurrentMobileLogo(croppedUrl);
+      await saveSettings({ mobileLogo: croppedUrl });
+    } else if (targetDeviceForLogo === 'this_device') {
+      setCurrentThisDeviceLogo(croppedUrl);
+    } else {
+      await saveSettings({ schoolLogo: croppedUrl });
+    }
+    setCurrentSchoolLogo(getSchoolLogo());
     setLogoSuccessToast(true);
     setIsLogoCropperOpen(false);
     
@@ -529,9 +594,34 @@ export default function SystemSettingsManager({
     setTimeout(() => setLogoSuccessToast(false), 4000);
   };
 
-  const handleResetToDefaultLogo = () => {
-    resetSchoolLogo();
-    setCurrentSchoolLogo('/logo.png');
+  const handleResetToDefaultLogo = async () => {
+    resetSchoolLogo('all');
+    setCurrentLaptopLogo('/logo.jpg');
+    setCurrentMobileLogo('/logo.jpg');
+    setCurrentThisDeviceLogo('');
+    setCurrentSchoolLogo('/logo.jpg');
+    await saveSettings({ laptopLogo: '/logo.jpg', mobileLogo: '/logo.jpg', schoolLogo: '/logo.jpg' });
+    setLogoSuccessToast(true);
+    setTimeout(() => setLogoSuccessToast(false), 4000);
+  };
+
+  const handleResetLogoFor = async (target: 'all' | 'laptop' | 'mobile' | 'this_device' | 'global') => {
+    resetSchoolLogo(target);
+    if (target === 'all' || target === 'laptop') {
+      setCurrentLaptopLogo('/logo.jpg');
+      await saveSettings({ laptopLogo: '/logo.jpg' });
+    }
+    if (target === 'all' || target === 'mobile') {
+      setCurrentMobileLogo('/logo.jpg');
+      await saveSettings({ mobileLogo: '/logo.jpg' });
+    }
+    if (target === 'all' || target === 'this_device') {
+      setCurrentThisDeviceLogo('');
+    }
+    if (target === 'all' || target === 'global') {
+      await saveSettings({ schoolLogo: '/logo.jpg' });
+    }
+    setCurrentSchoolLogo(getSchoolLogo());
     setLogoSuccessToast(true);
     setTimeout(() => setLogoSuccessToast(false), 4000);
   };
@@ -543,6 +633,9 @@ export default function SystemSettingsManager({
       await saveSettings({
         schoolName: settings.schoolName,
         schoolMotto: settings.schoolMotto,
+        schoolLogo: currentSchoolLogo,
+        laptopLogo: currentLaptopLogo,
+        mobileLogo: currentMobileLogo,
         phone: settings.phone,
         email: settings.email,
         address: settings.address,
@@ -1224,95 +1317,215 @@ export default function SystemSettingsManager({
               </div>
             </div>
 
-              {/* School Logo & Crest Customizer */}
-              <div className="bg-[#0A122A] border-2 border-blue-900/60 p-6 sm:p-7 rounded-2xl shadow-2xl space-y-4">
+              {/* Multi-Device School Logo & Crest Customizer */}
+              <div className="bg-[#0A122A] border-2 border-blue-900/60 p-6 sm:p-7 rounded-2xl shadow-2xl space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-900/60">
                   <div>
                     <h4 className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2">
                       <div className="p-1.5 bg-emerald-950/80 border border-emerald-700/60 rounded-lg text-emerald-400">
                         <ImageIcon className="w-4 h-4" />
                       </div>
-                      {t('settings.crestHeader') || (language === 'fr' ? 'Armoiries Officielles & Logo de l’Établissement' : 'Official Crest & Institutional Logo')}
+                      {language === 'fr' ? 'Armoiries Officielles Multi-Appareils (Ordinateur Portable & Téléphone)' : 'Multi-Device Official Crest & Logo Customizer (Laptop & Phone)'}
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      {t('settings.crestSubtitle') || (language === 'fr' ? 'Personnalisez le logo affiché sur les en-têtes, bannières, reçus et bulletins.' : 'Customize the school logo displayed across headers, transcripts, invoices, and ID cards.')}
+                      {language === 'fr' ? 'Configurez deux armoiries distinctes pour vos ordinateurs portables et téléphones mobiles, ou définissez un logo spécifique pour cet appareil.' : 'Configure two separate official crests for laptops and mobile phones, or set a custom crest specifically for this device.'}
                     </p>
                   </div>
-                  {currentSchoolLogo !== '/logo.png' && (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleResetToDefaultLogo}
                       className="px-3 py-1.5 bg-[#131E3D] hover:bg-slate-800 text-slate-300 border border-blue-700/50 rounded-xl text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> {t('settings.reset') || (language === 'fr' ? 'Réinitialiser' : 'Reset')}
+                      <RotateCcw className="w-3.5 h-3.5" /> {language === 'fr' ? 'Tout Réinitialiser' : 'Reset All Crests'}
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {logoSuccessToast && (
-                  <div className="bg-emerald-950/90 border border-emerald-700/80 text-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+                  <div className="bg-emerald-950/90 border border-emerald-700/80 text-emerald-200 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    {t('settings.logoUpdated') || (language === 'fr' ? 'Logo de l’école mis à jour avec succès dans toute l’application.' : 'School logo updated successfully across the entire application.')}
+                    {language === 'fr' ? 'Armoiries de l’établissement mises à jour avec succès pour l’appareil sélectionné !' : 'Institutional crest updated successfully for the selected device!'}
                   </div>
                 )}
 
-                <div className="bg-[#131E3D] p-4 rounded-xl border-2 border-blue-800/60 flex flex-col md:flex-row items-center justify-between gap-6">
-                  {/* Live Preview */}
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-[#0A122A] rounded-2xl border border-blue-700/50 flex items-center justify-center shrink-0 shadow-inner">
-                      <JIPASLogo size="xl" />
+                {/* Current Device Detection Status Badge */}
+                <div className="bg-[#131E3D] p-3.5 rounded-xl border border-blue-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span className="text-slate-300 font-semibold">
+                      {language === 'fr' ? 'Appareil Actuel Détecté :' : 'Currently Active Device :'}
+                    </span>
+                    <span className="font-extrabold text-white px-2.5 py-0.5 bg-blue-900/80 border border-blue-600/60 rounded-lg">
+                      {isMobileDevice() ? '📱 Phone / Mobile Device' : '💻 Laptop / Desktop Computer'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-blue-300 font-medium">
+                    {language === 'fr' ? 'Les téléphones affichent le logo Mobile, les ordinateurs portables affichent le logo Laptop.' : 'Phones automatically load the Phone Crest; laptops load the Laptop Crest.'}
+                  </div>
+                </div>
+
+                {/* Dual Device Cards Grid: Laptop vs Phone */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Card 1: Laptop & Desktop Crest */}
+                  <div className="bg-[#131E3D] p-5 rounded-2xl border-2 border-blue-800/70 space-y-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-3 border-b border-blue-800/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">💻</span>
+                        <div>
+                          <h5 className="font-bold text-white text-xs sm:text-sm">{language === 'fr' ? 'Armoiries Ordinateur Portable / Bureau' : 'Laptop & Desktop Official Crest'}</h5>
+                          <span className="text-[10px] text-slate-400 font-medium">{language === 'fr' ? 'Affiché sur PC, ordinateurs portables et grands écrans' : 'Displayed on PC, Laptops & Large screens'}</span>
+                        </div>
+                      </div>
+                      {currentLaptopLogo !== '/logo.jpg' && (
+                        <button
+                          type="button"
+                          onClick={() => handleResetLogoFor('laptop')}
+                          className="text-[10px] text-slate-400 hover:text-white px-2 py-1 bg-slate-800/60 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors"
+                        >
+                          {language === 'fr' ? 'Réinitialiser' : 'Reset'}
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <div className="text-[10px] uppercase font-extrabold text-blue-400 tracking-wider">{t('settings.livePreview') || (language === 'fr' ? 'Aperçu en Direct' : 'Live Preview')}</div>
-                      <h5 className="font-black text-sm text-white">{settings.schoolName || 'JIPAS'}</h5>
-                      <p className="text-xs text-slate-300">{settings.schoolMotto || 'Education is Wealth • Est. 1990'}</p>
-                      <span className="inline-block mt-1 bg-blue-900/80 border border-blue-700/60 text-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {t('settings.activeRealtime') || (language === 'fr' ? 'Actif en temps réel' : 'Active in Real-Time')}
-                      </span>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {/* Laptop Frame Preview */}
+                      <div className="p-3 bg-[#0A122A] rounded-2xl border-2 border-blue-700/60 flex items-center justify-center shrink-0 shadow-inner w-24 h-24 sm:w-28 sm:h-28">
+                        <img 
+                          src={currentLaptopLogo} 
+                          alt="Laptop Crest Preview" 
+                          className="w-full h-full object-contain filter drop-shadow-xs"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/logo.jpg';
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2.5 text-center sm:text-left w-full">
+                        <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{language === 'fr' ? 'Aperçu Ordinateur' : 'Laptop Active View'}</div>
+                        <p className="text-xs text-slate-300 font-semibold">{settings.schoolName || 'JIPAS Academy'}</p>
+                        
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                          <label className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-3 py-2 rounded-xl font-bold text-[11px] cursor-pointer shadow-md shadow-blue-600/30 transition-all">
+                            <Upload className="w-3.5 h-3.5" /> {language === 'fr' ? 'Changer (Laptop)' : 'Upload Laptop Crest'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUploadFor(e, 'laptop')}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {currentLaptopLogo && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenLogoCropperFor('laptop')}
+                              className="flex items-center gap-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700/60 px-2.5 py-2 rounded-xl font-bold text-[11px] cursor-pointer transition-all"
+                            >
+                              <Crop className="w-3.5 h-3.5 text-blue-300" />
+                              <span>{language === 'fr' ? 'Recadrer' : 'Crop'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Upload Controls */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                    <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-lg shadow-blue-600/30 transition-all text-center">
-                      <Upload className="w-4 h-4" /> {t('settings.uploadLogo') || (language === 'fr' ? 'Importer un Logo' : 'Upload Logo')}
+                  {/* Card 2: Mobile & Phone Crest */}
+                  <div className="bg-[#131E3D] p-5 rounded-2xl border-2 border-emerald-800/70 space-y-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-3 border-b border-emerald-800/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📱</span>
+                        <div>
+                          <h5 className="font-bold text-white text-xs sm:text-sm">{language === 'fr' ? 'Armoiries Téléphone / Mobile' : 'Phone & Mobile Official Crest'}</h5>
+                          <span className="text-[10px] text-slate-400 font-medium">{language === 'fr' ? 'Affiché sur smartphones, tablettes et l’application mobile' : 'Displayed on Smartphones, Tablets & PWA'}</span>
+                        </div>
+                      </div>
+                      {currentMobileLogo !== '/logo.jpg' && (
+                        <button
+                          type="button"
+                          onClick={() => handleResetLogoFor('mobile')}
+                          className="text-[10px] text-slate-400 hover:text-white px-2 py-1 bg-slate-800/60 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors"
+                        >
+                          {language === 'fr' ? 'Réinitialiser' : 'Reset'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {/* Phone Frame Preview */}
+                      <div className="p-3 bg-[#0A122A] rounded-2xl border-2 border-emerald-700/60 flex items-center justify-center shrink-0 shadow-inner w-24 h-24 sm:w-28 sm:h-28">
+                        <img 
+                          src={currentMobileLogo} 
+                          alt="Phone Crest Preview" 
+                          className="w-full h-full object-contain filter drop-shadow-xs"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/logo.jpg';
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2.5 text-center sm:text-left w-full">
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">{language === 'fr' ? 'Aperçu Mobile' : 'Mobile Active View'}</div>
+                        <p className="text-xs text-slate-300 font-semibold">{settings.schoolName || 'JIPAS Academy'}</p>
+                        
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                          <label className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3 py-2 rounded-xl font-bold text-[11px] cursor-pointer shadow-md shadow-emerald-600/30 transition-all">
+                            <Upload className="w-3.5 h-3.5" /> {language === 'fr' ? 'Changer (Téléphone)' : 'Upload Phone Crest'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUploadFor(e, 'mobile')}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {currentMobileLogo && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenLogoCropperFor('mobile')}
+                              className="flex items-center gap-1 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 px-2.5 py-2 rounded-xl font-bold text-[11px] cursor-pointer transition-all"
+                            >
+                              <Crop className="w-3.5 h-3.5 text-emerald-300" />
+                              <span>{language === 'fr' ? 'Recadrer' : 'Crop'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Option 3: Quick "This Device Only" Custom Crest */}
+                <div className="p-4 bg-[#101A38] rounded-xl border border-indigo-700/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-950 rounded-xl border border-indigo-600/50 text-indigo-300">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h6 className="font-bold text-white text-xs">{language === 'fr' ? 'Personnaliser Uniquement Cet Appareil' : 'Set Independent Crest for This Device Only'}</h6>
+                      <p className="text-[11px] text-slate-400">
+                        {language === 'fr' ? 'Applique un logo exclusif à ce navigateur sans affecter vos autres appareils.' : 'Apply an exclusive crest override to this browser without affecting other devices.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="flex items-center gap-1.5 bg-indigo-700 hover:bg-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs cursor-pointer transition-colors">
+                      <Upload className="w-3.5 h-3.5" /> {language === 'fr' ? 'Logo Cet Appareil' : 'This Device Crest'}
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={handleFileUpload}
+                        onChange={(e) => handleFileUploadFor(e, 'this_device')}
                         className="hidden"
                       />
                     </label>
-
-                    {currentSchoolLogo && (
+                    {currentThisDeviceLogo && (
                       <button
                         type="button"
-                        onClick={handleOpenLogoCropper}
-                        className="flex items-center justify-center gap-1.5 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700/60 px-3.5 py-2.5 rounded-xl font-bold text-xs cursor-pointer transition-all text-center"
-                        title="Crop or reframe school logo"
+                        onClick={() => handleResetLogoFor('this_device')}
+                        className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 transition-colors"
                       >
-                        <Crop className="w-4 h-4 text-blue-300" />
-                        <span>{language === 'fr' ? 'Recadrer' : 'Crop Logo'}</span>
+                        {language === 'fr' ? 'Effacer' : 'Clear'}
                       </button>
                     )}
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="url"
-                        value={logoInputUrl}
-                        onChange={(e) => setLogoInputUrl(e.target.value)}
-                        placeholder={t('settings.orUrl') || (language === 'fr' ? 'Ou URL image (https://...)' : 'Or image URL (https://...)')}
-                        className="px-3 py-2 bg-[#0A122A] border-2 border-blue-700/60 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-400 w-full sm:w-56 focus:outline-none focus:border-blue-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyLogoUrl}
-                        disabled={!logoInputUrl.trim()}
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shrink-0"
-                      >
-                        {t('settings.apply') || (language === 'fr' ? 'Appliquer' : 'Apply')}
-                      </button>
-                    </div>
                   </div>
                 </div>
 
