@@ -123,14 +123,13 @@ export const StaffAttendanceService = {
     // 2. Verify and resolve QR details from token
     const qrCode = await EntranceQrService.verifyQrToken(rawToken);
 
-    // 3. Validate campus alignment (Critical Isolation Boundary)
-    if (qrCode.campus_id !== staffCampusId) {
-      throw new Error('Invalid entrance QR for your assigned campus.');
-    }
+    // 3. Universal School-Wide QR Support: Allow entrance QR scanning across both campuses (JIPAS 1 & JIPAS 2)
+    // Record attendance under the staff member's assigned campus or fallback to QR campus
+    const targetCampusId = staffCampusId || qrCode.campus_id;
 
     // 3. Date & calendar validation
     const todayStr = new Date().toISOString().split('T')[0];
-    const calendarCheck = await SchoolCalendarService.checkDate(todayStr, qrCode.campus_id);
+    const calendarCheck = await SchoolCalendarService.checkDate(todayStr, targetCampusId);
     if (!calendarCheck.isWorkingDay) {
       const reason = calendarCheck.reason || 'Weekend';
       const eventInfo = calendarCheck.eventName ? `: ${calendarCheck.eventName}` : '';
@@ -163,12 +162,12 @@ export const StaffAttendanceService = {
         .from('staff_attendance')
         .insert({
           staff_id: profileId,
-          campus_id: staffCampusId,
+          campus_id: targetCampusId,
           attendance_date: todayStr,
           sign_in_at: nowIso,
           status: isLate ? 'Late' : 'Present',
           source: 'ONLINE_QR',
-          qr_code_id: qrCode.id
+          qr_code_id: qrCode.id.startsWith('fallback-qr-') ? null : qrCode.id
         })
         .select('*')
         .single();
