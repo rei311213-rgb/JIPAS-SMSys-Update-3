@@ -6,7 +6,7 @@ import {
 } from '../types';
 
 export const INITIAL_PAYROLL_SETTINGS: PayrollSettingsConfig = {
-  currencySymbol: 'GHS',
+  currencySymbol: 'CFA',
   pensionEmployeeRate: 5.5,
   pensionEmployerRate: 13.0,
   tier2EmployeeRate: 5.0,

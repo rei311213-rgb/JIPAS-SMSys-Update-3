@@ -80,7 +80,7 @@ export const QUICK_PAID_AS_SUGGESTIONS = [
 export const INITIAL_FEE_OPTIONS_DATA: FeeOptionItem[] = [];
 
 export const DEFAULT_FEE_POLICY: FeePolicySettings = {
-  currencySymbol: 'GHS',
+  currencySymbol: 'CFA',
   defaultPaymentTerm: 'Third Term (2025-2026)',
   allowPartPayments: true,
   minDepositPercentage: 40,

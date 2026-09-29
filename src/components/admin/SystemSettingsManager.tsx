@@ -70,7 +70,7 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettingsConfig = {
   activeTerm: 'Third Term',
   nextTermBegins: '2026-09-15',
   smsSenderId: 'JIPAS',
-  currencySymbol: 'GHS',
+  currencySymbol: 'CFA',
   enableStudentPortal: true,
   enableFeeReceiptPrinting: true,
   allowReportDownload: true,
@@ -3178,7 +3178,7 @@ export default function SystemSettingsManager({
                 </label>
 
                 <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <label className="block font-bold text-slate-900 mb-1">Arrears Threshold for Result Lock (GHS)</label>
+                  <label className="block font-bold text-slate-900 mb-1">Arrears Threshold for Result Lock (CFA)</label>
                   <input
                     type="number"
                     value={portalControls.lockArrearsAbove}

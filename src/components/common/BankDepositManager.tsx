@@ -77,7 +77,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
     const parsedAmount = parseFloat(amount);
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid deposit amount greater than 0 GHS.');
+      alert('Please enter a valid deposit amount greater than 0 CFA.');
       return;
     }
 
@@ -108,7 +108,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
     setDeposits(updatedList);
     saveStoredBankDeposits(updatedList);
 
-    setToastMessage(`Bank Deposit of ${parsedAmount.toFixed(2)} GHS successfully logged with Receipt #${bankReceiptNo}!`);
+    setToastMessage(`Bank Deposit of ${parsedAmount.toFixed(2)} CFA successfully logged with Receipt #${bankReceiptNo}!`);
     setTimeout(() => setToastMessage(null), 4000);
 
     // Reset Form
@@ -154,7 +154,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
 
           <div class="amount-box">
             <div class="amount-title">Total Amount Deposited</div>
-            <div class="amount-num">${rec.amount.toFixed(2)} GHS</div>
+            <div class="amount-num">${rec.amount.toFixed(2)} CFA</div>
           </div>
 
           <div class="grid">
@@ -255,7 +255,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
               Total Banked Monies
             </span>
             <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono mt-1">
-              {totalBankedAmount.toFixed(2)} GHS
+              {totalBankedAmount.toFixed(2)} CFA
             </div>
             <span className="text-[10px] text-slate-400 mt-0.5 block">
               Across {deposits.length} recorded bank teller slips
@@ -279,7 +279,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
               Recent Activity
             </span>
             <div className="text-sm font-black text-amber-300 font-mono mt-1 truncate">
-              {deposits[0] ? `${deposits[0].bankReceiptNo} (${deposits[0].amount.toFixed(2)} GHS)` : 'No deposits logged'}
+              {deposits[0] ? `${deposits[0].bankReceiptNo} (${deposits[0].amount.toFixed(2)} CFA)` : 'No deposits logged'}
             </div>
             <span className="text-[10px] text-slate-400 mt-0.5 block">
               {deposits[0] ? `By ${deposits[0].depositedBy}` : 'Awaiting entry'}
@@ -334,7 +334,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
                 <th className="p-3">Date</th>
                 <th className="p-3">Bank Name & Acc No.</th>
                 <th className="p-3">Bank Receipt / Teller Slip #</th>
-                <th className="p-3 text-right">Amount (GHS)</th>
+                <th className="p-3 text-right">Amount (CFA)</th>
                 <th className="p-3">Deposited By</th>
                 <th className="p-3">Purpose</th>
                 <th className="p-3 text-center">Status</th>
@@ -364,7 +364,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
                       </span>
                     </td>
                     <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm whitespace-nowrap">
-                      {d.amount.toFixed(2)} GHS
+                      {d.amount.toFixed(2)} CFA
                     </td>
                     <td className="p-3">
                       <div className="font-semibold text-slate-900">{d.depositedBy}</div>
@@ -471,7 +471,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Amount Deposited */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Amount Sent to Bank (GHS) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Amount Sent to Bank (CFA) *</label>
                   <input
                     type="number"
                     step="0.01"

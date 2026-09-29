@@ -188,10 +188,10 @@ const FRIENDLY_FIELD_LABELS: Record<string, string> = {
   phone: 'Phone Number',
   email: 'Email Address',
   status: 'Status',
-  totalAmount: 'Total Amount (GHS)',
-  paidAmount: 'Paid Amount (GHS)',
-  amountPaid: 'Amount Paid (GHS)',
-  balance: 'Outstanding Balance (GHS)',
+  totalAmount: 'Total Amount (CFA)',
+  paidAmount: 'Paid Amount (CFA)',
+  amountPaid: 'Amount Paid (CFA)',
+  balance: 'Outstanding Balance (CFA)',
   course: 'Programme / Course',
   department: 'Academic Department',
   house: 'House Assignment',
@@ -206,7 +206,7 @@ const FRIENDLY_FIELD_LABELS: Record<string, string> = {
   conduct: 'Conduct Assessment',
   attitude: 'Attitude Assessment',
   attendance: 'Attendance Record',
-  basicSalary: 'Basic Salary (GHS)',
+  basicSalary: 'Basic Salary (CFA)',
   updatedAt: 'Last Modified Timestamp'
 };
 
@@ -290,7 +290,7 @@ export const CONFLICT_COLLECTIONS: MonitoredCollectionConfig[] = [
     getDeviceData: getStoredBills,
     setDeviceData: saveStoredBills,
     getTitle: (item) => `Bill: ${item.studentName || item.studentId || item.id}`,
-    getSubtitle: (item) => `Amount: GHS ${item.totalAmount || item.amount || 0} • Status: ${item.status || 'Pending'}`
+    getSubtitle: (item) => `Amount: CFA ${item.totalAmount || item.amount || 0} • Status: ${item.status || 'Pending'}`
   },
   {
     name: 'payments',
@@ -298,7 +298,7 @@ export const CONFLICT_COLLECTIONS: MonitoredCollectionConfig[] = [
     getDeviceData: getStoredPayments,
     setDeviceData: saveStoredPayments,
     getTitle: (item) => `Receipt #${item.receiptNo || item.id} (${item.studentName || 'Student'})`,
-    getSubtitle: (item) => `Paid: GHS ${item.amountPaid || item.amount || 0} • Date: ${item.date || 'N/A'}`
+    getSubtitle: (item) => `Paid: CFA ${item.amountPaid || item.amount || 0} • Date: ${item.date || 'N/A'}`
   },
   {
     name: 'reports',

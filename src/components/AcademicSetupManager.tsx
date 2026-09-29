@@ -5191,7 +5191,7 @@ export default function AcademicSetupManager({
       )}
 
       {/* ==================================================================== */}
-      {/* MODAL 3C: MAP COURSES TO SENIOR HIGHS SCHOOL (SHS) */}
+      {/* MODAL 3C: MAP COURSES TO SENIOR HICFA SCHOOL (SHS) */}
       {/* ==================================================================== */}
       {showMapShsModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">

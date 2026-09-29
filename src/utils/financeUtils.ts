@@ -4,20 +4,20 @@
  */
 
 export const CURRENCY = {
-  code: 'GHS',
-  symbol: '₵',
-  name: 'Ghana Cedi',
-  decimalPlaces: 2
+  code: 'CFA',
+  symbol: 'CFA',
+  name: 'CFA Franc',
+  decimalPlaces: 0
 };
 
 /**
- * Formats a numeric value as Ghana Cedi (GHS)
+ * Formats a numeric value as CFA Franc (CFA)
  */
 export const formatCurrency = (amount: number): string => {
-  return `${CURRENCY.symbol}${amount.toLocaleString('en-GH', {
+  return `${amount.toLocaleString('fr-FR', {
     minimumFractionDigits: CURRENCY.decimalPlaces,
     maximumFractionDigits: CURRENCY.decimalPlaces
-  })}`;
+  })} CFA`;
 };
 
 /**

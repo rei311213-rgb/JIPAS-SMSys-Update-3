@@ -461,21 +461,28 @@ export default function TeacherPortal({
     return ['Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6'];
   };
 
-  // Department options
-  const departmentOptions = useMemo(() => {
-    if (Array.isArray(departments) && departments.length > 0) {
-      const names = departments.map(d => typeof d === 'object' ? d.name : d).filter(Boolean);
-      return Array.from(new Set(names));
-    }
-    return ['Pre-School', 'Primary School', 'Junior High School', 'Senior High School'];
-  }, [departments]);
-
   const teacherAssignedClasses = useMemo(() => {
     if (Array.isArray(teacher?.classesTaught) && teacher.classesTaught.length > 0) {
       return teacher.classesTaught.filter(Boolean);
     }
     return [];
   }, [teacher?.classesTaught]);
+
+  // Department options filtered by teacher assigned classes
+  const departmentOptions = useMemo(() => {
+    let baseDepts = ['Pre-School', 'Primary School', 'Junior High School', 'Senior High School'];
+    if (Array.isArray(departments) && departments.length > 0) {
+      const names = departments.map(d => typeof d === 'object' ? d.name : d).filter(Boolean);
+      baseDepts = Array.from(new Set(names));
+    }
+    if (teacherAssignedClasses.length > 0) {
+      const assignedDepts = Array.from(new Set(teacherAssignedClasses.map(getClassDepartmentName)));
+      if (assignedDepts.length > 0) {
+        return baseDepts.filter(d => assignedDepts.includes(d));
+      }
+    }
+    return baseDepts;
+  }, [departments, teacherAssignedClasses]);
 
   // Initial department based on teacher's assigned classes or profile
   const initialDept = useMemo(() => {
@@ -492,7 +499,12 @@ export default function TeacherPortal({
     return 'Primary School';
   }, [teacherAssignedClasses, teacher?.department]);
 
-  const [selectedDepartment, setSelectedDepartment] = useState<string>(initialDept);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(() => {
+    if (teacherAssignedClasses.length > 0) {
+      return getClassDepartmentName(teacherAssignedClasses[0]);
+    }
+    return initialDept;
+  });
 
   // Available classes for the currently selected department, filtered by teacher assigned classes
   const availableClassesForDept = useMemo(() => {
@@ -521,9 +533,7 @@ export default function TeacherPortal({
                (selectedDepartment === 'Senior High School' && (c.includes('SHS') || c.includes('Science') || c.includes('Arts') || c.includes('Business') || c.includes('Economics') || c.includes('Visual')));
       });
       // When teacher is assigned classes for this department, show ONLY their assigned classes
-      if (assignedInDept.length > 0) {
-        return assignedInDept;
-      }
+      return assignedInDept;
     }
     return allDeptClasses;
   }, [selectedDepartment, teacherAssignedClasses, classes]);
@@ -698,6 +708,10 @@ export default function TeacherPortal({
 
   // Class students filtered
   const classStudents = students.filter(s => {
+    // If teacher is assigned specific classes, prevent viewing students from unassigned classes
+    if (teacherAssignedClasses.length > 0 && !teacherAssignedClasses.includes(selectedClass)) {
+      return false;
+    }
     const matchesClass = s.className === selectedClass;
     const matchesSearch = s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           s.admissionNo.toLowerCase().includes(searchQuery.toLowerCase());

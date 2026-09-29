@@ -413,7 +413,7 @@ export class PDFGeneratorService {
     // Payment Details Table
     autoTable(doc, {
       startY: 95,
-      head: [['Description', 'Payment Mode', 'Reference', 'Amount Paid (GHS)']],
+      head: [['Description', 'Payment Mode', 'Reference', 'Amount Paid (CFA)']],
       body: [[
         payment.description || 'School Fees Payment',
         payment.method || (payment as any).paymentMethod || 'Cash',
@@ -429,7 +429,7 @@ export class PDFGeneratorService {
     // Totals
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(`TOTAL PAID: GHS ${(paidAmount ?? 0).toFixed(2)}`, 190, finalY + 15, { align: 'right' });
+    doc.text(`TOTAL PAID: CFA ${(paidAmount ?? 0).toFixed(2)}`, 190, finalY + 15, { align: 'right' });
 
     // Authorization
     doc.setFontSize(10);

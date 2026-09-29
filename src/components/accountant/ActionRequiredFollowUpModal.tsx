@@ -44,7 +44,7 @@ export const ActionRequiredFollowUpModal: React.FC<ActionRequiredFollowUpModalPr
   const parentName = student?.parentName || 'Parent/Guardian';
 
   // Default reminder message
-  const defaultReminder = `Dear ${parentName}, this is an urgent fee notice from JIPAS School Bursary regarding ${bill.studentName} (${bill.className}, ${bill.admissionNo}). Outstanding balance: ${(bill.balance ?? 0).toFixed(2)} GHS. Please arrange payment at the school accounts office or via Mobile Money to avoid examination clearance restrictions. Thank you.`;
+  const defaultReminder = `Dear ${parentName}, this is an urgent fee notice from JIPAS School Bursary regarding ${bill.studentName} (${bill.className}, ${bill.admissionNo}). Outstanding balance: ${(bill.balance ?? 0).toFixed(2)} CFA. Please arrange payment at the school accounts office or via Mobile Money to avoid examination clearance restrictions. Thank you.`;
 
   const activeMessage = customMessage || defaultReminder;
 
@@ -65,7 +65,7 @@ export const ActionRequiredFollowUpModal: React.FC<ActionRequiredFollowUpModalPr
     if (onSendNotificationAlert) {
       onSendNotificationAlert(
         `🚨 Fee Overdue Notice: ${bill.studentName}`,
-        `Outstanding school balance: ${(bill.balance ?? 0).toFixed(2)} GHS. Please contact Bursar office for immediate clearance.`,
+        `Outstanding school balance: ${(bill.balance ?? 0).toFixed(2)} CFA. Please contact Bursar office for immediate clearance.`,
         bill.studentId
       );
       setActionSuccess('Direct portal notification dispatched to student & parent account!');
@@ -127,10 +127,10 @@ export const ActionRequiredFollowUpModal: React.FC<ActionRequiredFollowUpModalPr
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl">
               <span className="text-[10px] uppercase font-bold text-rose-600 block">Balance Overdue</span>
               <span className="text-xl font-black text-rose-700 font-mono">
-                {(bill.balance ?? 0).toFixed(2)} GHS
+                {(bill.balance ?? 0).toFixed(2)} CFA
               </span>
               <span className="text-[10px] text-rose-500 block mt-0.5">
-                Paid: {(bill.paid ?? 0).toFixed(2)} of {(bill.payable ?? 0).toFixed(2)} GHS
+                Paid: {(bill.paid ?? 0).toFixed(2)} of {(bill.payable ?? 0).toFixed(2)} CFA
               </span>
             </div>
 

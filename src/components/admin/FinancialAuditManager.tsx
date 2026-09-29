@@ -96,14 +96,14 @@ export default function FinancialAuditManager({
     const unreconciledSummaries = secretarySummaries.filter(s => !s.isReconciled);
     if (unreconciledSummaries.length > 0) {
       const pendingSum = addMoney(...unreconciledSummaries.map(s => s.netCashOnHand || 0));
-      list.push(`Flag: ${unreconciledSummaries.length} Secretarial daily cash handovers (GHS ${pendingSum.toFixed(2)}) remain unreconciled by the main Bursary.`);
+      list.push(`Flag: ${unreconciledSummaries.length} Secretarial daily cash handovers (CFA ${pendingSum.toFixed(2)}) remain unreconciled by the main Bursary.`);
     }
 
     // Check unapproved expenses
     const pendingExpenses = expenses.filter(e => e.status === 'Pending');
     if (pendingExpenses.length > 0) {
       const pendingExpSum = addMoney(...pendingExpenses.map(e => e.amount || 0));
-      list.push(`Warning: ${pendingExpenses.length} Expense vouchers totaling GHS ${pendingExpSum.toFixed(2)} are pending administrative authorization.`);
+      list.push(`Warning: ${pendingExpenses.length} Expense vouchers totaling CFA ${pendingExpSum.toFixed(2)} are pending administrative authorization.`);
     }
 
     // Check high fee arrears
@@ -115,7 +115,7 @@ export default function FinancialAuditManager({
       return subtractMoney(bSum, pSum) > 1000;
     });
     if (highArrearsStudents.length > 0) {
-      list.push(`Risk Notice: ${highArrearsStudents.length} students have critical fee arrears exceeding GHS 1,000.00.`);
+      list.push(`Risk Notice: ${highArrearsStudents.length} students have critical fee arrears exceeding CFA 1,000.00.`);
     }
 
     // Check collection rate
@@ -227,36 +227,36 @@ export default function FinancialAuditManager({
               <tr>
                 <th>Financial Item</th>
                 <th>Category</th>
-                <th style="text-align: right;">Amount (GHS)</th>
+                <th style="text-align: right;">Amount (CFA)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>Total Student Fee Invoices Generated</td>
                 <td>Gross Revenue Billing</td>
-                <td style="text-align: right; font-weight: bold;">GHS {(report.totalBilled ?? 0).toFixed(2)}</td>
+                <td style="text-align: right; font-weight: bold;">CFA {(report.totalBilled ?? 0).toFixed(2)}</td>
               </tr>
               <tr>
                 <td>Total Fee Collections Received (Desk + MoMo + Bank)</td>
                 <td>Actual Operating Inflow</td>
-                <td style="text-align: right; font-weight: bold; color: #059669;">GHS {(report.totalCollected ?? 0).toFixed(2)}</td>
+                <td style="text-align: right; font-weight: bold; color: #059669;">CFA {(report.totalCollected ?? 0).toFixed(2)}</td>
               </tr>
               <tr>
                 <td>Total Institutional Operating Expenditures</td>
                 <td>Supplies, Utilities & Repairs</td>
-                <td style="text-align: right; font-weight: bold; color: #e11d48;">GHS ${ (report.totalExpenses ?? 0).toFixed(2) }</td>
+                <td style="text-align: right; font-weight: bold; color: #e11d48;">CFA ${ (report.totalExpenses ?? 0).toFixed(2) }</td>
               </tr>
               <tr>
                 <td>Total Faculty & Staff Payroll Disbursements</td>
                 <td>Staff Salaries & Pension</td>
-                <td style="text-align: right; font-weight: bold; color: #e11d48;">GHS ${ (report.totalPayroll ?? 0).toFixed(2) }</td>
+                <td style="text-align: right; font-weight: bold; color: #e11d48;">CFA ${ (report.totalPayroll ?? 0).toFixed(2) }</td>
               </tr>
             </tbody>
           </table>
 
           <div class="surplus-box">
             <div style="font-size: 11px; text-transform: uppercase; font-weight: bold; color: #64748b;">Net Operating Surplus / Deficit</div>
-            <div class="surplus-val">GHS ${ (report.netSurplus ?? 0).toFixed(2) }</div>
+            <div class="surplus-val">CFA ${ (report.netSurplus ?? 0).toFixed(2) }</div>
             <div style="font-size: 12px; font-weight: bold; margin-top: 4px; color: #475569;">
               Collection Coverage: ${ ((report.totalCollected / Math.max(1, report.totalBilled)) * 100).toFixed(1) }%
             </div>
@@ -344,7 +344,7 @@ export default function FinancialAuditManager({
             <FileText className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl font-black text-slate-900 font-mono">
-            GHS {totalBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            CFA {totalBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <span className="text-[10px] text-slate-400 mt-1">{bills.length} student bill lines generated</span>
         </div>
@@ -355,7 +355,7 @@ export default function FinancialAuditManager({
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-700 font-mono">
-            GHS {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            CFA {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <span className="text-[10px] text-emerald-700 mt-1">
             {((totalCollected / Math.max(1, totalBilled)) * 100).toFixed(1)}% recovery rate
@@ -368,10 +368,10 @@ export default function FinancialAuditManager({
             <Receipt className="w-4 h-4 text-rose-600" />
           </div>
           <div className="text-2xl font-black text-rose-700 font-mono">
-            GHS {(totalExpenses + totalPayrollDisbursed).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            CFA {(totalExpenses + totalPayrollDisbursed).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <span className="text-[10px] text-rose-600 mt-1">
-            Expenses: GHS {(totalExpenses ?? 0).toFixed(0)} • Payroll: GHS {(totalPayrollDisbursed ?? 0).toFixed(0)}
+            Expenses: CFA {(totalExpenses ?? 0).toFixed(0)} • Payroll: CFA {(totalPayrollDisbursed ?? 0).toFixed(0)}
           </span>
         </div>
 
@@ -385,7 +385,7 @@ export default function FinancialAuditManager({
             <TrendingUp className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black font-mono">
-            GHS {netSurplusDeficit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            CFA {netSurplusDeficit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
           <span className="text-[10px] font-bold mt-1">
             {netSurplusDeficit >= 0 ? 'Operating Surplus' : 'Operating Deficit'}
@@ -472,7 +472,7 @@ export default function FinancialAuditManager({
                   <span className="text-slate-600 font-medium">{aud.auditDate}</span>
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  Audited by: <strong>{aud.auditedBy}</strong> • Net Balance: <strong className={aud.netSurplus >= 0 ? 'text-emerald-700' : 'text-rose-700'}>GHS {(aud.netSurplus ?? 0).toFixed(2)}</strong>
+                  Audited by: <strong>{aud.auditedBy}</strong> • Net Balance: <strong className={aud.netSurplus >= 0 ? 'text-emerald-700' : 'text-rose-700'}>CFA {(aud.netSurplus ?? 0).toFixed(2)}</strong>
                 </div>
               </div>
 

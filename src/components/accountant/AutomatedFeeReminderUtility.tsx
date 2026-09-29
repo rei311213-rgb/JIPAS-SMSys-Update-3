@@ -127,9 +127,9 @@ export default function AutomatedFeeReminderUtility({
       'Parent Name',
       'Parent Phone',
       'Status',
-      'Total Billed (GHS)',
-      'Amount Paid (GHS)',
-      'Balance Due (GHS)',
+      'Total Billed (CFA)',
+      'Amount Paid (CFA)',
+      'Balance Due (CFA)',
       'Due Date',
       'Pre-formatted Notification Message'
     ];
@@ -267,7 +267,7 @@ export default function AutomatedFeeReminderUtility({
         <div className="bg-indigo-50 border border-indigo-200/80 rounded-2xl p-4">
           <span className="text-xs font-bold text-indigo-700 block uppercase">Outstanding Total</span>
           <p className="text-2xl font-black text-indigo-900 mt-1 font-mono">
-            {stats.totalOutstanding.toLocaleString()} <span className="text-xs font-bold text-indigo-400">GHS</span>
+            {stats.totalOutstanding.toLocaleString()} <span className="text-xs font-bold text-indigo-400">CFA</span>
           </p>
           <span className="text-[11px] text-indigo-600">Target collection balance</span>
         </div>
@@ -390,7 +390,7 @@ export default function AutomatedFeeReminderUtility({
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 block uppercase font-bold">Outstanding Balance</span>
                     <span className="font-mono font-black text-rose-600 text-sm">
-                      {reminder.balance.toLocaleString()} GHS
+                      {reminder.balance.toLocaleString()} CFA
                     </span>
                     <span className="text-[10px] text-slate-500 block">
                       Paid: {reminder.paid.toLocaleString()} / {reminder.totalPayable.toLocaleString()}

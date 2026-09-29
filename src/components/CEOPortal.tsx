@@ -413,7 +413,7 @@ export default function CEOPortal({
           label: 'School Finances',
           description: 'Total revenue vs expenses summary & net financial position',
           icon: Wallet,
-          badge: `₵${totalRevenue.toLocaleString()}`,
+          badge: `CFA${totalRevenue.toLocaleString()}`,
           color: 'from-emerald-600 to-green-700',
           badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
         },
@@ -913,15 +913,15 @@ export default function CEOPortal({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="p-6 bg-blue-900/10 rounded-2xl border border-blue-900/30">
                              <span className="text-[10px] font-black text-blue-400 uppercase">Total Revenue</span>
-                             <h3 className="text-2xl font-black text-white mt-1">GHS {totalRevenue.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalRevenue.toLocaleString()}</h3>
                           </div>
                           <div className="p-6 bg-rose-900/10 rounded-2xl border border-rose-900/30">
                              <span className="text-[10px] font-black text-rose-400 uppercase">Total Expenditure</span>
-                             <h3 className="text-2xl font-black text-white mt-1">GHS {totalExpenditure.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalExpenditure.toLocaleString()}</h3>
                           </div>
                           <div className="p-6 bg-emerald-900/10 rounded-2xl border border-emerald-900/30">
                              <span className="text-[10px] font-black text-emerald-400 uppercase">Net Surplus</span>
-                             <h3 className="text-2xl font-black text-white mt-1">GHS {netSurplus.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">CFA {netSurplus.toLocaleString()}</h3>
                           </div>
                       </div>
                     </div>

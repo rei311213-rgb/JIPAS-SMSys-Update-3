@@ -23,7 +23,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
         date: new Date(p.date),
         type: 'Fee Collection',
         amount: p.amount || p.paid || 0,
-        currency: 'GHS',
+        currency: 'CFA',
         user: p.paidAs || 'Cashier',
         description: `Fee collected for ${p.studentName} (${p.admissionNo})`,
         status: 'Completed',
@@ -40,7 +40,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
         date: new Date(e.date),
         type: 'Daily Expense',
         amount: e.amount || 0,
-        currency: 'GHS',
+        currency: 'CFA',
         user: e.loggedBy || e.recordedBy || 'Accountant',
         description: `${e.category} - ${e.description || e.title || ''}`,
         status: e.status || 'Approved',
@@ -60,7 +60,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
                date: new Date(h.date || b.dateIssued || b.dueDate || new Date()),
                type: 'Balance Adjustment',
                amount: h.amount || 0,
-               currency: 'GHS',
+               currency: 'CFA',
                user: h.user || 'Admin',
                description: `Manual adjustment on bill for ${b.studentName} - ${h.reason || ''}`,
                status: 'Adjusted',
@@ -156,7 +156,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <span className={`text-sm font-black font-mono ${event.type === 'Daily Expense' ? 'text-rose-600' : 'text-slate-900'}`}>
-                        {event.type === 'Daily Expense' ? '-' : '+'} GHS {event.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {event.type === 'Daily Expense' ? '-' : '+'} CFA {event.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

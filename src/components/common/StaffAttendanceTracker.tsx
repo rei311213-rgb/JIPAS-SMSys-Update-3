@@ -93,8 +93,8 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
     const records = attendanceRecords.filter(r => r.teacherId === t.id);
     const presentCount = records.filter(r => r.status === 'Present' || r.status === 'Late').length;
     const absentCount = records.filter(r => r.status === 'Absent').length;
-    const baseMonthlySalary = 3500; // GHS
-    const deduction = absentCount * 120; // GHS 120 deduction per absent day
+    const baseMonthlySalary = 3500; // CFA
+    const deduction = absentCount * 120; // CFA 120 deduction per absent day
     const netSalary = Math.max(0, baseMonthlySalary - deduction);
 
     return {
@@ -353,9 +353,9 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
                     <td className="p-3.5 text-slate-600 dark:text-slate-300">{item.teacher.department || 'General'}</td>
                     <td className="p-3.5 font-mono font-bold text-emerald-600">{item.presentCount}</td>
                     <td className="p-3.5 font-mono font-bold text-rose-500">{item.absentCount}</td>
-                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">GHS {item.baseMonthlySalary.toFixed(2)}</td>
-                    <td className="p-3.5 font-mono text-rose-600">-GHS {item.deduction.toFixed(2)}</td>
-                    <td className="p-3.5 font-mono font-black text-blue-600 dark:text-blue-400">GHS {item.netSalary.toFixed(2)}</td>
+                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">CFA {item.baseMonthlySalary.toFixed(2)}</td>
+                    <td className="p-3.5 font-mono text-rose-600">-CFA {item.deduction.toFixed(2)}</td>
+                    <td className="p-3.5 font-mono font-black text-blue-600 dark:text-blue-400">CFA {item.netSalary.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

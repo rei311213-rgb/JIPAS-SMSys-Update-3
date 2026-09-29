@@ -236,7 +236,7 @@ export default function ConsolidatedExecutiveReport() {
           },
           { 
             label: 'Fees Collected', 
-            value: totalRevenue > 0 ? `GHS ${totalRevenue.toLocaleString()}` : 'GHS 0', 
+            value: totalRevenue > 0 ? `CFA ${totalRevenue.toLocaleString()}` : 'CFA 0', 
             icon: DollarSign, 
             color: 'text-emerald-400', 
             bg: 'bg-emerald-400/10', 
@@ -244,7 +244,7 @@ export default function ConsolidatedExecutiveReport() {
           },
           { 
             label: 'Operating Expenses', 
-            value: totalExpenses > 0 ? `GHS ${totalExpenses.toLocaleString()}` : 'GHS 0', 
+            value: totalExpenses > 0 ? `CFA ${totalExpenses.toLocaleString()}` : 'CFA 0', 
             icon: TrendingUp, 
             color: 'text-rose-400', 
             bg: 'bg-rose-400/10', 
@@ -346,7 +346,7 @@ export default function ConsolidatedExecutiveReport() {
               <div key={i} className="flex justify-between items-center text-xs">
                 <span className="text-slate-400 font-bold">{item.name}</span>
                 <span className="text-white font-black">
-                  {totalRevenue > 0 ? `GHS ${item.value.toLocaleString()}` : '—'}
+                  {totalRevenue > 0 ? `CFA ${item.value.toLocaleString()}` : '—'}
                 </span>
               </div>
             ))}
@@ -404,7 +404,7 @@ export default function ConsolidatedExecutiveReport() {
                 <span className="text-xs text-slate-300 font-bold">Net Cash Position</span>
               </div>
               <span className={`text-sm font-black ${subtractMoney(totalRevenue, totalExpenses) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                GHS {subtractMoney(totalRevenue, totalExpenses).toLocaleString()}
+                CFA {subtractMoney(totalRevenue, totalExpenses).toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800">

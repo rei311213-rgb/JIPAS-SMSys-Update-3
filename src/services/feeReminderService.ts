@@ -59,10 +59,10 @@ export function identifyStudentsForFeeReminder(
 
     if (statusType === 'Partially Paid') {
       notificationTitle = `Partial Fee Payment Notice: ${studentName} (${className})`;
-      preformattedMessage = `Dear ${parentName}, thank you for your recent tuition payment of ${paid.toLocaleString()} GHS towards ${studentName}'s (${className}, ID: ${admissionNo}) fees. A remaining balance of ${balance.toLocaleString()} GHS is outstanding out of total ${total.toLocaleString()} GHS for ${year} (${term}). Kindly arrange settlement by ${dueDate} to complete clearance. - JIPAS Bursary & Accounts Office (Tel: +233 24 123 4567)`;
+      preformattedMessage = `Dear ${parentName}, thank you for your recent tuition payment of ${paid.toLocaleString()} CFA towards ${studentName}'s (${className}, ID: ${admissionNo}) fees. A remaining balance of ${balance.toLocaleString()} CFA is outstanding out of total ${total.toLocaleString()} CFA for ${year} (${term}). Kindly arrange settlement by ${dueDate} to complete clearance. - JIPAS Bursary & Accounts Office (Tel: +233 24 123 4567)`;
     } else {
       notificationTitle = `Outstanding Fee Reminder: ${studentName} (${className})`;
-      preformattedMessage = `OFFICIAL FEE NOTICE: Dear ${parentName}, this is an urgent reminder from JIPAS Educational Complex that ${studentName} (${className}, ID: ${admissionNo}) has an unpaid tuition balance of ${balance.toLocaleString()} GHS for ${year} (${term}). Full fees payable: ${total.toLocaleString()} GHS. Please arrange settlement on or before ${dueDate} at the school bursary. Contact JIPAS Accounts Office for inquiries.`;
+      preformattedMessage = `OFFICIAL FEE NOTICE: Dear ${parentName}, this is an urgent reminder from JIPAS Educational Complex that ${studentName} (${className}, ID: ${admissionNo}) has an unpaid tuition balance of ${balance.toLocaleString()} CFA for ${year} (${term}). Full fees payable: ${total.toLocaleString()} CFA. Please arrange settlement on or before ${dueDate} at the school bursary. Contact JIPAS Accounts Office for inquiries.`;
     }
 
     overdueList.push({

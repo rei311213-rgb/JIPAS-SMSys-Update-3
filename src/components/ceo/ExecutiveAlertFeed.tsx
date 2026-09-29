@@ -34,7 +34,7 @@ export default function ExecutiveAlertFeed() {
     try {
       const generatedAlerts: ExecutiveAlert[] = [];
 
-      // 1. High-Value Outstanding Fees (> GHS 5000)
+      // 1. High-Value Outstanding Fees (> CFA 5000)
       let bills: StudentBill[] = getStoredBills();
       
       const highValueBills = bills.filter(b => (b.balance || 0) > 5000);
@@ -44,13 +44,13 @@ export default function ExecutiveAlertFeed() {
           type: 'Financial',
           severity: 'Critical',
           title: 'High-Value Arrears Detected',
-          description: `${highValueBills.length} accounts have outstanding balances exceeding GHS 5,000. Total exposure: GHS ${addMoney(...highValueBills.map(b => b.balance || 0)).toLocaleString()}.`,
+          description: `${highValueBills.length} accounts have outstanding balances exceeding CFA 5,000. Total exposure: CFA ${addMoney(...highValueBills.map(b => b.balance || 0)).toLocaleString()}.`,
           timestamp: new Date(),
           meta: { count: highValueBills.length }
         });
       }
 
-      // 2. Abnormal Expenditure (Expenses > GHS 2000 in a single record)
+      // 2. Abnormal Expenditure (Expenses > CFA 2000 in a single record)
       let expenses: SchoolExpenseRecord[] = getStoredExpenses();
       
       const highExpenses = expenses.filter(e => (e.amount || 0) > 2000);
@@ -60,7 +60,7 @@ export default function ExecutiveAlertFeed() {
           type: 'Financial',
           severity: 'Warning',
           title: 'Abnormal Expenditure Alert',
-          description: `Detected ${highExpenses.length} expense records exceeding GHS 2,000 threshold. Manual review recommended.`,
+          description: `Detected ${highExpenses.length} expense records exceeding CFA 2,000 threshold. Manual review recommended.`,
           timestamp: new Date(),
           meta: { count: highExpenses.length }
         });

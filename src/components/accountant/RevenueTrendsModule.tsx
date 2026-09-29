@@ -264,13 +264,13 @@ export default function RevenueTrendsModule({
     const headers = [
       'Month',
       'Year',
-      'Total Collection (GHS)',
+      'Total Collection (CFA)',
       'Transaction Count',
-      'Average Payment (GHS)',
-      'Cumulative Total (GHS)',
-      'Cash (GHS)',
-      'Mobile Money (GHS)',
-      'Bank Transfer (GHS)'
+      'Average Payment (CFA)',
+      'Cumulative Total (CFA)',
+      'Cash (CFA)',
+      'Mobile Money (CFA)',
+      'Bank Transfer (CFA)'
     ];
 
     const rows = monthlyData.map(m => [
@@ -358,7 +358,7 @@ export default function RevenueTrendsModule({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 tracking-tight font-mono">
-            {totalRevenue.toLocaleString()} <span className="text-xs font-bold text-slate-400">GHS</span>
+            {totalRevenue.toLocaleString()} <span className="text-xs font-bold text-slate-400">CFA</span>
           </p>
           <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" /> Across {filteredPayments.length} verified receipts
@@ -376,7 +376,7 @@ export default function RevenueTrendsModule({
             {peakMonth ? peakMonth.monthLabel : 'N/A'}
           </p>
           <span className="text-[11px] font-semibold text-indigo-700 font-mono">
-            {peakMonth ? `${peakMonth.totalRevenue.toLocaleString()} GHS` : '0 GHS'}
+            {peakMonth ? `${peakMonth.totalRevenue.toLocaleString()} CFA` : '0 CFA'}
           </span>
         </div>
 
@@ -388,7 +388,7 @@ export default function RevenueTrendsModule({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 tracking-tight font-mono">
-            {averageMonthlyRevenue.toLocaleString()} <span className="text-xs font-bold text-slate-400">GHS</span>
+            {averageMonthlyRevenue.toLocaleString()} <span className="text-xs font-bold text-slate-400">CFA</span>
           </p>
           <span className="text-[11px] font-semibold text-slate-500">
             Across {monthlyData.length || 1} active collection months
@@ -500,7 +500,7 @@ export default function RevenueTrendsModule({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Monthly Tuition & Fee Revenue (GHS)</h3>
+                  <h3 className="text-sm font-bold text-slate-800">Monthly Tuition & Fee Revenue (CFA)</h3>
                   <p className="text-xs text-slate-400">Total fees deposited and reconciled per calendar month</p>
                 </div>
                 <div className="flex items-center gap-4 text-xs">
@@ -528,7 +528,7 @@ export default function RevenueTrendsModule({
                       tickFormatter={(val) => val >= 1000 ? `${((val ?? 0) / 1000).toFixed(0)}k` : val}
                     />
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value).toLocaleString()} GHS`, 'Total Revenue']}
+                      formatter={(value: any) => [`${Number(value).toLocaleString()} CFA`, 'Total Revenue']}
                       labelFormatter={(label) => `Month: ${label}`}
                       contentStyle={{
                         backgroundColor: '#0f172a',
@@ -562,7 +562,7 @@ export default function RevenueTrendsModule({
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                  <span>Total Reached: {totalRevenue.toLocaleString()} GHS</span>
+                  <span>Total Reached: {totalRevenue.toLocaleString()} CFA</span>
                 </div>
               </div>
 
@@ -589,7 +589,7 @@ export default function RevenueTrendsModule({
                       tickFormatter={(val) => val >= 1000 ? `${((val ?? 0) / 1000).toFixed(0)}k` : val}
                     />
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value).toLocaleString()} GHS`, 'Cumulative Collections']}
+                      formatter={(value: any) => [`${Number(value).toLocaleString()} CFA`, 'Cumulative Collections']}
                       labelFormatter={(label) => `Month: ${label}`}
                       contentStyle={{
                         backgroundColor: '#0f172a',
@@ -635,7 +635,7 @@ export default function RevenueTrendsModule({
                       ))}
                     </Pie>
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value).toLocaleString()} GHS`, 'Amount']}
+                      formatter={(value: any) => [`${Number(value).toLocaleString()} CFA`, 'Amount']}
                       contentStyle={{
                         backgroundColor: '#0f172a',
                         borderRadius: '12px',
@@ -667,7 +667,7 @@ export default function RevenueTrendsModule({
                         </div>
                         <div className="text-right">
                           <span className="text-xs font-mono font-bold text-slate-900 block">
-                            {item.value.toLocaleString()} GHS
+                            {item.value.toLocaleString()} CFA
                           </span>
                           <span className="text-[10px] text-slate-500 font-semibold">
                             {pct}% of collections
@@ -713,7 +713,7 @@ export default function RevenueTrendsModule({
                       tickFormatter={(val) => val >= 1000 ? `${((val ?? 0) / 1000).toFixed(0)}k` : val}
                     />
                     <Tooltip 
-                      formatter={(value: any, name: string) => [`${Number(value).toLocaleString()} GHS`, name]}
+                      formatter={(value: any, name: string) => [`${Number(value).toLocaleString()} CFA`, name]}
                       contentStyle={{
                         backgroundColor: '#0f172a',
                         borderRadius: '12px',
@@ -736,7 +736,7 @@ export default function RevenueTrendsModule({
                 <div>
                   <span className="text-[10px] font-black uppercase text-slate-500 block">Total Cumulative Outstanding</span>
                   <h4 className="text-xl font-bold text-slate-900 font-mono mt-0.5">
-                    {addMoney(...outstandingDataByClass.map(item => item.outstanding || 0)).toLocaleString()} GHS
+                    {addMoney(...outstandingDataByClass.map(item => item.outstanding || 0)).toLocaleString()} CFA
                   </h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">Aggregated remaining balance across listed classes</p>
                 </div>
@@ -757,7 +757,7 @@ export default function RevenueTrendsModule({
                     {outstandingDataByClass[0] ? outstandingDataByClass[0].className : 'N/A'}
                   </h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">
-                    {outstandingDataByClass[0] ? `${outstandingDataByClass[0].outstanding.toLocaleString()} GHS debt` : 'No outstanding balances'}
+                    {outstandingDataByClass[0] ? `${outstandingDataByClass[0].outstanding.toLocaleString()} CFA debt` : 'No outstanding balances'}
                   </p>
                 </div>
               </div>
@@ -796,7 +796,7 @@ export default function RevenueTrendsModule({
                         tickFormatter={(val) => val >= 1000 ? `${((val ?? 0) / 1000).toFixed(0)}k` : val}
                       />
                       <Tooltip 
-                        formatter={(value: any, name: string) => [`${Number(value).toLocaleString()} GHS`, name]}
+                        formatter={(value: any, name: string) => [`${Number(value).toLocaleString()} CFA`, name]}
                         contentStyle={{
                           backgroundColor: '#0f172a',
                           borderRadius: '12px',
@@ -830,8 +830,8 @@ export default function RevenueTrendsModule({
                           />
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold mt-1">
-                          <span>Collected: {item.paid.toLocaleString()} GHS</span>
-                          <span>Debt: {item.outstanding.toLocaleString()} GHS</span>
+                          <span>Collected: {item.paid.toLocaleString()} CFA</span>
+                          <span>Debt: {item.outstanding.toLocaleString()} CFA</span>
                         </div>
                       </div>
                     ))}
@@ -876,19 +876,19 @@ export default function RevenueTrendsModule({
                         {m.transactionCount}
                       </td>
                       <td className="p-3 text-right font-mono text-slate-600">
-                        {m.cashRevenue.toLocaleString()} GHS
+                        {m.cashRevenue.toLocaleString()} CFA
                       </td>
                       <td className="p-3 text-right font-mono text-sky-700 font-semibold">
-                        {m.momoRevenue.toLocaleString()} GHS
+                        {m.momoRevenue.toLocaleString()} CFA
                       </td>
                       <td className="p-3 text-right font-mono text-slate-600">
-                        {(m.bankRevenue + m.chequeRevenue).toLocaleString()} GHS
+                        {(m.bankRevenue + m.chequeRevenue).toLocaleString()} CFA
                       </td>
                       <td className="p-3 text-right font-mono font-black text-indigo-700">
-                        {m.totalRevenue.toLocaleString()} GHS
+                        {m.totalRevenue.toLocaleString()} CFA
                       </td>
                       <td className="p-3 text-right font-mono font-bold text-emerald-700">
-                        {m.cumulativeRevenue.toLocaleString()} GHS
+                        {m.cumulativeRevenue.toLocaleString()} CFA
                       </td>
                     </tr>
                   ))}

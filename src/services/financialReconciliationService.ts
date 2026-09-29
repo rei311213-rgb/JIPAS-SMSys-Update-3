@@ -576,7 +576,7 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
             recordedAmount: run.totalNetPay || 0,
             variance: runVariance,
             transactionRefs: [run.id],
-            description: `Payroll run for ${run.month} (${run.totalNetPay || 0} GHS) has net payout differing from sum of individual payslips (${sumPayslips} GHS) by ${formatCurrency(runVariance)}.`,
+            description: `Payroll run for ${run.month} (${run.totalNetPay || 0} CFA) has net payout differing from sum of individual payslips (${sumPayslips} CFA) by ${formatCurrency(runVariance)}.`,
             verificationStatus: 'MATHEMATICAL_ERROR',
             recommendedInvestigation: 'Re-audit payroll run payslips and verify automated pension/tax deduction lines.',
             detectedAt: detectedAtStr
@@ -671,7 +671,7 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
       secretaryVariance,
       ceoDashboardReconciled,
       ceoVariance,
-      notes: `Accountant Variance: GHS ${accountantVariance.toFixed(2)}, CEO Variance: GHS ${ceoVariance.toFixed(2)}.`
+      notes: `Accountant Variance: CFA ${accountantVariance.toFixed(2)}, CEO Variance: CFA ${ceoVariance.toFixed(2)}.`
     },
     expenseReconciliation: {
       totalExpensesRecorded,

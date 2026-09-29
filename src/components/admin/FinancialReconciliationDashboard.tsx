@@ -107,7 +107,7 @@ export default function FinancialReconciliationDashboard({
   // CSV Export
   const handleExportCSV = () => {
     if (!auditReport) return;
-    const headers = ['Exception ID', 'Student / Account', 'Admission No', 'Campus', 'Period', 'Category', 'Severity', 'Expected (GHS)', 'Recorded (GHS)', 'Variance (GHS)', 'Verification Status', 'Transaction Refs', 'Recommended Investigation'];
+    const headers = ['Exception ID', 'Student / Account', 'Admission No', 'Campus', 'Period', 'Category', 'Severity', 'Expected (CFA)', 'Recorded (CFA)', 'Variance (CFA)', 'Verification Status', 'Transaction Refs', 'Recommended Investigation'];
     const rows = auditReport.exceptions.map(e => [
       `"${e.id}"`,
       `"${e.studentName || e.studentRef || 'N/A'}"`,

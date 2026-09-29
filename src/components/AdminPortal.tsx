@@ -1380,7 +1380,7 @@ export default function AdminPortal({
               >
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-purple-200">{t('dashboard.pendingPayments', 'Pending Payments')}</p>
-                  <h3 className="text-3xl font-black mt-1 font-mono">{(totalPending ?? 0).toFixed(2)} GHS</h3>
+                  <h3 className="text-3xl font-black mt-1 font-mono">{(totalPending ?? 0).toFixed(2)} CFA</h3>
                   <p className="text-xs text-purple-100 font-semibold mt-1">{t('dashboard.outstandingBalances', 'Outstanding Balances')}</p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">

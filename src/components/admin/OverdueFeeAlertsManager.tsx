@@ -284,9 +284,9 @@ export default function OverdueFeeAlertsManager({
         `This is a friendly reminder regarding the outstanding school fees for your ward:\n` +
         `👤 *Learner:* ${studentName} (${admNo})\n` +
         `🏫 *Class:* ${className}\n` +
-        `💵 *Total Outstanding Balance:* *${totalBalance} GHS*\n` +
-        `   • Tuition Arrears: ${tuitionBal} GHS\n` +
-        `   • Levies / Sundry: ${levyBal} GHS\n\n` +
+        `💵 *Total Outstanding Balance:* *${totalBalance} CFA*\n` +
+        `   • Tuition Arrears: ${tuitionBal} CFA\n` +
+        `   • Levies / Sundry: ${levyBal} CFA\n\n` +
         `Kindly effect settlement through the school bursary or via our verified Mobile Money channels.\n\n` +
         `📱 *Paiement Marchand Mobile Money:* *145*5*1083411# (JIPAS 1)\n` +
         `📱 *Bursary Support:* 0249755593\n` +
@@ -300,9 +300,9 @@ export default function OverdueFeeAlertsManager({
         `Attention: *${parentName}*\n\n` +
         `*URGENT NOTICE OF OVERDUE ACCOUNT*\n\n` +
         `Please be informed that the school fees for *${studentName}* (${admNo}) in *${className}* remain seriously overdue:\n\n` +
-        `💰 *TOTAL ARREARS DUE:* *${totalBalance} GHS*\n` +
-        `   - Tuition Outstanding: ${tuitionBal} GHS\n` +
-        `   - Activity/Levies Arrears: ${levyBal} GHS\n\n` +
+        `💰 *TOTAL ARREARS DUE:* *${totalBalance} CFA*\n` +
+        `   - Tuition Outstanding: ${tuitionBal} CFA\n` +
+        `   - Activity/Levies Arrears: ${levyBal} CFA\n\n` +
         `⚠️ *IMMEDIATE ACTION REQUIRED:*\n` +
         `Continued non-settlement will necessitate withholding terminal examination registration slips and academic broadsheets.\n\n` +
         `Please clear this balance immediately at the bursary or via Mobile Money Marchand: **145*5*1083411#** (JIPAS 1, Ref: ${admNo}).\n\n` +
@@ -315,9 +315,9 @@ export default function OverdueFeeAlertsManager({
       `Dear *${parentName}*,\n\n` +
       `Official notice regarding outstanding fee balance for *${studentName}* (${admNo}) - *${className}*.\n\n` +
       `📊 *ACCOUNT BALANCE SUMMARY:*\n` +
-      `• Tuition Fees Balance: *${tuitionBal} GHS*\n` +
-      `• Statutory Levies & Dues: *${levyBal} GHS*\n` +
-      `• *TOTAL ARREARS PAYABLE:* *${totalBalance} GHS*\n\n` +
+      `• Tuition Fees Balance: *${tuitionBal} CFA*\n` +
+      `• Statutory Levies & Dues: *${levyBal} CFA*\n` +
+      `• *TOTAL ARREARS PAYABLE:* *${totalBalance} CFA*\n\n` +
       `💳 *PAYMENT CHANNELS:*\n` +
       `1. School Accounts Office (Cash & Bank Draft)\n` +
       `2. Mobile Money Marchand: *145*5*1083411# (JIPAS 1, Ref: ${admNo})\n` +
@@ -367,7 +367,7 @@ export default function OverdueFeeAlertsManager({
       onAddNotification({
         id: `notif-fee-${Date.now()}`,
         title: `WhatsApp Overdue Reminder: ${bill.studentName}`,
-        message: `Overdue fees reminder of ${(bill.balance ?? 0).toFixed(2)} GHS dispatched to parent ${student?.parentName || ''} (${student?.parentPhone || ''}).`,
+        message: `Overdue fees reminder of ${(bill.balance ?? 0).toFixed(2)} CFA dispatched to parent ${student?.parentName || ''} (${student?.parentPhone || ''}).`,
         targetAudience: 'Parents & Guardians',
         targetClass: bill.className,
         dateSent: new Date().toLocaleString(),
@@ -406,7 +406,7 @@ export default function OverdueFeeAlertsManager({
       onAddNotification({
         id: `notif-flag-${Date.now()}`,
         title: `[INTERNAL ALERT] ${flagTypeInput}: ${flagModalBill.studentName}`,
-        message: `Account flagged for ${flagModalBill.studentName} (${flagModalBill.admissionNo}). Balance: ${(flagModalBill.balance ?? 0).toFixed(2)} GHS. Note: ${flagNoteInput || 'Review required'}`,
+        message: `Account flagged for ${flagModalBill.studentName} (${flagModalBill.admissionNo}). Balance: ${(flagModalBill.balance ?? 0).toFixed(2)} CFA. Note: ${flagNoteInput || 'Review required'}`,
         targetAudience: 'Teaching Staff',
         targetClass: flagModalBill.className,
         dateSent: new Date().toLocaleString(),
@@ -456,7 +456,7 @@ export default function OverdueFeeAlertsManager({
         dateSent: timestamp,
         operator: 'Marcus Prosper (Admin)',
         status: 'Delivered',
-        messageSnippet: `Overdue balance of ${(b.balance ?? 0).toFixed(2)} GHS broadcasted.`
+        messageSnippet: `Overdue balance of ${(b.balance ?? 0).toFixed(2)} CFA broadcasted.`
       });
 
       newCounts[studentId] = {
@@ -473,7 +473,7 @@ export default function OverdueFeeAlertsManager({
       onAddNotification({
         id: `notif-bulk-${Date.now()}`,
         title: `Automated WhatsApp Arrears Broadcast (${targetBills.length} Parents)`,
-        message: `Dispatched automated overdue fees reminders via WhatsApp parent contacts totaling ${addMoney(...targetBills.map(b => b.balance ?? 0)).toFixed(2)} GHS across ${targetBills.length} pupils.`,
+        message: `Dispatched automated overdue fees reminders via WhatsApp parent contacts totaling ${addMoney(...targetBills.map(b => b.balance ?? 0)).toFixed(2)} CFA across ${targetBills.length} pupils.`,
         targetAudience: 'Parents & Guardians',
         targetClass: selectedClass,
         dateSent: timestamp,
@@ -543,7 +543,7 @@ export default function OverdueFeeAlertsManager({
         .replace(/{student_name}/g, b.studentName)
         .replace(/{admission_no}/g, b.admissionNo)
         .replace(/{class_name}/g, b.className)
-        .replace(/{balance_due}/g, `${(b.balance ?? 0).toFixed(2)} GHS`)
+        .replace(/{balance_due}/g, `${(b.balance ?? 0).toFixed(2)} CFA`)
         .replace(/{school_name}/g, 'JIPAS Academy');
 
       // Simulate small network delay
@@ -600,7 +600,7 @@ export default function OverdueFeeAlertsManager({
       const currentProgress = Math.round(((i + 1) / total) * 100);
       setMassSmsProgress(currentProgress);
       setMassSmsBatchLogs(prev => [
-        `[${nowStr}] Dispatched to ${parentName} (${b.studentName} - ${b.className}): ${(b.balance ?? 0).toFixed(2)} GHS`,
+        `[${nowStr}] Dispatched to ${parentName} (${b.studentName} - ${b.className}): ${(b.balance ?? 0).toFixed(2)} CFA`,
         ...prev
       ]);
     }
@@ -706,7 +706,7 @@ export default function OverdueFeeAlertsManager({
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Arrears Due</span>
             <h3 className="text-2xl font-black text-rose-600 mt-0.5 font-mono">
-              {(metrics.totalArrears ?? 0).toFixed(2)} GHS
+              {(metrics.totalArrears ?? 0).toFixed(2)} CFA
             </h3>
             <p className="text-[11px] text-slate-500 mt-1">Across {metrics.totalOverdueStudents} pupil accounts</p>
           </div>
@@ -720,7 +720,7 @@ export default function OverdueFeeAlertsManager({
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tuition Balance</span>
             <h3 className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
-              {(metrics.totalTuitionArrears ?? 0).toFixed(2)} GHS
+              {(metrics.totalTuitionArrears ?? 0).toFixed(2)} CFA
             </h3>
             <p className="text-[11px] text-indigo-600 font-bold mt-1">Core instructional fees</p>
           </div>
@@ -734,7 +734,7 @@ export default function OverdueFeeAlertsManager({
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Levies & Dues Arrears</span>
             <h3 className="text-2xl font-black text-amber-600 mt-0.5 font-mono">
-              {(metrics.totalLevyArrears ?? 0).toFixed(2)} GHS
+              {(metrics.totalLevyArrears ?? 0).toFixed(2)} CFA
             </h3>
             <p className="text-[11px] text-slate-500 mt-1">PTA, feeding, clinic & bus</p>
           </div>
@@ -797,9 +797,9 @@ export default function OverdueFeeAlertsManager({
                 className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
               >
                 <option value="all">All Arrears Brackets</option>
-                <option value="critical">Critical (&gt; 400 GHS)</option>
-                <option value="moderate">Moderate (150 - 400 GHS)</option>
-                <option value="low">Low (&lt; 150 GHS)</option>
+                <option value="critical">Critical (&gt; 400 CFA)</option>
+                <option value="moderate">Moderate (150 - 400 CFA)</option>
+                <option value="low">Low (&lt; 150 CFA)</option>
                 <option value="flagged">Internally Flagged Accounts</option>
                 <option value="uncontacted">Not Reminded Yet</option>
               </select>
@@ -948,17 +948,17 @@ export default function OverdueFeeAlertsManager({
 
                         {/* Tuition Arrears */}
                         <td className="p-3.5 text-right font-mono font-bold text-indigo-900">
-                          {(breakdown.tuitionArrears ?? 0).toFixed(2)} GHS
+                          {(breakdown.tuitionArrears ?? 0).toFixed(2)} CFA
                         </td>
 
                         {/* Levy Arrears */}
                         <td className="p-3.5 text-right font-mono font-semibold text-amber-800">
-                          {(breakdown.levyArrears ?? 0).toFixed(2)} GHS
+                          {(breakdown.levyArrears ?? 0).toFixed(2)} CFA
                         </td>
 
                         {/* Total Arrears */}
                         <td className="p-3.5 text-right font-mono font-black text-rose-600">
-                          <div className="text-[13px]">{(b.balance ?? 0).toFixed(2)} GHS</div>
+                          <div className="text-[13px]">{(b.balance ?? 0).toFixed(2)} CFA</div>
                           {isCritical && (
                             <span className="inline-block text-[9px] uppercase font-extrabold bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded mt-0.5">
                               Critical Arrears
@@ -1114,7 +1114,7 @@ export default function OverdueFeeAlertsManager({
 
                       {/* Total Arrears Badge */}
                       <div className="text-right shrink-0">
-                        <div className="font-mono font-black text-rose-600 text-sm">{(b.balance ?? 0).toFixed(2)} GHS</div>
+                        <div className="font-mono font-black text-rose-600 text-sm">{(b.balance ?? 0).toFixed(2)} CFA</div>
                         {isCritical && (
                           <span className="inline-block text-[9px] uppercase font-black bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded mt-0.5">
                             Critical
@@ -1136,11 +1136,11 @@ export default function OverdueFeeAlertsManager({
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div className="bg-indigo-50/60 border border-indigo-100 p-2 rounded-xl">
                           <span className="text-indigo-600 font-bold block">Tuition Arrears:</span>
-                          <span className="font-mono font-extrabold text-indigo-950">{(breakdown.tuitionArrears ?? 0).toFixed(2)} GHS</span>
+                          <span className="font-mono font-extrabold text-indigo-950">{(breakdown.tuitionArrears ?? 0).toFixed(2)} CFA</span>
                         </div>
                         <div className="bg-amber-50/60 border border-amber-100 p-2 rounded-xl">
                           <span className="text-amber-700 font-bold block">Levy Arrears:</span>
-                          <span className="font-mono font-extrabold text-amber-950">{(breakdown.levyArrears ?? 0).toFixed(2)} GHS</span>
+                          <span className="font-mono font-extrabold text-amber-950">{(breakdown.levyArrears ?? 0).toFixed(2)} CFA</span>
                         </div>
                       </div>
 
@@ -1307,16 +1307,16 @@ export default function OverdueFeeAlertsManager({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Minimum Outstanding Balance (GHS)</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Minimum Outstanding Balance (CFA)</label>
                     <select
                       value={massSmsMinBalance}
                       onChange={(e) => setMassSmsMinBalance(Number(e.target.value))}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
                     >
-                      <option value={0}>All Overdue Balances (&gt; 0 GHS)</option>
-                      <option value={50}>Above 50 GHS Arrears</option>
-                      <option value={150}>Above 150 GHS Arrears</option>
-                      <option value={300}>Above 300 GHS Arrears (Critical Only)</option>
+                      <option value={0}>All Overdue Balances (&gt; 0 CFA)</option>
+                      <option value={50}>Above 50 CFA Arrears</option>
+                      <option value={150}>Above 150 CFA Arrears</option>
+                      <option value={300}>Above 300 CFA Arrears (Critical Only)</option>
                     </select>
                   </div>
                 </div>
@@ -1482,7 +1482,7 @@ export default function OverdueFeeAlertsManager({
                         {b.className}
                       </span>
                       <span className="font-black text-rose-600 font-mono text-sm">
-                        {(b.balance ?? 0).toFixed(2)} GHS
+                        {(b.balance ?? 0).toFixed(2)} CFA
                       </span>
                     </div>
 
@@ -1592,7 +1592,7 @@ export default function OverdueFeeAlertsManager({
                         </td>
                         <td className="p-3.5 font-bold text-slate-700">{bill.className}</td>
                         <td className="p-3.5 font-mono font-black text-rose-600">
-                          {(bill.balance ?? 0).toFixed(2)} GHS
+                          {(bill.balance ?? 0).toFixed(2)} CFA
                         </td>
                         <td className="p-3.5">
                           <span className="bg-rose-100 text-rose-900 font-extrabold px-2.5 py-1 rounded-full text-xs border border-rose-200 inline-flex items-center gap-1.5">
@@ -1653,7 +1653,7 @@ export default function OverdueFeeAlertsManager({
                           <span className="font-bold text-slate-600 text-xs">{bill.className}</span>
                         </div>
                       </div>
-                      <span className="font-mono font-black text-rose-600 text-sm">{(bill.balance ?? 0).toFixed(2)} GHS</span>
+                      <span className="font-mono font-black text-rose-600 text-sm">{(bill.balance ?? 0).toFixed(2)} CFA</span>
                     </div>
 
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
@@ -1745,7 +1745,7 @@ export default function OverdueFeeAlertsManager({
                       </span>
                     </td>
                     <td className="p-3.5 text-right font-mono font-black text-rose-600">
-                      {(log.balanceReminded ?? 0).toFixed(2)} GHS
+                      {(log.balanceReminded ?? 0).toFixed(2)} CFA
                     </td>
                     <td className="p-3.5 font-medium text-slate-700">{log.tone}</td>
                     <td className="p-3.5 font-mono text-slate-500">{log.dateSent}</td>
@@ -1772,7 +1772,7 @@ export default function OverdueFeeAlertsManager({
                       {log.admissionNo}
                     </span>
                   </div>
-                  <span className="font-mono font-black text-rose-600 text-sm">{(log.balanceReminded ?? 0).toFixed(2)} GHS</span>
+                  <span className="font-mono font-black text-rose-600 text-sm">{(log.balanceReminded ?? 0).toFixed(2)} CFA</span>
                 </div>
 
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs space-y-1.5">
@@ -1885,7 +1885,7 @@ export default function OverdueFeeAlertsManager({
                   {activeWhatsAppModal.bill.studentName} ({activeWhatsAppModal.bill.className})
                 </p>
                 <p className="font-mono font-black text-rose-600 text-base">
-                  {(activeWhatsAppModal.bill.balance ?? 0).toFixed(2)} GHS
+                  {(activeWhatsAppModal.bill.balance ?? 0).toFixed(2)} CFA
                 </p>
               </div>
             </div>
@@ -2011,7 +2011,7 @@ export default function OverdueFeeAlertsManager({
                   {flagModalBill.studentName} ({flagModalBill.admissionNo})
                 </p>
                 <p className="text-rose-600 font-bold font-mono text-xs mt-0.5">
-                  Outstanding Arrears: {(flagModalBill.balance ?? 0).toFixed(2)} GHS
+                  Outstanding Arrears: {(flagModalBill.balance ?? 0).toFixed(2)} CFA
                 </p>
               </div>
 
@@ -2288,7 +2288,7 @@ export default function OverdueFeeAlertsManager({
                   <thead className="bg-slate-100 font-bold border-b border-slate-300">
                     <tr>
                       <th className="p-2.5">Description</th>
-                      <th className="p-2.5 text-right">Amount (GHS)</th>
+                      <th className="p-2.5 text-right">Amount (CFA)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 font-medium">
@@ -2302,7 +2302,7 @@ export default function OverdueFeeAlertsManager({
                     </tr>
                     <tr className="bg-slate-50 font-black text-slate-900 border-t-2 border-slate-300">
                       <td className="p-2.5 uppercase">Total Outstanding Arrears Due:</td>
-                      <td className="p-2.5 text-right font-mono text-rose-600 text-sm">{((printBill.bill?.balance) ?? 0).toFixed(2)} GHS</td>
+                      <td className="p-2.5 text-right font-mono text-rose-600 text-sm">{((printBill.bill?.balance) ?? 0).toFixed(2)} CFA</td>
                     </tr>
                   </tbody>
                 </table>

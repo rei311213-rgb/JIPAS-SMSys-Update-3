@@ -242,7 +242,7 @@ export default function AdminDashboardCharts({
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Collection Efficiency</p>
               <h4 className="text-2xl font-black text-slate-900 mt-1">{collectionEfficiency}%</h4>
               <p className="text-xs text-indigo-600 font-bold flex items-center gap-1 mt-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> GHS {totalPaid.toLocaleString()} collected
+                <CheckCircle2 className="w-3.5 h-3.5" /> CFA {totalPaid.toLocaleString()} collected
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
@@ -390,7 +390,7 @@ export default function AdminDashboardCharts({
               <div>
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-emerald-600" />
-                  Fee Assessment vs Total Revenue Collected (GHS)
+                  Fee Assessment vs Total Revenue Collected (CFA)
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   Monthly billing totals vs actual MoMo and cash disbursements received.
@@ -409,14 +409,14 @@ export default function AdminDashboardCharts({
                 <BarChart data={revenueCollectionData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} tickFormatter={(val) => `${val/1000}k GHS`} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} tickFormatter={(val) => `${val/1000}k CFA`} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                    formatter={(val: any) => [`${Number(val).toLocaleString()} GHS`, '']}
+                    formatter={(val: any) => [`${Number(val).toLocaleString()} CFA`, '']}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Bar dataKey="billed" name="Billed Amount (GHS)" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="collected" name="Collected Revenue (GHS)" fill={COLORS.emerald} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="billed" name="Billed Amount (CFA)" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="collected" name="Collected Revenue (CFA)" fill={COLORS.emerald} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -452,7 +452,7 @@ export default function AdminDashboardCharts({
                   </Pie>
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                    formatter={(val: any) => [`${Number(val).toLocaleString()} GHS`, '']}
+                    formatter={(val: any) => [`${Number(val).toLocaleString()} CFA`, '']}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -469,7 +469,7 @@ export default function AdminDashboardCharts({
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.pieColors[idx % COLORS.pieColors.length] }} />
                     {item.name}
                   </span>
-                  <span className="font-bold text-slate-900 font-mono">{item.value.toLocaleString()} GHS ({item.percent})</span>
+                  <span className="font-bold text-slate-900 font-mono">{item.value.toLocaleString()} CFA ({item.percent})</span>
                 </div>
               ))}
             </div>

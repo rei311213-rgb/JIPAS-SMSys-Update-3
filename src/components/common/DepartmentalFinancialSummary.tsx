@@ -144,24 +144,24 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
             <h1>JIPAS Educational Complex — Departmental Financial Summary</h1>
           </div>
-          <div class="subtitle">Generated on ${new Date().toLocaleString()} | Currency: GHS (XOF/XAF)</div>
+          <div class="subtitle">Generated on ${new Date().toLocaleString()} | Currency: CFA (XOF/XAF)</div>
           
           <div class="grid">
             <div class="card">
               <div class="card-title">Total Collected</div>
-              <div class="card-val positive">${overallTotals.totalCollected.toFixed(2)} GHS</div>
+              <div class="card-val positive">${overallTotals.totalCollected.toFixed(2)} CFA</div>
             </div>
             <div class="card">
               <div class="card-title">Total Expenses</div>
-              <div class="card-val negative">${overallTotals.totalExpenses.toFixed(2)} GHS</div>
+              <div class="card-val negative">${overallTotals.totalExpenses.toFixed(2)} CFA</div>
             </div>
             <div class="card">
               <div class="card-title">Total Outstanding Arrears</div>
-              <div class="card-val">${overallTotals.totalArrears.toFixed(2)} GHS</div>
+              <div class="card-val">${overallTotals.totalArrears.toFixed(2)} CFA</div>
             </div>
             <div class="card">
               <div class="card-title">Net Operating Cash Flow</div>
-              <div class="card-val positive">${overallTotals.netBalance.toFixed(2)} GHS</div>
+              <div class="card-val positive">${overallTotals.netBalance.toFixed(2)} CFA</div>
             </div>
           </div>
 
@@ -170,10 +170,10 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
               <tr>
                 <th>Department Name</th>
                 <th>Enrolled Students</th>
-                <th>Total Revenue (GHS)</th>
-                <th>Total Expenditures (GHS)</th>
-                <th>Outstanding Arrears (GHS)</th>
-                <th>Net Balance (GHS)</th>
+                <th>Total Revenue (CFA)</th>
+                <th>Total Expenditures (CFA)</th>
+                <th>Outstanding Arrears (CFA)</th>
+                <th>Net Balance (CFA)</th>
                 <th>Collection Rate</th>
               </tr>
             </thead>
@@ -182,10 +182,10 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
                 <tr>
                   <td><strong>${d.name}</strong></td>
                   <td>${d.studentCount} Students</td>
-                  <td class="amount positive">${d.totalCollected.toFixed(2)} GHS</td>
-                  <td class="amount negative">${d.totalExpenses.toFixed(2)} GHS</td>
-                  <td class="amount">${d.totalArrears.toFixed(2)} GHS</td>
-                  <td class="amount ${d.netBalance >= 0 ? 'positive' : 'negative'}">${d.netBalance.toFixed(2)} GHS</td>
+                  <td class="amount positive">${d.totalCollected.toFixed(2)} CFA</td>
+                  <td class="amount negative">${d.totalExpenses.toFixed(2)} CFA</td>
+                  <td class="amount">${d.totalArrears.toFixed(2)} CFA</td>
+                  <td class="amount ${d.netBalance >= 0 ? 'positive' : 'negative'}">${d.netBalance.toFixed(2)} CFA</td>
                   <td><strong>${d.collectionRate}%</strong></td>
                 </tr>
               `).join('')}
@@ -226,7 +226,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
         <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1">
           <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Total Fee Revenue</span>
           <div className="text-xl font-mono font-black text-emerald-950">
-            {overallTotals.totalCollected.toFixed(2)} <span className="text-xs">GHS</span>
+            {overallTotals.totalCollected.toFixed(2)} <span className="text-xs">CFA</span>
           </div>
           <div className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" /> Direct student fee receipts
@@ -236,7 +236,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
         <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-1">
           <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Total Expenditures</span>
           <div className="text-xl font-mono font-black text-rose-950">
-            {overallTotals.totalExpenses.toFixed(2)} <span className="text-xs">GHS</span>
+            {overallTotals.totalExpenses.toFixed(2)} <span className="text-xs">CFA</span>
           </div>
           <div className="text-[11px] font-semibold text-rose-700 flex items-center gap-1">
             <TrendingDown className="w-3.5 h-3.5" /> Approved operational expenses
@@ -246,7 +246,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
         <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1">
           <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Total Uncollected Arrears</span>
           <div className="text-xl font-mono font-black text-amber-950">
-            {overallTotals.totalArrears.toFixed(2)} <span className="text-xs">GHS</span>
+            {overallTotals.totalArrears.toFixed(2)} <span className="text-xs">CFA</span>
           </div>
           <div className="text-[11px] font-semibold text-amber-700">
             Pending student fee balances
@@ -256,7 +256,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
         <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-1">
           <span className="text-[10px] font-black uppercase text-indigo-800 tracking-wider">Net Surplus Cash Flow</span>
           <div className="text-xl font-mono font-black text-indigo-950">
-            {overallTotals.netBalance.toFixed(2)} <span className="text-xs">GHS</span>
+            {overallTotals.netBalance.toFixed(2)} <span className="text-xs">CFA</span>
           </div>
           <div className="text-[11px] font-semibold text-indigo-700">
             Revenue minus Expenditures
@@ -291,17 +291,17 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                 <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Collected</span>
-                <span className="font-mono font-black text-emerald-700">{dept.totalCollected.toFixed(0)} GHS</span>
+                <span className="font-mono font-black text-emerald-700">{dept.totalCollected.toFixed(0)} CFA</span>
               </div>
 
               <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                 <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Expenses</span>
-                <span className="font-mono font-black text-rose-700">{(dept.totalExpenses ?? 0).toFixed(0)} GHS</span>
+                <span className="font-mono font-black text-rose-700">{(dept.totalExpenses ?? 0).toFixed(0)} CFA</span>
               </div>
 
               <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                 <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Arrears</span>
-                <span className="font-mono font-black text-amber-700">{(dept.totalArrears ?? 0).toFixed(0)} GHS</span>
+                <span className="font-mono font-black text-amber-700">{(dept.totalArrears ?? 0).toFixed(0)} CFA</span>
               </div>
             </div>
 
@@ -310,7 +310,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
               <div className="flex justify-between text-[10px] font-bold text-slate-500">
                 <span>Net Department Balance:</span>
                 <span className={`font-mono font-black ${dept.netBalance >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {(dept.netBalance ?? 0).toFixed(2)} GHS
+                  {(dept.netBalance ?? 0).toFixed(2)} CFA
                 </span>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">

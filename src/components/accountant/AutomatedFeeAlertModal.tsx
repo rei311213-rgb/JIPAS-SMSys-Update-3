@@ -28,27 +28,27 @@ export const ALERT_TEMPLATES: Record<TemplatePreset, { name: string; description
   standard: {
     name: 'Standard Term Arrears Reminder',
     description: 'Polite reminder of current outstanding balance for regular term billing.',
-    template: 'Dear {parent_name}, this is a gentle reminder from JIPAS Bursary that {student_name} ({class_name}, {admission_no}) has an outstanding fee balance of {balance_due} GHS. Total bill: {total_payable} GHS (Paid: {amount_paid} GHS). Kindly arrange settlement at your earliest convenience. - JIPAS Accounts'
+    template: 'Dear {parent_name}, this is a gentle reminder from JIPAS Bursary that {student_name} ({class_name}, {admission_no}) has an outstanding fee balance of {balance_due} CFA. Total bill: {total_payable} CFA (Paid: {amount_paid} CFA). Kindly arrange settlement at your earliest convenience. - JIPAS Accounts'
   },
   urgent_exam: {
     name: 'Urgent Pre-Examination Clearance',
     description: 'High-priority notice reminding parents to clear balance before exam seating.',
-    template: 'URGENT NOTICE: Dear {parent_name}, please be informed that {student_name}\'s school fees balance of {balance_due} GHS remains unpaid. Full clearance is required before terminal examinations and report card release. Kindly contact the bursary office. - JIPAS School'
+    template: 'URGENT NOTICE: Dear {parent_name}, please be informed that {student_name}\'s school fees balance of {balance_due} CFA remains unpaid. Full clearance is required before terminal examinations and report card release. Kindly contact the bursary office. - JIPAS School'
   },
   partial_update: {
     name: 'Partially Paid Balance Update',
     description: 'Acknowledges partial payments and states remaining balance.',
-    template: 'Dear {parent_name}, thank you for your recent payment towards {student_name}\'s school fees. The remaining outstanding balance is {balance_due} GHS (Paid: {amount_paid} GHS of {total_payable} GHS). Please settle the balance before the end of the term. - JIPAS Bursary'
+    template: 'Dear {parent_name}, thank you for your recent payment towards {student_name}\'s school fees. The remaining outstanding balance is {balance_due} CFA (Paid: {amount_paid} CFA of {total_payable} CFA). Please settle the balance before the end of the term. - JIPAS Bursary'
   },
   final_demand: {
     name: 'Final Demand & Withholding Notice',
     description: 'Strict legal/administrative warning for severe long-overdue arrears.',
-    template: 'FINAL DEMAND: Outstanding school fees of {balance_due} GHS for {student_name} ({admission_no}) are overdue. Please visit the JIPAS Bursary Office immediately to avoid suspension of academic portal access and examination privileges. Phone: +233 24 123 4567.'
+    template: 'FINAL DEMAND: Outstanding school fees of {balance_due} CFA for {student_name} ({admission_no}) are overdue. Please visit the JIPAS Bursary Office immediately to avoid suspension of academic portal access and examination privileges. Phone: +233 24 123 4567.'
   },
   custom: {
     name: 'Custom Tailored Message',
     description: 'Compose your own custom message using variable tags.',
-    template: 'Dear {parent_name}, this is an official fee alert regarding {student_name} ({admission_no}). Outstanding balance: {balance_due} GHS. - JIPAS Accounts Office'
+    template: 'Dear {parent_name}, this is an official fee alert regarding {student_name} ({admission_no}). Outstanding balance: {balance_due} CFA. - JIPAS Accounts Office'
   }
 };
 
@@ -194,9 +194,9 @@ export default function AutomatedFeeAlertModal({
       .replace(/{student_name}/g, target.studentName)
       .replace(/{admission_no}/g, target.admissionNo)
       .replace(/{class_name}/g, target.className)
-      .replace(/{balance_due}/g, `${(target.balance ?? 0).toFixed(2)} GHS`)
-      .replace(/{total_payable}/g, `${(target.payable ?? 0).toFixed(2)} GHS`)
-      .replace(/{amount_paid}/g, `${(target.paid ?? 0).toFixed(2)} GHS`)
+      .replace(/{balance_due}/g, `${(target.balance ?? 0).toFixed(2)} CFA`)
+      .replace(/{total_payable}/g, `${(target.payable ?? 0).toFixed(2)} CFA`)
+      .replace(/{amount_paid}/g, `${(target.paid ?? 0).toFixed(2)} CFA`)
       .replace(/{status}/g, target.status)
       .replace(/{school_name}/g, 'JIPAS')
       .replace(/{due_date}/g, 'End of Term Assessment Week');
@@ -282,7 +282,7 @@ export default function AutomatedFeeAlertModal({
           onAddNotification({
             id: `notif-fee-${Date.now()}-${i}`,
             title: `🚨 Fee Outstanding Alert (${item.status})`,
-            message: `Account notice for ${item.studentName} (${item.admissionNo}): Outstanding balance of ${(item.balance ?? 0).toFixed(2)} GHS remains due. Total payable: ${(item.payable ?? 0).toFixed(2)} GHS.`,
+            message: `Account notice for ${item.studentName} (${item.admissionNo}): Outstanding balance of ${(item.balance ?? 0).toFixed(2)} CFA remains due. Total payable: ${(item.payable ?? 0).toFixed(2)} CFA.`,
             type: 'fee_alert',
             date: todayTimestamp,
             dateSent: todayTimestamp,
@@ -312,7 +312,7 @@ export default function AutomatedFeeAlertModal({
       });
 
       setDispatchStatusLog(prev => [
-        `[${i + 1}/${total}] Dispatched alert to ${item.parentName} (${item.studentName}, ${(item.balance ?? 0).toFixed(2)} GHS) via ${selectedChannel.toUpperCase()}`,
+        `[${i + 1}/${total}] Dispatched alert to ${item.parentName} (${item.studentName}, ${(item.balance ?? 0).toFixed(2)} CFA) via ${selectedChannel.toUpperCase()}`,
         ...prev.slice(0, 15)
       ]);
 
@@ -342,7 +342,7 @@ export default function AutomatedFeeAlertModal({
             actionRequired: true,
             followUpNotes: b.followUpNotes 
               ? `${b.followUpNotes}; Automated ${selectedChannel.toUpperCase()} alert sent on ${todayTimestamp}`
-              : `Automated ${selectedChannel.toUpperCase()} alert sent on ${todayTimestamp} (Bal: ${(b.balance ?? 0).toFixed(2)} GHS)`
+              : `Automated ${selectedChannel.toUpperCase()} alert sent on ${todayTimestamp} (Bal: ${(b.balance ?? 0).toFixed(2)} CFA)`
           };
         }
         return b;
@@ -419,7 +419,7 @@ export default function AutomatedFeeAlertModal({
                 Automated Alerts Dispatched Successfully!
               </h3>
               <p className="text-sm text-emerald-800 max-w-xl mx-auto">
-                Successfully broadcasted tailored fee reminder alerts to {dispatchReport.totalTargeted} parents covering <span className="font-bold font-mono text-emerald-950">{(dispatchReport.totalAmountNotified ?? 0).toFixed(2)} GHS</span> in outstanding arrears.
+                Successfully broadcasted tailored fee reminder alerts to {dispatchReport.totalTargeted} parents covering <span className="font-bold font-mono text-emerald-950">{(dispatchReport.totalAmountNotified ?? 0).toFixed(2)} CFA</span> in outstanding arrears.
               </p>
             </div>
 
@@ -636,7 +636,7 @@ export default function AutomatedFeeAlertModal({
                     <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                       <span>Sender: <strong className="text-white">JIPAS-FEE</strong></span>
                       <span>Recipient: <strong className="text-white">{previewTarget.parentPhone}</strong></span>
-                      <span className="text-emerald-400 font-bold font-mono">Bal: {(previewTarget.balance ?? 0).toFixed(2)} GHS</span>
+                      <span className="text-emerald-400 font-bold font-mono">Bal: {(previewTarget.balance ?? 0).toFixed(2)} CFA</span>
                     </div>
                   </div>
                 )}
@@ -740,7 +740,7 @@ export default function AutomatedFeeAlertModal({
                         ...overdueRecords
                           .filter(r => selectedBillIds.includes(r.bill.id))
                           .map(r => r.balance || 0)
-                      ).toFixed(2)} GHS
+                      ).toFixed(2)} CFA
                     </strong>
                   </div>
                 </div>
@@ -800,7 +800,7 @@ export default function AutomatedFeeAlertModal({
                               </td>
                               <td className="p-2.5 text-right font-mono">
                                 <div className="font-black text-rose-600 text-xs">
-                                  {(item.balance ?? 0).toFixed(2)} GHS
+                                  {(item.balance ?? 0).toFixed(2)} CFA
                                 </div>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                                   item.status === 'Unpaid' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'

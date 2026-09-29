@@ -269,11 +269,11 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
 
           <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { label: 'Total Fees Expected', value: totalFeesExpected, prefix: 'GHS ', color: 'text-white' },
-              { label: 'Fees Collected', value: totalFeesCollected, prefix: 'GHS ', color: 'text-emerald-400' },
-              { label: 'Outstanding Fees', value: outstandingFees, prefix: 'GHS ', color: 'text-rose-400' },
-              { label: 'Total Expenses', value: totalExpenses, prefix: 'GHS ', color: 'text-amber-400' },
-              { label: 'Net Position', value: netPosition, prefix: 'GHS ', color: 'text-blue-400', fullWidth: true },
+              { label: 'Total Fees Expected', value: totalFeesExpected, prefix: 'CFA ', color: 'text-white' },
+              { label: 'Fees Collected', value: totalFeesCollected, prefix: 'CFA ', color: 'text-emerald-400' },
+              { label: 'Outstanding Fees', value: outstandingFees, prefix: 'CFA ', color: 'text-rose-400' },
+              { label: 'Total Expenses', value: totalExpenses, prefix: 'CFA ', color: 'text-amber-400' },
+              { label: 'Net Position', value: netPosition, prefix: 'CFA ', color: 'text-blue-400', fullWidth: true },
             ].map((f, i) => (
               <div key={i} className={`bg-[#0F172A] p-6 rounded-2xl border border-slate-800 flex flex-col justify-center ${f.fullWidth ? 'md:col-span-2' : ''}`}>
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{f.label}</span>

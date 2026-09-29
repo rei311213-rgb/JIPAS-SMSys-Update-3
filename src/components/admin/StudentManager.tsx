@@ -3275,30 +3275,9 @@ export default function StudentManager({
                         onChange={(e) => setFormClassName(e.target.value)}
                         className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white"
                       >
-                        {formDepartment === 'Pre-School / Kindergarten' ? (
-                          <>
-                            <option value="Creche">Creche</option>
-                            <option value="Nursery 1">Nursery 1</option>
-                            <option value="Nursery 2">Nursery 2</option>
-                            <option value="KG 1">KG 1</option>
-                            <option value="KG 2">KG 2</option>
-                          </>
-                        ) : formDepartment === 'Junior High School' ? (
-                          <>
-                            <option value="JHS 1">JHS 1</option>
-                            <option value="JHS 2">JHS 2</option>
-                            <option value="JHS 3">JHS 3</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Basic 1">Basic 1</option>
-                            <option value="Basic 2">Basic 2</option>
-                            <option value="Basic 3">Basic 3</option>
-                            <option value="Basic 4">Basic 4</option>
-                            <option value="Basic 5">Basic 5</option>
-                            <option value="Basic 6">Basic 6</option>
-                          </>
-                        )}
+                        {getAdminClassesForDept(formDepartment).map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
                       </select>
                     </div>
                     <div>

@@ -699,7 +699,7 @@ export default function SecretaryPortal({
     return ['All', ...availableDepartments];
   }, [availableDepartments]);
 
-  // Financial Dashboard Totals for Secretary (in GHS)
+  // Financial Dashboard Totals for Secretary (in CFA)
   const totalCollections = useMemo(() => addMoney(...bills.map(b => b.paid || 0)), [bills]);
   const totalOutstanding = useMemo(() => addMoney(...bills.map(b => b.balance || 0)), [bills]);
 
@@ -1104,7 +1104,7 @@ export default function SecretaryPortal({
                               <p className="text-[10px] text-slate-500">{p.date} • {p.method || p.paymentMethod}</p>
                             </div>
                             <span className="font-mono font-black text-emerald-700 text-sm">
-                              GHS {(p.amount || p.paid || 0).toFixed(2)}
+                              CFA {(p.amount || p.paid || 0).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -1133,7 +1133,7 @@ export default function SecretaryPortal({
                               <p className="text-[10px] text-slate-500 font-mono">{e.voucherNo} • {e.category}</p>
                             </div>
                             <span className="font-mono font-black text-rose-700 text-sm">
-                              GHS {(e.amount || 0).toFixed(2)}
+                              CFA {(e.amount || 0).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -1419,7 +1419,7 @@ export default function SecretaryPortal({
                         <div className="text-right shrink-0">
                           {hasArrears ? (
                             <span className="text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg block">
-                              GHS {(balance ?? 0).toFixed(2)}
+                              CFA {(balance ?? 0).toFixed(2)}
                               <span className="block text-[9px] font-medium text-rose-500 uppercase">Balance Due</span>
                             </span>
                           ) : (
@@ -1491,22 +1491,22 @@ export default function SecretaryPortal({
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>
-                            <span className="font-mono font-black text-rose-600 text-base">GHS {(studentFinancials.outstandingArrears ?? 0).toFixed(2)}</span>
+                            <span className="font-mono font-black text-rose-600 text-base">CFA {(studentFinancials.outstandingArrears ?? 0).toFixed(2)}</span>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center text-xs">
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Payable</span>
-                            <span className="font-bold text-slate-800">GHS {(studentFinancials.totalBilled || 0).toFixed(2)}</span>
+                            <span className="font-bold text-slate-800">CFA {(studentFinancials.totalBilled || 0).toFixed(2)}</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Paid to Date</span>
-                            <span className="font-bold text-emerald-600">GHS {(studentFinancials.totalPaid || 0).toFixed(2)}</span>
+                            <span className="font-bold text-emerald-600">CFA {(studentFinancials.totalPaid || 0).toFixed(2)}</span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-400 uppercase block font-bold">Net Balance</span>
-                            <span className="font-black text-rose-600">GHS {(studentFinancials.outstandingArrears ?? 0).toFixed(2)}</span>
+                            <span className="font-black text-rose-600">CFA {(studentFinancials.outstandingArrears ?? 0).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -1516,7 +1516,7 @@ export default function SecretaryPortal({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Amount Paid (GHS) *
+                          Amount Paid (CFA) *
                         </label>
                         {studentFinancials && (studentFinancials.outstandingArrears ?? 0) > 0 && (
                           <div className="flex gap-1.5">
@@ -1525,7 +1525,7 @@ export default function SecretaryPortal({
                               onClick={() => setPaymentAmount((studentFinancials.outstandingArrears ?? 0).toString())}
                               className="text-[10px] font-black bg-rose-100 hover:bg-rose-200 text-rose-800 px-2 py-0.5 rounded cursor-pointer transition-colors"
                             >
-                              Pay Full Balance ({((studentFinancials.outstandingArrears ?? 0)).toFixed(0)} GHS)
+                              Pay Full Balance ({((studentFinancials.outstandingArrears ?? 0)).toFixed(0)} CFA)
                             </button>
                             <button
                               type="button"
@@ -1668,15 +1668,15 @@ export default function SecretaryPortal({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
                   <div className="flex justify-between font-medium">
                     <span className="text-slate-600">Total Student Fees Collected:</span>
-                    <span className="font-bold text-emerald-700 font-mono">+ GHS {(totalFeesCollectedToday || 0).toFixed(2)}</span>
+                    <span className="font-bold text-emerald-700 font-mono">+ CFA {(totalFeesCollectedToday || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
                     <span className="text-slate-600">Total Operational Expenses Logged:</span>
-                    <span className="font-bold text-rose-700 font-mono">- GHS {(totalExpensesLoggedToday || 0).toFixed(2)}</span>
+                    <span className="font-bold text-rose-700 font-mono">- CFA {(totalExpensesLoggedToday || 0).toFixed(2)}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-sm">
                     <span className="text-slate-900">Net Physical Cash to Hand Over:</span>
-                    <span className="text-blue-700 font-mono">GHS {(netCashOnHand || 0).toFixed(2)}</span>
+                    <span className="text-blue-700 font-mono">CFA {(netCashOnHand || 0).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -1686,7 +1686,7 @@ export default function SecretaryPortal({
                     rows={3}
                     value={handoverNotes}
                     onChange={(e) => setHandoverNotes(e.target.value)}
-                    placeholder="e.g. GHS 500 cash in envelope handed over to Bursar Kofi Mensah. All receipts verified."
+                    placeholder="e.g. CFA 500 cash in envelope handed over to Bursar Kofi Mensah. All receipts verified."
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:bg-white"
                   />
                 </div>
@@ -1735,15 +1735,15 @@ export default function SecretaryPortal({
                       <div className="grid grid-cols-3 gap-2 text-[11px] font-medium pt-1">
                         <div>
                           <span className="text-slate-400 block text-[9px] uppercase">Fees</span>
-                          <span className="font-bold text-emerald-700">GHS {(s.totalFeesCollected || 0).toFixed(2)}</span>
+                          <span className="font-bold text-emerald-700">CFA {(s.totalFeesCollected || 0).toFixed(2)}</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block text-[9px] uppercase">Expenses</span>
-                          <span className="font-bold text-rose-700">GHS {(s.totalExpensesLogged || 0).toFixed(2)}</span>
+                          <span className="font-bold text-rose-700">CFA {(s.totalExpensesLogged || 0).toFixed(2)}</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block text-[9px] uppercase">Net Cash</span>
-                          <span className="font-bold text-blue-700">GHS {(s.netCashOnHand || 0).toFixed(2)}</span>
+                          <span className="font-bold text-blue-700">CFA {(s.netCashOnHand || 0).toFixed(2)}</span>
                         </div>
                       </div>
                       {s.notes && (
@@ -1810,7 +1810,7 @@ export default function SecretaryPortal({
                       <td className="py-3 px-4 text-slate-600">{st.currentClass}</td>
                       <td className="py-3 px-4 text-slate-600 font-mono">{st.parentPhone || 'N/A'}</td>
                       <td className={`py-3 px-4 text-right font-mono font-black ${arrears > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        GHS {(arrears || 0).toFixed(2)}
+                        CFA {(arrears || 0).toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
@@ -2362,13 +2362,13 @@ export default function SecretaryPortal({
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Billed Fees</span>
                 <h4 className="text-2xl font-black text-slate-900 font-mono">
-                  GHS {((totalCollections || 0) + (totalOutstanding || 0)).toFixed(2)}
+                  CFA {((totalCollections || 0) + (totalOutstanding || 0)).toFixed(2)}
                 </h4>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-100/60 border border-emerald-200 p-3 rounded-2xl relative group cursor-pointer transition-all duration-200 hover:scale-[1.03]">
                   <span className="text-[9px] font-black uppercase text-emerald-800">Total Collections</span>
-                  <h5 className="text-base font-bold text-emerald-950 font-mono">GHS {(totalCollections || 0).toFixed(2)}</h5>
+                  <h5 className="text-base font-bold text-emerald-950 font-mono">CFA {(totalCollections || 0).toFixed(2)}</h5>
                   <div className="absolute opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap z-50 border border-slate-700">
                     Last update: {lastTransactionDate}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
@@ -2376,7 +2376,7 @@ export default function SecretaryPortal({
                 </div>
                 <div className="bg-rose-100/60 border border-rose-200 p-3 rounded-2xl relative group cursor-pointer transition-all duration-200 hover:scale-[1.03]">
                   <span className="text-[9px] font-black uppercase text-rose-800">Outstanding Fees</span>
-                  <h5 className="text-base font-bold text-rose-950 font-mono">GHS {(totalOutstanding || 0).toFixed(2)}</h5>
+                  <h5 className="text-base font-bold text-rose-950 font-mono">CFA {(totalOutstanding || 0).toFixed(2)}</h5>
                   <div className="absolute opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap z-50 border border-slate-700">
                     Last update: {lastTransactionDate}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
@@ -2407,7 +2407,7 @@ export default function SecretaryPortal({
                       <Cell fill="#f43f5e" />
                     </Pie>
                     <Tooltip 
-                      formatter={(value: any) => [`GHS ${(Number(value) || 0).toFixed(2)}`, '']}
+                      formatter={(value: any) => [`CFA ${(Number(value) || 0).toFixed(2)}`, '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                   </PieChart>
@@ -2429,7 +2429,7 @@ export default function SecretaryPortal({
                     <XAxis dataKey="class" tick={{ fontSize: 9, fontWeight: 'bold', fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      formatter={(value: any) => [`GHS ${(Number(value) || 0).toFixed(2)}`, '']}
+                      formatter={(value: any) => [`CFA ${(Number(value) || 0).toFixed(2)}`, '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                     <Bar dataKey="collected" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -2680,7 +2680,7 @@ export default function SecretaryPortal({
                           </span>
                         </td>
                         <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm">
-                          GHS {(displayAmt ?? 0).toFixed(2)}
+                          CFA {(displayAmt ?? 0).toFixed(2)}
                         </td>
                         <td className="p-3">
                           <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
@@ -3007,7 +3007,7 @@ export default function SecretaryPortal({
                           {lastIssuedReceipt.paymentMethod || lastIssuedReceipt.method || 'Cash'}
                         </td>
                         <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm">
-                          GHS {(amountPaidVal ?? 0).toFixed(2)}
+                          CFA {(amountPaidVal ?? 0).toFixed(2)}
                         </td>
                       </tr>
                       <tr className="bg-emerald-50/80 font-bold text-emerald-950 border-t-2 border-slate-900 print:bg-emerald-50">
@@ -3015,7 +3015,7 @@ export default function SecretaryPortal({
                           Net Total Received (This Payment):
                         </td>
                         <td className="p-2.5 text-right font-mono font-black text-emerald-800 text-base">
-                          GHS {(amountPaidVal ?? 0).toFixed(2)}
+                          CFA {(amountPaidVal ?? 0).toFixed(2)}
                         </td>
                       </tr>
                       {currentBalance > 0 ? (
@@ -3024,7 +3024,7 @@ export default function SecretaryPortal({
                             Remaining Student Arrears / Balance:
                           </td>
                           <td className="p-2 text-right font-mono font-black text-rose-700 text-xs">
-                            GHS {(currentBalance ?? 0).toFixed(2)}
+                            CFA {(currentBalance ?? 0).toFixed(2)}
                           </td>
                         </tr>
                       ) : (

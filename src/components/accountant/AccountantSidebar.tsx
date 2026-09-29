@@ -503,7 +503,7 @@ export default function AccountantSidebar({
                 <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
                   <span>Outstanding:</span>
                   <span className="font-mono font-bold text-rose-600">
-                    {totalOutstanding.toLocaleString()} GHS
+                    {totalOutstanding.toLocaleString()} CFA
                   </span>
                 </div>
               </div>

@@ -56,17 +56,17 @@ export default function ExecutiveReports() {
       stats: [
         { 
           label: 'Fees Collected', 
-          value: metrics.feesCollected > 0 ? `GHS ${metrics.feesCollected.toLocaleString()}` : 'GHS 0', 
+          value: metrics.feesCollected > 0 ? `CFA ${metrics.feesCollected.toLocaleString()}` : 'CFA 0', 
           trend: metrics.totalPaymentsCount > 0 ? `${metrics.totalPaymentsCount} transactions` : 'No payments' 
         },
         { 
           label: 'Operating Expenses', 
-          value: metrics.operatingExpenses > 0 ? `GHS ${metrics.operatingExpenses.toLocaleString()}` : 'GHS 0', 
+          value: metrics.operatingExpenses > 0 ? `CFA ${metrics.operatingExpenses.toLocaleString()}` : 'CFA 0', 
           trend: metrics.operatingExpenses > 0 ? 'Actual spend' : 'No expenses' 
         },
         { 
           label: 'Net Position', 
-          value: `GHS ${metrics.netPosition.toLocaleString()}`, 
+          value: `CFA ${metrics.netPosition.toLocaleString()}`, 
           trend: metrics.netPosition >= 0 ? 'Surplus' : 'Deficit' 
         }
       ]
