@@ -19,7 +19,7 @@ export default function EntranceQRPrintPage({ qrCode, rawToken, campusName, onCl
         width: 380,
         margin: 2,
         color: {
-          dark: '#0f172a', // slate-900
+          dark: '#4338ca', // indigo-700
           light: '#ffffff'
         }
       })

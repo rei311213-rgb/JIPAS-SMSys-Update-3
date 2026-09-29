@@ -976,7 +976,7 @@ export default function StaffAttendanceManager() {
                               <button
                                 onClick={() => {
                                   const campusObj = campuses.find(c => c.id === selectedCampusId);
-                                  const rawToken = `JIPAS_ENTRANCE_${selectedCampusId}_demo_${qr.id}`;
+                                  const rawToken = `JIPAS_ENTRANCE_${selectedCampusId}_${Date.now()}_${qr.id}`;
                                   setActivePrintPayload({
                                     qrCode: qr,
                                     rawToken,
@@ -986,7 +986,7 @@ export default function StaffAttendanceManager() {
                                 className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 flex items-center gap-1 font-bold text-[10px] cursor-pointer"
                                 title="Print entrance A4 poster"
                               >
-                                <Printer className="w-3.5 h-3.5 text-slate-600" /> Print Poster
+                                <Printer className="w-3.5 h-3.5 text-slate-600" /> Print / Refresh Poster
                               </button>
                               <button
                                 onClick={() => handleRevokeQrCode(qr.id)}
