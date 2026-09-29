@@ -424,26 +424,155 @@ export default function TeacherPortal({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Filter state for Results Entry
-  const departmentOptions = Array.isArray(departments) && departments.length > 0 
-    ? departments.map(d => typeof d === 'object' ? d.name : d).filter(Boolean)
-    : ['Primary School', 'Junior High School', 'Pre School'];
-  const [selectedDepartment, setSelectedDepartment] = useState('Primary School');
+  // Helper to determine the department of a given class name
+  const getClassDepartmentName = (clsName: string): string => {
+    const lower = (clsName || '').toLowerCase().trim();
+    if (lower.includes('creche') || lower.includes('nursery') || lower.includes('kg') || lower.includes('kindergarten') || lower.includes('pre')) {
+      return 'Pre-School';
+    }
+    if (lower.includes('jhs') || lower.includes('junior')) {
+      return 'Junior High School';
+    }
+    if (lower.includes('shs') || lower.includes('science') || lower.includes('arts') || lower.includes('business') || lower.includes('economics') || lower.includes('visual') || lower.includes('agricultural')) {
+      return 'Senior High School';
+    }
+    return 'Primary School';
+  };
 
-  const globalClassNames = classes.map(c => typeof c === 'object' ? c.name : c).filter(Boolean);
-  const classesList = Array.isArray(teacher?.classesTaught) && teacher.classesTaught.length > 0 
-    ? teacher.classesTaught 
-    : globalClassNames;
-  const defaultClasses = classesList.length > 0 ? classesList : ['Basic 1'];
-  const [selectedClass, setSelectedClass] = useState<string>(defaultClasses[0] || 'Basic 1');
+  // Helper to get all classes for a specific department
+  const getDepartmentClassesList = (deptName: string): string[] => {
+    const lower = (deptName || '').toLowerCase().trim();
+    if (lower.includes('pre') || lower.includes('nursery') || lower.includes('kindergarten') || lower.includes('kg') || lower.includes('creche')) {
+      return ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2'];
+    }
+    if (lower.includes('junior') || lower.includes('jhs')) {
+      return ['JHS 1', 'JHS 2', 'JHS 3'];
+    }
+    if (lower.includes('senior') || lower.includes('shs')) {
+      return [
+        'SHS 1', 'SHS 2', 'SHS 3',
+        'General Science 1', 'General Science 2', 'General Science 3',
+        'General Arts 1', 'General Arts 2', 'General Arts 3',
+        'Business 1', 'Business 2', 'Business 3',
+        'Visual & Performing Arts 1', 'Visual & Performing Arts 2', 'Visual & Performing Arts 3',
+        'Home Economics 1', 'Home Economics 2', 'Home Economics 3'
+      ];
+    }
+    return ['Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6'];
+  };
 
-  const globalSubjectNames = subjects.map(s => typeof s === 'object' ? s.name : s).filter(Boolean);
-  const subjectsList = Array.isArray(teacher?.subjectsTaught) && teacher.subjectsTaught.length > 0 
-    ? teacher.subjectsTaught 
-    : globalSubjectNames;
-  const defaultSubjects = subjectsList.length > 0 
-    ? subjectsList 
-    : ['English Language', 'Mathematics', 'Science', 'Creative Arts', 'Computing', 'Religious & Moral Edu.', 'History', 'the regionian Language', 'French Language', 'OWOP'];
+  // Department options
+  const departmentOptions = useMemo(() => {
+    if (Array.isArray(departments) && departments.length > 0) {
+      const names = departments.map(d => typeof d === 'object' ? d.name : d).filter(Boolean);
+      return Array.from(new Set(names));
+    }
+    return ['Pre-School', 'Primary School', 'Junior High School', 'Senior High School'];
+  }, [departments]);
+
+  const teacherAssignedClasses = useMemo(() => {
+    if (Array.isArray(teacher?.classesTaught) && teacher.classesTaught.length > 0) {
+      return teacher.classesTaught.filter(Boolean);
+    }
+    return [];
+  }, [teacher?.classesTaught]);
+
+  // Initial department based on teacher's assigned classes or profile
+  const initialDept = useMemo(() => {
+    if (teacherAssignedClasses.length > 0) {
+      return getClassDepartmentName(teacherAssignedClasses[0]);
+    }
+    if (teacher?.department) {
+      const d = teacher.department.toLowerCase();
+      if (d.includes('pre') || d.includes('early')) return 'Pre-School';
+      if (d.includes('junior') || d.includes('jhs')) return 'Junior High School';
+      if (d.includes('senior') || d.includes('shs')) return 'Senior High School';
+      return 'Primary School';
+    }
+    return 'Primary School';
+  }, [teacherAssignedClasses, teacher?.department]);
+
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(initialDept);
+
+  // Available classes for the currently selected department, filtered by teacher assigned classes
+  const availableClassesForDept = useMemo(() => {
+    const allDeptClasses = getDepartmentClassesList(selectedDepartment);
+    
+    // Also include any dynamically passed classes that match this department
+    if (Array.isArray(classes) && classes.length > 0) {
+      classes.forEach(c => {
+        const cName = typeof c === 'object' ? c.name : c;
+        const cDept = typeof c === 'object' ? c.department : '';
+        if (cName && (cDept ? cDept.toLowerCase() === selectedDepartment.toLowerCase() : getClassDepartmentName(cName) === selectedDepartment)) {
+          if (!allDeptClasses.includes(cName)) {
+            allDeptClasses.push(cName);
+          }
+        }
+      });
+    }
+
+    if (teacherAssignedClasses.length > 0) {
+      const assignedInDept = teacherAssignedClasses.filter(c => {
+        const deptOfClass = getClassDepartmentName(c);
+        return deptOfClass === selectedDepartment || 
+               (selectedDepartment === 'Pre-School' && (c.includes('Creche') || c.includes('Nursery') || c.includes('KG'))) ||
+               (selectedDepartment === 'Junior High School' && c.includes('JHS')) ||
+               (selectedDepartment === 'Primary School' && (c.includes('Basic') || c.includes('Class'))) ||
+               (selectedDepartment === 'Senior High School' && (c.includes('SHS') || c.includes('Science') || c.includes('Arts') || c.includes('Business') || c.includes('Economics') || c.includes('Visual')));
+      });
+      // When teacher is assigned classes for this department, show ONLY their assigned classes
+      if (assignedInDept.length > 0) {
+        return assignedInDept;
+      }
+    }
+    return allDeptClasses;
+  }, [selectedDepartment, teacherAssignedClasses, classes]);
+
+  const defaultClasses = availableClassesForDept;
+  const [selectedClass, setSelectedClass] = useState<string>(() => {
+    if (teacherAssignedClasses.length > 0) {
+      const firstMatching = teacherAssignedClasses.find(c => getClassDepartmentName(c) === initialDept);
+      return firstMatching || teacherAssignedClasses[0];
+    }
+    return availableClassesForDept[0] || 'Basic 1';
+  });
+
+  const handleDepartmentChange = (newDept: string) => {
+    setSelectedDepartment(newDept);
+    const classesForNewDept = getDepartmentClassesList(newDept);
+    if (teacherAssignedClasses.length > 0) {
+      const assignedInNewDept = teacherAssignedClasses.filter(c => getClassDepartmentName(c) === newDept);
+      if (assignedInNewDept.length > 0) {
+        setSelectedClass(assignedInNewDept[0]);
+        return;
+      }
+    }
+    if (classesForNewDept.length > 0) {
+      setSelectedClass(classesForNewDept[0]);
+    }
+  };
+
+  const getSubjectsForDepartment = (deptName: string): string[] => {
+    const lower = (deptName || '').toLowerCase().trim();
+    if (lower.includes('pre') || lower.includes('nursery') || lower.includes('kg') || lower.includes('creche')) {
+      return ['Language & Literacy', 'Numeracy', 'Creative Arts', 'Our World & Environmental Awareness', 'Physical Development', 'Personal, Social & Emotional Development', 'Religious/Moral & Values Education'];
+    }
+    if (lower.includes('junior') || lower.includes('jhs')) {
+      return ['English Language', 'Mathematics', 'Science', 'Social Studies', 'Computing', 'Career Technology', 'Creative Arts and Design', 'Religious and Moral Education', 'Physical Education and Health', 'Ghanaian Language', 'French Language', 'Arabic'];
+    }
+    if (lower.includes('senior') || lower.includes('shs')) {
+      return ['English Language', 'Mathematics (Core)', 'Integrated Science', 'Social Studies', 'Elective Mathematics', 'Biology', 'Chemistry', 'Physics', 'Geography', 'Economics', 'Government', 'History', 'Literature in English', 'Financial Accounting', 'Business Management', 'French'];
+    }
+    return ['English Language', 'Ghanaian Language', 'Mathematics', 'Science', 'History', 'Creative Arts', 'Religious and Moral Education', 'Physical Education', 'French', 'Computing'];
+  };
+
+  const defaultSubjects = useMemo(() => {
+    if (Array.isArray(teacher?.subjectsTaught) && teacher.subjectsTaught.length > 0) {
+      return teacher.subjectsTaught;
+    }
+    return getSubjectsForDepartment(selectedDepartment);
+  }, [teacher?.subjectsTaught, selectedDepartment]);
+
   const [selectedSubject, setSelectedSubject] = useState<string>(defaultSubjects[0] || 'English Language');
 
   const [academicYear] = useState('2025-2026');
@@ -686,7 +815,7 @@ export default function TeacherPortal({
       return ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2'];
     }
     if (lower.includes('junior') || lower.includes('jhs')) {
-      return ['JHS 1A', 'JHS 1B', 'JHS 2A', 'JHS 2B', 'JHS 3A', 'JHS 3B'];
+      return ['JHS 1', 'JHS 2', 'JHS 3'];
     }
     if (lower.includes('senior') || lower.includes('shs')) {
       return ['SHS 1', 'SHS 2', 'SHS 3', 'Science 1', 'General Arts 1', 'Business 1', 'Home Economics 1', 'Visual Arts 1', 'Agricultural Science 1'];
@@ -2374,7 +2503,7 @@ export default function TeacherPortal({
                       </label>
                       <select
                         value={selectedDepartment}
-                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                        onChange={(e) => handleDepartmentChange(e.target.value)}
                         className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {departmentOptions.map(dept => (
@@ -2915,17 +3044,32 @@ export default function TeacherPortal({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500">Class:</span>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="px-2.5 py-1 border border-slate-300 rounded text-xs font-bold text-slate-800 bg-white"
-                  >
-                    {defaultClasses.map(cls => (
-                      <option key={cls} value={cls}>{cls}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-500">Department:</span>
+                    <select
+                      value={selectedDepartment}
+                      onChange={(e) => handleDepartmentChange(e.target.value)}
+                      className="px-2.5 py-1 border border-slate-300 rounded text-xs font-bold text-slate-800 bg-white"
+                    >
+                      {departmentOptions.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-500">Class:</span>
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => setSelectedClass(e.target.value)}
+                      className="px-2.5 py-1 border border-slate-300 rounded text-xs font-bold text-slate-800 bg-white"
+                    >
+                      {defaultClasses.map(cls => (
+                        <option key={cls} value={cls}>{cls}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -4051,6 +4195,18 @@ export default function TeacherPortal({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-slate-500 mr-2">Department:</span>
+                    <select
+                      value={selectedDepartment}
+                      onChange={(e) => handleDepartmentChange(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-300 rounded text-xs font-bold text-slate-800 bg-white"
+                    >
+                      {departmentOptions.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <span className="text-xs font-bold text-slate-500 mr-2">Class:</span>
                     <select

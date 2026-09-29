@@ -960,7 +960,9 @@ export default function FeesSettingsManager({
                     <option value="Junior High School (All)">Junior High School (JHS 1 - 3)</option>
                     <option value="Basic 1">Basic 1</option>
                     <option value="Basic 2">Basic 2</option>
-                    <option value="JHS 1A">JHS 1A</option>
+                    <option value="JHS 1">JHS 1</option>
+                    <option value="JHS 2">JHS 2</option>
+                    <option value="JHS 3">JHS 3</option>
                     <option value="Creche">Creche</option>
                     <option value="New Admissions">New Admissions Only</option>
                   </select>

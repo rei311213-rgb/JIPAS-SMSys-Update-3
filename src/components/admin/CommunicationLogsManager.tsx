@@ -173,7 +173,9 @@ export default function CommunicationLogsManager({
                     <option value="Basic 1">Basic 1</option>
                     <option value="Basic 2">Basic 2</option>
                     <option value="Basic 3">Basic 3</option>
-                    <option value="JHS 1A">JHS 1A</option>
+                    <option value="JHS 1">JHS 1</option>
+                    <option value="JHS 2">JHS 2</option>
+                    <option value="JHS 3">JHS 3</option>
                   </select>
                 </div>
                 <div>

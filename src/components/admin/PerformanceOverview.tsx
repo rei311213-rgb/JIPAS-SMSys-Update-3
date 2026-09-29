@@ -200,10 +200,9 @@ export default function PerformanceOverview({
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={classAverages.length > 0 ? classAverages : [
-                { name: 'JHS 1A', average: 78 },
-                { name: 'JHS 1B', average: 74 },
-                { name: 'JHS 2A', average: 82 },
-                { name: 'JHS 3A', average: 85 }
+                { name: 'JHS 1', average: 78 },
+                { name: 'JHS 2', average: 82 },
+                { name: 'JHS 3', average: 85 }
               ]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis 
@@ -333,7 +332,7 @@ export default function PerformanceOverview({
             </div>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Class</span>
             <span className="text-xl font-black text-white truncate w-full px-4">
-              {classAverages[0]?.name || 'JHS 3A'}
+              {classAverages[0]?.name || 'JHS 3'}
             </span>
           </div>
 

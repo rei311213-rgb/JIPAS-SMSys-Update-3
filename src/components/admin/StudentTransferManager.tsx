@@ -553,7 +553,7 @@ export default function StudentTransferManager({
                     required
                     value={fromClass}
                     onChange={(e) => setFromClass(e.target.value)}
-                    placeholder="e.g. JHS 2A"
+                    placeholder="e.g. JHS 2"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
                   />
                 </div>
@@ -564,7 +564,7 @@ export default function StudentTransferManager({
                     required
                     value={toClass}
                     onChange={(e) => setToClass(e.target.value)}
-                    placeholder="e.g. JHS 2A"
+                    placeholder="e.g. JHS 2"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2"
                   />
                 </div>

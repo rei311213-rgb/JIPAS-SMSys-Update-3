@@ -101,12 +101,9 @@ export const AVAILABLE_CLASSES_LIST = [
   'Basic 4',
   'Basic 5',
   'Basic 6',
-  'JHS 1A',
-  'JHS 1B',
-  'JHS 2A',
-  'JHS 2B',
-  'JHS 3A',
-  'JHS 3B'
+  'JHS 1',
+  'JHS 2',
+  'JHS 3'
 ];
 
 export const INITIAL_TEACHER_ASSIGNMENTS: TeacherAssignmentItem[] = [];

@@ -596,11 +596,11 @@ export default function SystemSettingsManager({
 
   const handleResetToDefaultLogo = async () => {
     resetSchoolLogo('all');
-    setCurrentLaptopLogo('/logo.jpg');
-    setCurrentMobileLogo('/logo.jpg');
+    setCurrentLaptopLogo('/logo.png');
+    setCurrentMobileLogo('/logo.png');
     setCurrentThisDeviceLogo('');
-    setCurrentSchoolLogo('/logo.jpg');
-    await saveSettings({ laptopLogo: '/logo.jpg', mobileLogo: '/logo.jpg', schoolLogo: '/logo.jpg' });
+    setCurrentSchoolLogo('/logo.png');
+    await saveSettings({ laptopLogo: '/logo.png', mobileLogo: '/logo.png', schoolLogo: '/logo.png' });
     setLogoSuccessToast(true);
     setTimeout(() => setLogoSuccessToast(false), 4000);
   };
@@ -608,18 +608,18 @@ export default function SystemSettingsManager({
   const handleResetLogoFor = async (target: 'all' | 'laptop' | 'mobile' | 'this_device' | 'global') => {
     resetSchoolLogo(target);
     if (target === 'all' || target === 'laptop') {
-      setCurrentLaptopLogo('/logo.jpg');
-      await saveSettings({ laptopLogo: '/logo.jpg' });
+      setCurrentLaptopLogo('/logo.png');
+      await saveSettings({ laptopLogo: '/logo.png' });
     }
     if (target === 'all' || target === 'mobile') {
-      setCurrentMobileLogo('/logo.jpg');
-      await saveSettings({ mobileLogo: '/logo.jpg' });
+      setCurrentMobileLogo('/logo.png');
+      await saveSettings({ mobileLogo: '/logo.png' });
     }
     if (target === 'all' || target === 'this_device') {
       setCurrentThisDeviceLogo('');
     }
     if (target === 'all' || target === 'global') {
-      await saveSettings({ schoolLogo: '/logo.jpg' });
+      await saveSettings({ schoolLogo: '/logo.png' });
     }
     setCurrentSchoolLogo(getSchoolLogo());
     setLogoSuccessToast(true);
@@ -1377,7 +1377,7 @@ export default function SystemSettingsManager({
                           <span className="text-[10px] text-slate-400 font-medium">{language === 'fr' ? 'Affiché sur PC, ordinateurs portables et grands écrans' : 'Displayed on PC, Laptops & Large screens'}</span>
                         </div>
                       </div>
-                      {currentLaptopLogo !== '/logo.jpg' && (
+                      {currentLaptopLogo !== '/logo.png' && currentLaptopLogo !== '/logo.jpg' && (
                         <button
                           type="button"
                           onClick={() => handleResetLogoFor('laptop')}
@@ -1396,7 +1396,7 @@ export default function SystemSettingsManager({
                           alt="Laptop Crest Preview" 
                           className="w-full h-full object-contain filter drop-shadow-xs"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/logo.jpg';
+                            (e.currentTarget as HTMLImageElement).src = '/logo.png';
                           }}
                         />
                       </div>
@@ -1440,7 +1440,7 @@ export default function SystemSettingsManager({
                           <span className="text-[10px] text-slate-400 font-medium">{language === 'fr' ? 'Affiché sur smartphones, tablettes et l’application mobile' : 'Displayed on Smartphones, Tablets & PWA'}</span>
                         </div>
                       </div>
-                      {currentMobileLogo !== '/logo.jpg' && (
+                      {currentMobileLogo !== '/logo.png' && currentMobileLogo !== '/logo.jpg' && (
                         <button
                           type="button"
                           onClick={() => handleResetLogoFor('mobile')}
@@ -1459,7 +1459,7 @@ export default function SystemSettingsManager({
                           alt="Phone Crest Preview" 
                           className="w-full h-full object-contain filter drop-shadow-xs"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/logo.jpg';
+                            (e.currentTarget as HTMLImageElement).src = '/logo.png';
                           }}
                         />
                       </div>

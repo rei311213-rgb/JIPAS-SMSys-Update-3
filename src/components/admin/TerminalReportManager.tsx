@@ -57,6 +57,7 @@ export default function TerminalReportManager({
   onUpdateBroadcasts
 }: TerminalReportManagerProps) {
   // Active Filter state
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
   const [selectedClass, setSelectedClass] = useState<string>('Basic 1');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2025-2026');
   const [selectedTerm, setSelectedTerm] = useState<string>('Third Term');
@@ -96,17 +97,31 @@ export default function TerminalReportManager({
     }
   }, [initialBroadcasts]);
 
-  // Derived class names list
+  // Derived class names list (mapped to selected department)
   const classOptions = useMemo(() => {
-    if (classes && classes.length > 0) {
-      return classes.map(c => c.name);
-    }
-    return [
+    let baseList = [
       'Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2',
       'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6',
-      'JHS 1A', 'JHS 1B', 'JHS 2', 'JHS 3'
+      'JHS 1', 'JHS 2', 'JHS 3'
     ];
-  }, [classes]);
+    if (classes && classes.length > 0) {
+      baseList = Array.from(new Set([...baseList, ...classes.map(c => c.name)]));
+    }
+    if (selectedDepartment === 'All') return baseList;
+    if (selectedDepartment === 'Pre-School') {
+      return baseList.filter(c => c.includes('Creche') || c.includes('Nursery') || c.includes('KG'));
+    }
+    if (selectedDepartment === 'Primary School') {
+      return baseList.filter(c => c.includes('Basic') || c.includes('Class'));
+    }
+    if (selectedDepartment === 'Junior High School') {
+      return baseList.filter(c => c.includes('JHS'));
+    }
+    if (selectedDepartment === 'Senior High School') {
+      return baseList.filter(c => c.includes('SHS') || c.includes('Science') || c.includes('Arts') || c.includes('Business') || c.includes('Economics') || c.includes('Visual'));
+    }
+    return baseList;
+  }, [classes, selectedDepartment]);
 
   // Fallback subject list
   const defaultSubjectNames = useMemo(() => {
@@ -612,7 +627,30 @@ export default function TerminalReportManager({
         </div>
 
         {/* Filters & Selection Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-800/80 p-4 rounded-xl border border-blue-900/50 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-800/80 p-4 rounded-xl border border-blue-900/50 text-xs">
+          <div>
+            <label className="block font-bold text-slate-300 mb-1">Department</label>
+            <select
+              value={selectedDepartment}
+              onChange={(e) => {
+                const newDept = e.target.value;
+                setSelectedDepartment(newDept);
+                if (newDept === 'Pre-School') setSelectedClass('Creche');
+                else if (newDept === 'Primary School') setSelectedClass('Basic 1');
+                else if (newDept === 'Junior High School') setSelectedClass('JHS 1');
+                else if (newDept === 'Senior High School') setSelectedClass('SHS 1');
+                else setSelectedClass('Basic 1');
+              }}
+              className="w-full px-3 py-2 bg-blue-950 border border-blue-800 rounded-xl font-bold text-blue-200 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="All">All Departments</option>
+              <option value="Pre-School">Pre-School</option>
+              <option value="Primary School">Primary School</option>
+              <option value="Junior High School">Junior High School</option>
+              <option value="Senior High School">Senior High School</option>
+            </select>
+          </div>
+
           <div>
             <label className="block font-bold text-slate-300 mb-1">Target Class</label>
             <select

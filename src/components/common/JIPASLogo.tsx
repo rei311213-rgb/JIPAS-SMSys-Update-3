@@ -22,7 +22,7 @@ export function isMobileDevice(): boolean {
  * Returns the appropriate official school crest based on device type or explicit target
  */
 export function getSchoolLogo(targetDevice: 'auto' | 'mobile' | 'desktop' = 'auto'): string {
-  if (typeof window === 'undefined') return '/logo.jpg';
+  if (typeof window === 'undefined') return '/logo.png';
   try {
     // 1. Check for specific "this physical device" override
     const thisDeviceLogo = localStorage.getItem(JIPAS_THIS_DEVICE_LOGO_KEY);
@@ -53,9 +53,9 @@ export function getSchoolLogo(targetDevice: 'auto' | 'mobile' | 'desktop' = 'aut
     const generalLogo = localStorage.getItem(JIPAS_LOGO_STORAGE_KEY) || storedSettings?.schoolLogo;
     if (generalLogo && generalLogo.trim()) return generalLogo;
 
-    return '/logo.jpg';
+    return '/logo.png';
   } catch {
-    return '/logo.jpg';
+    return '/logo.png';
   }
 }
 
@@ -66,9 +66,9 @@ export function getLaptopLogo(): string {
       const raw = localStorage.getItem('jipas_general_settings');
       if (raw) storedSettings = JSON.parse(raw);
     } catch {}
-    return localStorage.getItem(JIPAS_LAPTOP_LOGO_KEY) || storedSettings?.laptopLogo || localStorage.getItem(JIPAS_LOGO_STORAGE_KEY) || storedSettings?.schoolLogo || '/logo.jpg';
+    return localStorage.getItem(JIPAS_LAPTOP_LOGO_KEY) || storedSettings?.laptopLogo || localStorage.getItem(JIPAS_LOGO_STORAGE_KEY) || storedSettings?.schoolLogo || '/logo.png';
   } catch {
-    return '/logo.jpg';
+    return '/logo.png';
   }
 }
 
@@ -79,9 +79,9 @@ export function getMobileLogo(): string {
       const raw = localStorage.getItem('jipas_general_settings');
       if (raw) storedSettings = JSON.parse(raw);
     } catch {}
-    return localStorage.getItem(JIPAS_MOBILE_LOGO_KEY) || storedSettings?.mobileLogo || localStorage.getItem(JIPAS_LOGO_STORAGE_KEY) || storedSettings?.schoolLogo || '/logo.jpg';
+    return localStorage.getItem(JIPAS_MOBILE_LOGO_KEY) || storedSettings?.mobileLogo || localStorage.getItem(JIPAS_LOGO_STORAGE_KEY) || storedSettings?.schoolLogo || '/logo.png';
   } catch {
-    return '/logo.jpg';
+    return '/logo.png';
   }
 }
 
@@ -150,18 +150,18 @@ export function resetSchoolLogo(targetDevice: 'all' | 'laptop' | 'mobile' | 'thi
       localStorage.removeItem(JIPAS_LAPTOP_LOGO_KEY);
       localStorage.removeItem(JIPAS_MOBILE_LOGO_KEY);
       localStorage.removeItem(JIPAS_THIS_DEVICE_LOGO_KEY);
-      settingsUpdate = { laptopLogo: '/logo.jpg', mobileLogo: '/logo.jpg', schoolLogo: '/logo.jpg' };
+      settingsUpdate = { laptopLogo: '/logo.png', mobileLogo: '/logo.png', schoolLogo: '/logo.png' };
     } else if (targetDevice === 'laptop') {
       localStorage.removeItem(JIPAS_LAPTOP_LOGO_KEY);
-      settingsUpdate = { laptopLogo: '/logo.jpg' };
+      settingsUpdate = { laptopLogo: '/logo.png' };
     } else if (targetDevice === 'mobile') {
       localStorage.removeItem(JIPAS_MOBILE_LOGO_KEY);
-      settingsUpdate = { mobileLogo: '/logo.jpg' };
+      settingsUpdate = { mobileLogo: '/logo.png' };
     } else if (targetDevice === 'this_device') {
       localStorage.removeItem(JIPAS_THIS_DEVICE_LOGO_KEY);
     } else if (targetDevice === 'global') {
       localStorage.removeItem(JIPAS_LOGO_STORAGE_KEY);
-      settingsUpdate = { schoolLogo: '/logo.jpg' };
+      settingsUpdate = { schoolLogo: '/logo.png' };
     }
 
     if (Object.keys(settingsUpdate).length > 0) {
@@ -172,7 +172,7 @@ export function resetSchoolLogo(targetDevice: 'all' | 'laptop' | 'mobile' | 'thi
       } catch {}
     }
 
-    window.dispatchEvent(new CustomEvent(JIPAS_LOGO_EVENT, { detail: { logo: '/logo.jpg', target: targetDevice } }));
+    window.dispatchEvent(new CustomEvent(JIPAS_LOGO_EVENT, { detail: { logo: '/logo.png', target: targetDevice } }));
     window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
   } catch (err) {
     console.error('Failed to reset logo', err);
@@ -244,8 +244,8 @@ export default function JIPASLogo({
           onError={(e) => {
             const target = e.currentTarget;
             if (target.src.includes('data:')) return;
-            if (!target.src.endsWith('/logo.jpg') && !target.src.endsWith('/logo.png')) {
-              target.src = '/logo.jpg';
+            if (!target.src.endsWith('/logo.png') && !target.src.endsWith('/logo.jpg')) {
+              target.src = '/logo.png';
             }
           }}
         />

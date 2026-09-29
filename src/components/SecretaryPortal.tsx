@@ -501,7 +501,7 @@ export default function SecretaryPortal({
       return ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2'];
     }
     if (lower.includes('junior') || lower.includes('jhs')) {
-      return ['JHS 1A', 'JHS 1B', 'JHS 2A', 'JHS 2B', 'JHS 3A', 'JHS 3B'];
+      return ['JHS 1', 'JHS 2', 'JHS 3'];
     }
     if (lower.includes('senior') || lower.includes('shs')) {
       return ['SHS 1', 'SHS 2', 'SHS 3', 'Science 1', 'General Arts 1', 'Business 1', 'Home Economics 1', 'Visual Arts 1', 'Agricultural Science 1'];

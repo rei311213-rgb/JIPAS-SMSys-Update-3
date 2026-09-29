@@ -882,7 +882,7 @@ export default function AdminPortal({
             src={getSchoolLogo()} 
             alt="JIPAS Crest" 
             className="w-8 h-8 object-contain" 
-            onError={(e) => { e.currentTarget.src = '/logo.jpg'; }}
+            onError={(e) => { e.currentTarget.src = '/logo.png'; }}
           />
         </button>
       )}
@@ -912,7 +912,7 @@ export default function AdminPortal({
                 src={getSchoolLogo()} 
                 alt="JIPAS Crest" 
                 className="w-8 h-8 object-contain shrink-0" 
-                onError={(e) => { e.currentTarget.src = '/logo.jpg'; }}
+                onError={(e) => { e.currentTarget.src = '/logo.png'; }}
               />
               {!isSidebarCollapsed && (
                 <div className="whitespace-nowrap overflow-hidden">
@@ -2061,7 +2061,7 @@ export default function AdminPortal({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
                 'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6',
-                'JHS 1A', 'JHS 1B', 'JHS 2', 'JHS 3'
+                'JHS 1', 'JHS 2', 'JHS 3'
               ].map((className) => {
                 const bcast = broadcasts?.find(b => (b.className || '').toLowerCase() === className.toLowerCase() && (b.term || '').toLowerCase().includes('third'));
                 const isBroadcasted = bcast?.isBroadcasted ?? false;

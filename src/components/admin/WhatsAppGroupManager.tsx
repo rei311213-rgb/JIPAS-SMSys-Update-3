@@ -53,7 +53,7 @@ export const INITIAL_WHATSAPP_GROUPS: WhatsAppGroupItem[] = [
     id: 'wag-5', 
     name: 'JHS 1 Candidates & Parents Hub', 
     category: 'Class', 
-    classAssigned: 'JHS 1A', 
+    classAssigned: 'JHS 1', 
     memberCount: 45, 
     inviteLink: 'https://chat.whatsapp.com/invite/JIPAS-JHS1-Hub', 
     description: 'Junior High School syllabus updates, mock exams, and BECE prep guidance' 

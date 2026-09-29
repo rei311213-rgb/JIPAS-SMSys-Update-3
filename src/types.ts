@@ -209,7 +209,7 @@ export interface GraduatedStudentItem {
   placedSchool?: string; // If Placement: e.g. "Presbyterian Boys' Secondary School (PRESEC Legon)"
   placedProgramme?: string; // e.g. "General Science"
   wassceProgramme?: string; // If WASSCE: e.g. "General Science", "General Arts", "Business"
-  classGraduatedFrom: string; // e.g. "JHS 3 A" or "SHS 3 Science"
+  classGraduatedFrom: string; // e.g. "JHS 3" or "SHS 3 Science"
   department: string; // "Junior High School" or "Senior High School"
   aggregate?: number | string; // e.g. 06, 08, 12, etc.
   parentName?: string;

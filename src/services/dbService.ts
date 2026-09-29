@@ -384,7 +384,7 @@ const DEFAULT_DEPARTMENTS: Department[] = [
 const DEFAULT_CLASSES: SchoolClass[] = [
   { id: 'cls-1', name: 'Basic 1', department: 'Primary School', stream: 'A', roomNo: 'Block A-01', classTeacher: 'Ebenezer Frimpong', capacity: 35 },
   { id: 'cls-2', name: 'Basic 2', department: 'Primary School', stream: 'A', roomNo: 'Block A-02', classTeacher: 'Mr. Agbenyo Kwame', capacity: 35 },
-  { id: 'cls-3', name: 'JHS 1A', department: 'Junior High School', stream: 'A', roomNo: 'Block B-01', classTeacher: 'Mr. Kwame Elolo', capacity: 40 },
+  { id: 'cls-3', name: 'JHS 1', department: 'Junior High School', stream: 'A', roomNo: 'Block B-01', classTeacher: 'Mr. Kwame Elolo', capacity: 40 },
   { id: 'cls-4', name: 'Creche', department: 'Pre School', stream: 'A', roomNo: 'Pre-01', classTeacher: 'Mad. Aseye Ama', capacity: 25 }
 ];
 

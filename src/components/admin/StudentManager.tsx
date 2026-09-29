@@ -143,6 +143,7 @@ export default function StudentManager({
   }, [searchQuery]);
 
   const [classFilter, setClassFilter] = useState('all');
+  const [deptFilter, setDeptFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
   
   // Individual Promote/Repeat state
@@ -192,16 +193,50 @@ export default function StudentManager({
   const [exportClassTarget, setExportClassTarget] = useState<string>('all');
   const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
 
-  // Compute master available class list
+  // Compute master available class list (filtered by deptFilter if set)
   const availableClassNames = useMemo(() => {
     const set = new Set<string>();
-    ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2', 'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6', 'JHS 1A', 'JHS 1B', 'JHS 2A', 'JHS 2B', 'JHS 3A', 'JHS 3B', 'Science 1', 'Science 2', 'Science 3', 'Visual Arts 1', 'Visual Arts 2', 'Visual Arts 3', 'Home Economics 1', 'Home Economics 2', 'Home Economics 3', 'General Arts 1', 'General Arts 2', 'General Arts 3', 'Business 1', 'Business 2', 'Business 3', 'Agricultural Science 1'].forEach(c => set.add(c));
-    classes?.forEach(c => set.add(c.name));
+    const baseList = ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2', 'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6', 'JHS 1', 'JHS 2', 'JHS 3', 'Science 1', 'Science 2', 'Science 3', 'Visual Arts 1', 'Visual Arts 2', 'Visual Arts 3', 'Home Economics 1', 'Home Economics 2', 'Home Economics 3', 'General Arts 1', 'General Arts 2', 'General Arts 3', 'Business 1', 'Business 2', 'Business 3', 'Agricultural Science 1'];
+    
+    baseList.forEach(c => {
+      if (deptFilter === 'all') {
+        set.add(c);
+      } else if (deptFilter === 'Pre-School' && (c.includes('Creche') || c.includes('Nursery') || c.includes('KG'))) {
+        set.add(c);
+      } else if (deptFilter === 'Primary School' && (c.includes('Basic') || c.includes('Class'))) {
+        set.add(c);
+      } else if (deptFilter === 'Junior High School' && c.includes('JHS')) {
+        set.add(c);
+      } else if (deptFilter === 'Senior High School' && (c.includes('SHS') || c.includes('Science') || c.includes('Arts') || c.includes('Business') || c.includes('Economics') || c.includes('Visual') || c.includes('Agricultural'))) {
+        set.add(c);
+      }
+    });
+
+    classes?.forEach(c => {
+      if (deptFilter === 'all' || (c.department && c.department.toLowerCase() === deptFilter.toLowerCase())) {
+        set.add(c.name);
+      }
+    });
+
     effectiveStudentsList.forEach(s => {
-      if (s.className) set.add(s.className);
+      if (s.className) {
+        if (deptFilter === 'all') {
+          set.add(s.className);
+        } else if (s.department && s.department.toLowerCase() === deptFilter.toLowerCase()) {
+          set.add(s.className);
+        } else if (deptFilter === 'Pre-School' && (s.className.includes('Creche') || s.className.includes('Nursery') || s.className.includes('KG'))) {
+          set.add(s.className);
+        } else if (deptFilter === 'Junior High School' && s.className.includes('JHS')) {
+          set.add(s.className);
+        } else if (deptFilter === 'Primary School' && (s.className.includes('Basic') || s.className.includes('Class'))) {
+          set.add(s.className);
+        } else if (deptFilter === 'Senior High School' && (s.className.includes('SHS') || s.className.includes('Science') || s.className.includes('Arts') || s.className.includes('Business') || s.className.includes('Economics') || s.className.includes('Visual'))) {
+          set.add(s.className);
+        }
+      }
     });
     return Array.from(set);
-  }, [classes, effectiveStudentsList]);
+  }, [classes, effectiveStudentsList, deptFilter]);
 
   // Export Class Admission Details (PDF / CSV)
   const handleExportClassAdmissionDetails = (targetClassNameOverride?: string, formatOverride?: 'pdf' | 'csv') => {
@@ -544,7 +579,7 @@ export default function StudentManager({
       return ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2'];
     }
     if (lower.includes('junior') || lower.includes('jhs')) {
-      return ['JHS 1A', 'JHS 1B', 'JHS 2A', 'JHS 2B', 'JHS 3A', 'JHS 3B'];
+      return ['JHS 1', 'JHS 2', 'JHS 3'];
     }
     if (lower.includes('senior') || lower.includes('shs')) {
       return ['SHS 1', 'SHS 2', 'SHS 3', 'Science 1', 'General Arts 1', 'Business 1', 'Home Economics 1', 'Visual Arts 1', 'Agricultural Science 1'];
@@ -974,15 +1009,21 @@ export default function StudentManager({
         s.parentName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         s.parentPhone?.includes(debouncedSearchQuery)
       );
+      const matchesDept = deptFilter === 'all' || 
+                          (s.department && s.department.toLowerCase() === deptFilter.toLowerCase()) ||
+                          (deptFilter === 'Pre-School' && (s.className?.includes('Creche') || s.className?.includes('Nursery') || s.className?.includes('KG'))) ||
+                          (deptFilter === 'Junior High School' && s.className?.includes('JHS')) ||
+                          (deptFilter === 'Primary School' && (s.className?.includes('Basic') || s.className?.includes('Class'))) ||
+                          (deptFilter === 'Senior High School' && (s.className?.includes('SHS') || s.className?.includes('Science') || s.className?.includes('Arts') || s.className?.includes('Business') || s.className?.includes('Economics') || s.className?.includes('Visual')));
       const matchesClass = classFilter === 'all' || s.className === classFilter;
       const matchesCourse = courseFilter === 'all' || s.course === courseFilter || s.className.toLowerCase().includes(courseFilter.toLowerCase());
       const matchesGender = genderFilter === 'all' || s.gender === genderFilter;
       const matchesStatus = statusFilter === 'all' || 
                             (statusFilter === 'Active' && s.status === 'Active' && s.approvalStatus !== 'Pending') ||
                             (statusFilter === 'Pending' && (s.status === 'Pending' || s.approvalStatus === 'Pending' || s.isApproved === false));
-      return matchesSearch && matchesClass && matchesCourse && matchesGender && matchesStatus;
+      return matchesSearch && matchesDept && matchesClass && matchesCourse && matchesGender && matchesStatus;
     });
-  }, [activeDataList, debouncedSearchQuery, classFilter, courseFilter, genderFilter, statusFilter]);
+  }, [activeDataList, debouncedSearchQuery, deptFilter, classFilter, courseFilter, genderFilter, statusFilter]);
 
   // Virtualized row engine for high-performance rendering (>500 records)
   const studentTableParentRef = useRef<HTMLDivElement>(null);
@@ -2089,11 +2130,26 @@ export default function StudentManager({
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <select
+                  value={deptFilter}
+                  onChange={(e) => {
+                    setDeptFilter(e.target.value);
+                    setClassFilter('all');
+                  }}
+                  className="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold"
+                >
+                  <option value="all">All Departments</option>
+                  <option value="Pre-School">Pre-School</option>
+                  <option value="Primary School">Primary School</option>
+                  <option value="Junior High School">Junior High School</option>
+                  <option value="Senior High School">Senior High School</option>
+                </select>
+
+                <select
                   value={classFilter}
                   onChange={(e) => setClassFilter(e.target.value)}
                   className="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold"
                 >
-                  <option value="all">All Classes ({effectiveStudentsList.length})</option>
+                  <option value="all">All {deptFilter !== 'all' ? `${deptFilter} ` : ''}Classes ({filteredStudents.length})</option>
                   {availableClassNames.map(c => {
                     const count = effectiveStudentsList.filter(s => s.className === c).length;
                     return (
@@ -2673,7 +2729,9 @@ export default function StudentManager({
                 <option value="Basic 2">Basic 2</option>
                 <option value="Basic 3">Basic 3</option>
                 <option value="Creche">Creche</option>
-                <option value="JHS 1A">JHS 1A</option>
+                <option value="JHS 1">JHS 1</option>
+                <option value="JHS 2">JHS 2</option>
+                <option value="JHS 3">JHS 3</option>
               </select>
             </div>
             <div>
@@ -2815,7 +2873,9 @@ export default function StudentManager({
                 <option value="Basic 1">Basic 1</option>
                 <option value="Basic 2">Basic 2</option>
                 <option value="Basic 3">Basic 3</option>
-                <option value="JHS 1A">JHS 1A</option>
+                <option value="JHS 1">JHS 1</option>
+                <option value="JHS 2">JHS 2</option>
+                <option value="JHS 3">JHS 3</option>
               </select>
             </div>
             <div>
@@ -2830,8 +2890,9 @@ export default function StudentManager({
                 <option value="Basic 2">Basic 2</option>
                 <option value="Basic 3">Basic 3</option>
                 <option value="Basic 4">Basic 4</option>
-                <option value="JHS 1A">JHS 1A</option>
+                <option value="JHS 1">JHS 1</option>
                 <option value="JHS 2">JHS 2</option>
+                <option value="JHS 3">JHS 3</option>
               </select>
             </div>
             <div>
@@ -3098,7 +3159,7 @@ export default function StudentManager({
                         setFormCourse(defaultCourse);
                         setFormClassName(`${defaultCourse} ${formLevel}`);
                       } else if (dept === 'Junior High School') {
-                        setFormClassName('JHS 1A');
+                        setFormClassName('JHS 1');
                       } else if (dept === 'Pre-School / Kindergarten') {
                         setFormClassName('Creche');
                       } else {
@@ -3224,12 +3285,9 @@ export default function StudentManager({
                           </>
                         ) : formDepartment === 'Junior High School' ? (
                           <>
-                            <option value="JHS 1A">JHS 1A</option>
-                            <option value="JHS 1B">JHS 1B</option>
-                            <option value="JHS 2A">JHS 2A</option>
-                            <option value="JHS 2B">JHS 2B</option>
-                            <option value="JHS 3A">JHS 3A</option>
-                            <option value="JHS 3B">JHS 3B</option>
+                            <option value="JHS 1">JHS 1</option>
+                            <option value="JHS 2">JHS 2</option>
+                            <option value="JHS 3">JHS 3</option>
                           </>
                         ) : (
                           <>

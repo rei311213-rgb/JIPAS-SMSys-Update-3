@@ -564,9 +564,9 @@ export function saveStoredPaymentSettings(settings: PaymentSettingsConfig): void
 export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
   schoolName: 'JIPAS',
   schoolMotto: 'Education is Wealth • Founded 2002',
-  schoolLogo: '/logo.jpg',
-  laptopLogo: '/logo.jpg',
-  mobileLogo: '/logo.jpg',
+  schoolLogo: '/logo.png',
+  laptopLogo: '/logo.png',
+  mobileLogo: '/logo.png',
   phone: '(00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48',
   email: 'joyjipas2002@gmail.com',
   address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
