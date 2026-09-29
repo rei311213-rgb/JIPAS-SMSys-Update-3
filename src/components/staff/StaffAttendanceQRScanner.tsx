@@ -405,7 +405,7 @@ export default function StaffAttendanceQRScanner({
     }
   };
 
-  // Continuous frame-by-frame QR inspection (but not automatic submission)
+  // Continuous frame-by-frame QR inspection and auto-detection
   const startDecodingLoop = useCallback(() => {
     let barcodeDetector: any = null;
     if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
@@ -416,9 +416,57 @@ export default function StaffAttendanceQRScanner({
       }
     }
 
+    let frameCount = 0;
     const decodeFrame = async () => {
-      if (!isMountedRef.current || !streamRef.current?.active) return;
-      animationFrameIdRef.current = requestAnimationFrame(decodeFrame);
+      if (!isMountedRef.current || !streamRef.current?.active || !videoRef.current || !canvasRef.current) return;
+
+      frameCount++;
+      // Throttle to every 8th frame for optimal performance and battery life
+      if (frameCount % 8 === 0 && !isDecodingLockedRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const width = video.videoWidth || video.clientWidth || 640;
+        const height = video.videoHeight || video.clientHeight || 480;
+
+        if (width > 0 && height > 0) {
+          if (canvas.width !== width) canvas.width = width;
+          if (canvas.height !== height) canvas.height = height;
+          
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            try {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              let decoded: string | null = null;
+
+              // 1. BarcodeDetector
+              if (barcodeDetector) {
+                try {
+                  const barcodes = await barcodeDetector.detect(canvas);
+                  if (barcodes.length > 0) decoded = barcodes[0].rawValue;
+                } catch {}
+              }
+
+              // 2. jsQR Fallback with attemptBoth
+              if (!decoded) {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+                if (code) decoded = code.data;
+              }
+
+              if (decoded && !isDecodingLockedRef.current) {
+                await handleLiveCameraQrDetected(decoded.trim());
+                return; // Stop loop on successful scan
+              }
+            } catch (err) {
+              // Ignore frame scan errors
+            }
+          }
+        }
+      }
+
+      if (isMountedRef.current && streamRef.current?.active) {
+        animationFrameIdRef.current = requestAnimationFrame(decodeFrame);
+      }
     };
 
     animationFrameIdRef.current = requestAnimationFrame(decodeFrame);
@@ -445,8 +493,8 @@ export default function StaffAttendanceQRScanner({
     // Capture frame
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || video.clientWidth || 640;
+    canvas.height = video.videoHeight || video.clientHeight || 480;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -466,10 +514,10 @@ export default function StaffAttendanceQRScanner({
         } catch {}
       }
 
-      // 2. jsQR Fallback
+      // 2. jsQR Fallback with attemptBoth
       if (!decoded) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
         if (code) decoded = code.data;
       }
 

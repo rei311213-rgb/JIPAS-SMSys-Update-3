@@ -194,3 +194,115 @@ CREATE POLICY "Subject assignments viewable by staff"
 CREATE POLICY "Subject assignments modifiable by Admin or Registrar"
   ON public.subject_assignments FOR ALL
   USING (public.has_any_role(ARRAY['Administrator', 'Registrar']));
+
+-- 4. Financial Tables RLS Policies (Phase 31D Fail-Closed Campus Authorization)
+
+-- Bills Policy: Fail-closed campus isolation via student relationship, or global executive/admin view, or student self view
+CREATE POLICY "Bills campus isolated select"
+  ON public.bills FOR SELECT TO authenticated
+  USING (
+    is_admin() OR 
+    current_user_role() IN ('ceo', 'director', 'headmaster') OR
+    (student_id IN (SELECT id FROM public.students WHERE campus_id = current_user_campus() AND current_user_campus() IS NOT NULL)) OR
+    (student_id IN (SELECT id FROM public.students WHERE profile_id = auth.uid()))
+  );
+
+CREATE POLICY "Bills campus isolated modify"
+  ON public.bills FOR ALL TO authenticated
+  USING (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'sub_accountant', 'secretary') AND 
+     current_user_campus() IS NOT NULL AND
+     student_id IN (SELECT id FROM public.students WHERE campus_id = current_user_campus()))
+  )
+  WITH CHECK (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'sub_accountant', 'secretary') AND 
+     current_user_campus() IS NOT NULL AND
+     student_id IN (SELECT id FROM public.students WHERE campus_id = current_user_campus()))
+  );
+
+-- Refunds Policy: Fail-closed campus isolation via campus_id or student relationship
+CREATE POLICY "Refunds campus isolated select"
+  ON public.refunds FOR SELECT TO authenticated
+  USING (
+    is_admin() OR 
+    current_user_role() IN ('ceo', 'director', 'headmaster') OR
+    (campus_id = current_user_campus() AND current_user_campus() IS NOT NULL) OR
+    (student_id IN (SELECT id FROM public.students WHERE profile_id = auth.uid()))
+  );
+
+CREATE POLICY "Refunds campus isolated insert"
+  ON public.refunds FOR INSERT TO authenticated
+  WITH CHECK (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'sub_accountant', 'secretary') AND 
+     current_user_campus() IS NOT NULL AND
+     campus_id = current_user_campus())
+  );
+
+CREATE POLICY "Refunds campus isolated update"
+  ON public.refunds FOR UPDATE TO authenticated
+  USING (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'ceo', 'director', 'headmaster') AND 
+     current_user_campus() IS NOT NULL AND
+     campus_id = current_user_campus())
+  )
+  WITH CHECK (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'ceo', 'director', 'headmaster') AND 
+     current_user_campus() IS NOT NULL AND
+     campus_id = current_user_campus())
+  );
+
+CREATE POLICY "Refunds deletable by admins only"
+  ON public.refunds FOR DELETE TO authenticated
+  USING (is_admin());
+
+-- Expenses Policy: Fail-closed campus isolation via campus_id
+CREATE POLICY "Expenses campus isolated select"
+  ON public.expenses FOR SELECT TO authenticated
+  USING (
+    is_admin() OR 
+    current_user_role() IN ('ceo', 'director', 'headmaster') OR
+    (campus_id = current_user_campus() AND current_user_campus() IS NOT NULL)
+  );
+
+CREATE POLICY "Expenses campus isolated modify"
+  ON public.expenses FOR ALL TO authenticated
+  USING (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'sub_accountant', 'secretary') AND 
+     current_user_campus() IS NOT NULL AND
+     campus_id = current_user_campus())
+  )
+  WITH CHECK (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'sub_accountant', 'secretary') AND 
+     current_user_campus() IS NOT NULL AND
+     campus_id = current_user_campus())
+  );
+
+-- Fee Tariffs Policy: Campus-isolated via campus_id (with intentional global/null shared-tariff fallback)
+CREATE POLICY "Fee tariffs campus isolated select"
+  ON public.fee_tariffs FOR SELECT TO authenticated
+  USING (
+    auth.role() = 'authenticated' AND 
+    (campus_id = current_user_campus() OR campus_id IS NULL OR is_admin() OR current_user_role() IN ('ceo', 'director'))
+  );
+
+CREATE POLICY "Fee tariffs campus isolated modify"
+  ON public.fee_tariffs FOR ALL TO authenticated
+  USING (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'director', 'headmaster') AND 
+     current_user_campus() IS NOT NULL AND
+     (campus_id = current_user_campus() OR campus_id IS NULL))
+  )
+  WITH CHECK (
+    is_admin() OR 
+    (current_user_role() IN ('accountant', 'director', 'headmaster') AND 
+     current_user_campus() IS NOT NULL AND
+     (campus_id = current_user_campus() OR campus_id IS NULL))
+  );
