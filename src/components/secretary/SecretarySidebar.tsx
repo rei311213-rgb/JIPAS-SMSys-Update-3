@@ -3,7 +3,7 @@ import {
   FileText, DollarSign, Plus, Settings, AlertTriangle, 
   Pin, PinOff, ChevronRight, Menu, X, CheckCircle2, 
   TrendingUp, Sparkles, User, ShieldCheck, Wallet, Receipt, Layers, Building, Building2, BellRing, BarChart3, UserPlus, Search,
-  GraduationCap, Briefcase
+  GraduationCap, Briefcase, QrCode
 } from 'lucide-react';
 import JIPASLogo from '../common/JIPASLogo';
 
@@ -18,7 +18,8 @@ export type SecretaryTabType =
   | 'collections_log'
   | 'bulk_fee_entry'
   | 'graduated_batch'
-  | 'employee_history';
+  | 'employee_history'
+  | 'staff_attendance';
 
 interface SecretarySidebarProps {
   activeTab: SecretaryTabType;
@@ -170,6 +171,15 @@ export default function SecretarySidebar({
       icon: Briefcase,
       badge: 'Archive',
       badgeColor: 'bg-indigo-100 text-indigo-800'
+    },
+    {
+      id: 'staff_attendance',
+      category: 'PERSONNEL',
+      label: 'Staff Attendance Scanner',
+      sublabel: 'Scan daily entrance QR code and view personal attendance status',
+      icon: QrCode,
+      badge: 'Scan',
+      badgeColor: 'bg-indigo-500 text-white'
     }
   ];
 

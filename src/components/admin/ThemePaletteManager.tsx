@@ -699,8 +699,8 @@ export default function ThemePaletteManager({
                             borderColor: `${activePalette.primaryColor}20` 
                           }}
                         >
-                          <span className="opacity-60 text-[7px]">Billing Ratio</span>
-                          <strong className="text-[11px] font-black" style={{ color: activePalette.primaryColor }}>94.2%</strong>
+                          <span className="opacity-60 text-[7px]">Active Theme Status</span>
+                          <strong className="text-[11px] font-black" style={{ color: activePalette.primaryColor }}>Verified</strong>
                         </div>
                         <div 
                           className="p-1.5 rounded-xl border flex flex-col justify-center shadow-xs"
@@ -709,8 +709,8 @@ export default function ThemePaletteManager({
                             borderColor: `${activePalette.primaryColor}20` 
                           }}
                         >
-                          <span className="opacity-60 text-[7px]">Enrolled Students</span>
-                          <strong className="text-[11px] font-black" style={{ color: activePalette.textColor }}>1,420</strong>
+                          <span className="opacity-60 text-[7px]">Theme Contrast</span>
+                          <strong className="text-[11px] font-black" style={{ color: activePalette.textColor }}>Optimal</strong>
                         </div>
                       </div>
 

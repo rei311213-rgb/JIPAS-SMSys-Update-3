@@ -88,24 +88,7 @@ interface LocalSnapshot {
   data: string;
 }
 
-const INITIAL_DRIVE_BACKUPS: DriveBackupFile[] = [
-  {
-    id: 'gdrive-bak-1',
-    name: 'jipas_cloud_backup_2026-09-05.json',
-    size: '1.42 MB',
-    createdTime: '05/09/2026, 11:30 PM',
-    syncedBy: 'Marcus Prosper (Google Drive)',
-    webViewLink: 'https://drive.google.com'
-  },
-  {
-    id: 'gdrive-bak-2',
-    name: 'jipas_cloud_backup_2026-09-01.json',
-    size: '1.38 MB',
-    createdTime: '01/09/2026, 08:00 AM',
-    syncedBy: 'Admin Console (Cloud Vault)',
-    webViewLink: 'https://drive.google.com'
-  }
-];
+const INITIAL_DRIVE_BACKUPS: DriveBackupFile[] = [];
 
 export default function BackupRecoveryManager({
   students,
@@ -1608,7 +1591,16 @@ export default function BackupRecoveryManager({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {driveBackups.map((item, idx) => (
+                  {driveBackups.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-400">
+                        <Cloud className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-600">No Google Drive cloud backups found</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Click &quot;Backup to Google Drive&quot; to upload an authoritative snapshot to your school Google Drive folder.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    driveBackups.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
                       <td className="p-3 font-bold text-slate-900 flex items-center gap-2">
@@ -1638,7 +1630,7 @@ export default function BackupRecoveryManager({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>

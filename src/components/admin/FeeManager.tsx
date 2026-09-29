@@ -18,7 +18,7 @@ import FeesSettingsManager from '../common/FeesSettingsManager';
 import OverdueFeeAlertsManager from './OverdueFeeAlertsManager';
 import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
 import { INITIAL_FEE_OPTIONS_DATA } from '../../data/feeDescriptions';
-import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments } from '../../services/storageService';
+import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses } from '../../services/storageService';
 import { subscribeRefunds, saveRefund, deleteRefund, savePayment, saveBill } from '../../services/dbService';
 import { printContent } from '../../utils/printUtils';
 
@@ -38,19 +38,9 @@ interface FeeManagerProps {
 
 export const INITIAL_FEE_OPTIONS = INITIAL_FEE_OPTIONS_DATA;
 
-export const INITIAL_INCOME_EXPENSES: IncomeExpenseItem[] = [
-  { id: 'ie-1', date: '2026-09-05', type: 'Income', category: 'Tuition Fees', amount: 1250, description: 'Bank transfer payment for ADM/26/0001', referenceNo: 'TXN-984210', recordedBy: 'Accountant' },
-  { id: 'ie-2', date: '2026-09-04', type: 'Expense', category: 'Utilities & Water', amount: 420, description: 'the region Water Company monthly supply', referenceNo: 'GWCL-9921', recordedBy: 'Marcus Prosper' },
-  { id: 'ie-3', date: '2026-09-03', type: 'Income', category: 'PTA Dues', amount: 350, description: 'Cash PTA collections at assembly', referenceNo: 'PTA-004', recordedBy: 'Accountant' },
-  { id: 'ie-4', date: '2026-09-02', type: 'Expense', category: 'Teaching Supplies', amount: 680, description: 'Chalk, whiteboards markers & exercise books', referenceNo: 'SUP-1049', recordedBy: 'Administrator' },
-  { id: 'ie-5', date: '2026-09-01', type: 'Income', category: 'Tuition Fees', amount: 1800, description: 'MTN Mobile Money bulk school fees', referenceNo: 'MOM-8831', recordedBy: 'Accountant' }
-];
+export const INITIAL_INCOME_EXPENSES: IncomeExpenseItem[] = [];
 
-export const INITIAL_AUDIT_LOGS: FinancialAuditItem[] = [
-  { id: 'fa-1', timestamp: '2026-09-05 10:14 AM', action: 'Payment Recorded', user: 'Accountant (Grace Tetteh)', studentAdmNo: 'ADM/26/0001', amount: 400, details: 'Cash payment of 400.00 CFA logged for ADM/26/0001' },
-  { id: 'fa-2', timestamp: '2026-09-04 03:22 PM', action: 'Fee Option Added', user: 'Admin (Marcus Prosper)', studentAdmNo: '--', amount: 200, details: 'Created School Bus Transit (Optional) fee option' },
-  { id: 'fa-3', timestamp: '2026-09-03 11:45 AM', action: 'Bill Generated', user: 'Admin (Marcus Prosper)', studentAdmNo: 'All Basic 1', amount: 600, details: 'Batch terminal bills compiled for Basic 1 students' },
-];
+export const INITIAL_AUDIT_LOGS: FinancialAuditItem[] = [];
 
 export default function FeeManager({
   activeModule,
@@ -69,8 +59,25 @@ export default function FeeManager({
   const [billsList, setBillsList] = useState<StudentBill[]>(initialBills);
   const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>(initialPayments);
   const [classTariffs, setClassTariffs] = useState<ClassFeeTariffItem[]>(initialTariffs);
-  const [incomeExpenses, setIncomeExpenses] = useState<IncomeExpenseItem[]>(INITIAL_INCOME_EXPENSES);
-  const [auditLogs, setAuditLogs] = useState<FinancialAuditItem[]>(INITIAL_AUDIT_LOGS);
+  const [incomeExpenses, setIncomeExpenses] = useState<IncomeExpenseItem[]>(() => {
+    try {
+      const expenses = getStoredExpenses();
+      if (expenses && expenses.length > 0) {
+        return expenses.map(e => ({
+          id: e.id,
+          date: e.date,
+          type: 'Expense' as const,
+          category: e.category,
+          amount: e.amount,
+          description: e.title || e.description || '',
+          referenceNo: e.referenceNo || e.voucherNo || `EXP-${e.id.slice(0, 6)}`,
+          recordedBy: e.recordedBy || 'Accountant'
+        }));
+      }
+    } catch {}
+    return [];
+  });
+  const [auditLogs, setAuditLogs] = useState<FinancialAuditItem[]>([]);
 
   // Modals
   const [showAddFeeModal, setShowAddFeeModal] = useState(false);
@@ -1551,37 +1558,45 @@ export default function FeeManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {incomeExpenses.map((txn, idx) => (
-                  <tr key={txn.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
-                    <td className="p-3 font-mono text-slate-600">{txn.date}</td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center w-fit gap-1 ${
-                        txn.type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                {incomeExpenses.length > 0 ? (
+                  incomeExpenses.map((txn, idx) => (
+                    <tr key={txn.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
+                      <td className="p-3 font-mono text-slate-600">{txn.date}</td>
+                      <td className="p-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center w-fit gap-1 ${
+                          txn.type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {txn.type === 'Income' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {txn.type}
+                        </span>
+                      </td>
+                      <td className="p-3 font-semibold text-slate-900">{txn.category}</td>
+                      <td className="p-3 text-slate-700 max-w-xs truncate">{txn.description}</td>
+                      <td className="p-3 font-mono text-slate-500">{txn.referenceNo}</td>
+                      <td className={`p-3 text-right font-mono font-bold ${
+                        txn.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
-                        {txn.type === 'Income' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {txn.type}
-                      </span>
-                    </td>
-                    <td className="p-3 font-semibold text-slate-900">{txn.category}</td>
-                    <td className="p-3 text-slate-700 max-w-xs truncate">{txn.description}</td>
-                    <td className="p-3 font-mono text-slate-500">{txn.referenceNo}</td>
-                    <td className={`p-3 text-right font-mono font-bold ${
-                      txn.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'
-                    }`}>
-                      {(txn.amount ?? 0).toFixed(2)} CFA
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => setIncomeExpenses(prev => prev.filter(t => t.id !== txn.id))}
-                        className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        title="Delete Entry"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {(txn.amount ?? 0).toFixed(2)} CFA
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => setIncomeExpenses(prev => prev.filter(t => t.id !== txn.id))}
+                          className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          title="Delete Entry"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-slate-400 text-xs">
+                      No income/expense records logged yet.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

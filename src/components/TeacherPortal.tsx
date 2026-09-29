@@ -903,25 +903,6 @@ export default function TeacherPortal({
     }
   };
 
-  // Quick auto-fill demo marks
-  // Auto Fill Demo scores
-  const handleAutoFillDemoMarks = () => {
-    if (isSubmissionLocked) {
-      alert(`Editing is locked. This class report batch has already been ${currentBroadcast?.status.toLowerCase()} to the Administration.`);
-      return;
-    }
-    setSubjectScores(prev => {
-      const next = { ...prev };
-      classStudents.forEach((st, idx) => {
-        const demoClass = 25 + (idx % 12);
-        const demoExam = 45 + (idx % 15);
-        next[st.id] = { classScore: demoClass, examScore: demoExam };
-      });
-      return next;
-    });
-    showToast('Demo scores populated for ' + selectedClass + ' - ' + selectedSubject);
-  };
-
   // Dispatch automated classwork and missing grade reminders
   const handleSendMissingGradeReminders = async () => {
     const missingStudents = classStudents.filter(st => {
@@ -2501,14 +2482,6 @@ export default function TeacherPortal({
                             {isSendingReminders ? 'Sending...' : 'Send Reminders'}
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={handleAutoFillDemoMarks}
-                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-md text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          title="Auto fill demo scores for testing"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Auto-Fill Demo Marks
-                        </button>
                         <button
                           type="button"
                           onClick={handleSaveAllResults}

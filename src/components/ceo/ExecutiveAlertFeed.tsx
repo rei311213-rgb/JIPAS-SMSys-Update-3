@@ -248,8 +248,8 @@ export default function ExecutiveAlertFeed() {
                 <span className="text-lg font-black text-amber-500">{alerts.filter(a => a.severity === 'Warning').length}</span>
               </div>
               <div className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800">
-                <span className="text-[11px] font-black text-slate-500 uppercase">Resolved (24h)</span>
-                <span className="text-lg font-black text-emerald-500">12</span>
+                <span className="text-[11px] font-black text-slate-500 uppercase">Operational Notices</span>
+                <span className="text-lg font-black text-emerald-500">{alerts.filter(a => a.severity === 'Info').length}</span>
               </div>
             </div>
           </div>

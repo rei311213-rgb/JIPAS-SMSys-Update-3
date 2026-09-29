@@ -5,7 +5,6 @@ import {
   AcademicYearItem, TermItem, DepartmentItem, ClassItem, HouseItem, SubjectItem, ClassFeeTariffItem, ClassReportBroadcast,
   ThemePaletteConfig, CourseItem, UserRole, UserAccountItem
 } from './types';
-import { INITIAL_LOGIN_LOGS } from './data/mockData';
 import { 
   DEFAULT_THEME_PALETTE, 
   getStoredUsers,
@@ -242,7 +241,7 @@ export default function App() {
   const [classFeeTariffs, setClassFeeTariffs] = useState<ClassFeeTariffItem[]>(() => getStoredClassFeeTariffs());
   const [broadcasts, setBroadcasts] = useState<ClassReportBroadcast[]>(() => getStoredClassBroadcasts());
   const [themePalette, setThemePalette] = useState<ThemePaletteConfig>(() => getStoredThemePalette());
-  const [loginLogs, setLoginLogs] = useState<LoginLog[]>(INITIAL_LOGIN_LOGS);
+  const [loginLogs, setLoginLogs] = useState<LoginLog[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 

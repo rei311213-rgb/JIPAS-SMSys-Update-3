@@ -34,6 +34,8 @@ import GraduatedBatchManager from './common/GraduatedBatchManager';
 import PastEmployeeHistoryManager from './common/PastEmployeeHistoryManager';
 import JIPASLogo from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
+import { getStoredExpenses } from '../services/storageService';
+import { filterExpensesByCampus } from '../lib/campusUtils';
 
 interface CEOPortalProps {
   currentUser: any;
@@ -232,6 +234,14 @@ export default function CEOPortal({
   const totalRevenue = useMemo(() => {
     return payments.reduce((acc, p) => acc + (p.paid || p.amount || 0), 0);
   }, [payments]);
+
+  const totalExpenditure = useMemo(() => {
+    const rawExpenses = getStoredExpenses();
+    const campusFiltered = filterExpensesByCampus(rawExpenses, selectedCampus);
+    return campusFiltered.reduce((acc, e) => acc + (e.amount || 0), 0);
+  }, [selectedCampus]);
+
+  const netSurplus = totalRevenue - totalExpenditure;
 
   // CEO Thumbnail Groups
   const ceoThumbnailGroups = [
@@ -713,6 +723,7 @@ export default function CEOPortal({
                       teachers={teachers}
                       reports={reports}
                       payments={payments}
+                      bills={bills}
                     />
                   </div>
                 </>
@@ -885,11 +896,11 @@ export default function CEOPortal({
                           </div>
                           <div className="p-6 bg-rose-900/10 rounded-2xl border border-rose-900/30">
                              <span className="text-[10px] font-black text-rose-400 uppercase">Total Expenditure</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA 42,100</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalExpenditure.toLocaleString()}</h3>
                           </div>
                           <div className="p-6 bg-emerald-900/10 rounded-2xl border border-emerald-900/30">
                              <span className="text-[10px] font-black text-emerald-400 uppercase">Net Surplus</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {(totalRevenue - 42100).toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">CFA {netSurplus.toLocaleString()}</h3>
                           </div>
                       </div>
                     </div>

@@ -18,47 +18,23 @@ export default function TeacherAttendanceReport({
   onNavigate,
   onUpdateStatus
 }: TeacherAttendanceReportProps) {
-  const [startDate, setStartDate] = useState('2026-09-01');
-  const [endDate, setEndDate] = useState('2026-09-30');
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  });
   const [selectedTeacherId, setSelectedTeacherId] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fallback demo records if empty so report is never blank
+  // Verified database attendance records
   const records = useMemo(() => {
-    if (attendanceRecords && attendanceRecords.length > 0) {
-      return attendanceRecords;
-    }
-    // Generate helpful baseline records from teachers list
-    const generated: TeacherAttendanceRecord[] = [];
-    const dates = ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05', '2026-09-08', '2026-09-09', '2026-09-10'];
-    teachers.forEach((t, tIdx) => {
-      dates.forEach((d, dIdx) => {
-        let status: 'Present' | 'Absent' | 'Late' | 'Excused' = 'Present';
-        let timeIn = '07:25 AM';
-        if ((tIdx + dIdx) % 7 === 0) {
-          status = 'Late';
-          timeIn = '08:15 AM';
-        } else if ((tIdx * 3 + dIdx) % 13 === 0) {
-          status = 'Absent';
-          timeIn = '--';
-        } else if ((tIdx + dIdx) % 11 === 0) {
-          status = 'Excused';
-          timeIn = '--';
-        }
-        generated.push({
-          id: `demo-${t.id}-${d}`,
-          teacherId: t.id,
-          teacherName: t.name,
-          date: d,
-          status,
-          timeIn,
-          remarks: status === 'Late' ? 'Traffic delay reported' : status === 'Excused' ? 'Approved workshop' : 'Regular check-in'
-        });
-      });
-    });
-    return generated;
-  }, [attendanceRecords, teachers]);
+    return attendanceRecords || [];
+  }, [attendanceRecords]);
 
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
@@ -310,8 +286,10 @@ export default function TeacherAttendanceReport({
                     <p className="font-bold">No attendance records found matching your filters.</p>
                     <button
                       onClick={() => {
-                        setStartDate('2026-09-01');
-                        setEndDate('2026-09-30');
+                        const d = new Date();
+                        const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                        setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+                        setEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
                         setSelectedTeacherId('All');
                         setStatusFilter('All');
                         setSearchQuery('');

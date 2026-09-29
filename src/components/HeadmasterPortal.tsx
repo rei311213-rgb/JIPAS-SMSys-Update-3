@@ -10,6 +10,7 @@ import {
   TrendingUp, RefreshCw, UserCheck, MessageSquare, Star, Sparkles
 } from 'lucide-react';
 import JIPASLogo from './common/JIPASLogo';
+import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
 import { printContent } from '../utils/printUtils';
 import { 
   subscribeScoreApprovals, 
@@ -457,33 +458,6 @@ export default function HeadmasterPortal({
               <h3 className="text-lg font-black text-slate-900">Score Approvals & Grade Endorsements</h3>
               <p className="text-xs text-slate-500">Review teacher mark sheets (30% Continuous Assessment + 70% Terminal Examination)</p>
             </div>
-
-            {/* Quick Demo Batch Creator if none exist */}
-            {scoreApprovals.length === 0 && (
-              <button
-                onClick={async () => {
-                  const demoApproval: ScoreApprovalRecord = {
-                    id: `sa-${Date.now()}`,
-                    className: deptClasses[0] || 'Basic 1',
-                    subjectName: 'Mathematics',
-                    academicYear: '2025-2026',
-                    term: 'Third Term',
-                    teacherId: deptTeachers[0]?.id || 'TCH-001',
-                    teacherName: deptTeachers[0]?.name || 'Mr. Emmanuel Tetteh',
-                    status: 'Submitted',
-                    submittedAt: new Date().toISOString(),
-                    scoresCount: deptStudents.length || 15,
-                    averageScore: 74.5,
-                    campus: 'JIPAS 1'
-                  };
-                  await saveScoreApproval(demoApproval);
-                  triggerToast('Sample score approval batch generated for review.');
-                }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" /> Create Test Approval Batch
-              </button>
-            )}
           </div>
 
           {scoreApprovals.length === 0 ? (
@@ -736,12 +710,15 @@ export default function HeadmasterPortal({
 
       {/* 5. ATTENDANCE OVERSIGHT */}
       {activeTab === 'attendance' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-600">Discipline & Presence</span>
-            <h3 className="text-lg font-black text-slate-900">Attendance Supervision</h3>
-            <p className="text-xs text-slate-500">Monitor teacher clock-ins and student attendance across classes</p>
-          </div>
+        <div className="space-y-6">
+          <StaffAttendanceQRScanner currentUser={currentUser} employee={currentUser} />
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-600">Discipline & Presence</span>
+              <h3 className="text-lg font-black text-slate-900">Attendance Supervision</h3>
+              <p className="text-xs text-slate-500">Monitor teacher clock-ins and student attendance across classes</p>
+            </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-5 border border-slate-200 rounded-2xl space-y-3">
@@ -784,6 +761,7 @@ export default function HeadmasterPortal({
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
 

@@ -19,58 +19,31 @@ export default function TeacherAttendanceStats({
   const [selectedMonth, setSelectedMonth] = useState('September 2026');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fallback demo records if empty
+  // Verified database attendance records
   const records = useMemo(() => {
-    if (attendanceRecords && attendanceRecords.length > 0) {
-      return attendanceRecords;
-    }
-    const generated: TeacherAttendanceRecord[] = [];
-    const dates = ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05', '2026-09-08', '2026-09-09', '2026-09-10'];
-    teachers.forEach((t, tIdx) => {
-      dates.forEach((d, dIdx) => {
-        let status: 'Present' | 'Absent' | 'Late' | 'Excused' = 'Present';
-        let timeIn = '07:25 AM';
-        if ((tIdx + dIdx) % 7 === 0) {
-          status = 'Late';
-          timeIn = '08:15 AM';
-        } else if ((tIdx * 3 + dIdx) % 13 === 0) {
-          status = 'Absent';
-          timeIn = '--';
-        } else if ((tIdx + dIdx) % 11 === 0) {
-          status = 'Excused';
-          timeIn = '--';
-        }
-        generated.push({
-          id: `demo-${t.id}-${d}`,
-          teacherId: t.id,
-          teacherName: t.name,
-          date: d,
-          status,
-          timeIn,
-          remarks: status === 'Late' ? 'Traffic delay reported' : status === 'Excused' ? 'Approved workshop' : 'Regular check-in'
-        });
-      });
-    });
-    return generated;
-  }, [attendanceRecords, teachers]);
+    return attendanceRecords || [];
+  }, [attendanceRecords]);
 
-  // Aggregate stats per teacher
+  // Aggregate stats per teacher based strictly on actual attendance
   const teacherStats = useMemo(() => {
     return teachers.map(teacher => {
       const tRecords = records.filter(r => r.teacherId === teacher.id);
-      const totalDays = tRecords.length || 1;
+      const totalDays = tRecords.length;
       const presentDays = tRecords.filter(r => r.status === 'Present').length;
       const lateDays = tRecords.filter(r => r.status === 'Late').length;
       const absentDays = tRecords.filter(r => r.status === 'Absent').length;
       const excusedDays = tRecords.filter(r => r.status === 'Excused').length;
 
-      const attendanceRate = Math.round(((presentDays + lateDays) / totalDays) * 100);
-      const punctualityRate = Math.round((presentDays / totalDays) * 100);
+      const attendanceRate = totalDays > 0 ? Math.round(((presentDays + lateDays) / totalDays) * 100) : 0;
+      const punctualityRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
-      let grade = 'Excellent';
-      if (attendanceRate < 80) grade = 'Critical';
-      else if (attendanceRate < 90) grade = 'Fair';
-      else if (punctualityRate < 85) grade = 'Good';
+      let grade = 'No Data';
+      if (totalDays > 0) {
+        if (attendanceRate >= 95) grade = 'Excellent';
+        else if (attendanceRate >= 85) grade = 'Good';
+        else if (attendanceRate >= 75) grade = 'Fair';
+        else grade = 'Critical';
+      }
 
       return {
         teacher,
@@ -229,7 +202,16 @@ export default function TeacherAttendanceStats({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredStats.map((item, idx) => (
+              {filteredStats.length === 0 || records.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center text-slate-400">
+                    <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-slate-600">No staff attendance records logged for this period</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Staff clock-in entries via QR scanner or gate kiosk will automatically appear here.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredStats.map((item, idx) => (
                 <tr key={item.teacher.id} className="hover:bg-slate-50 transition-colors">
                   <td className="p-3 font-mono font-bold text-slate-500">
                     {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
@@ -265,13 +247,14 @@ export default function TeacherAttendanceStats({
                       item.grade === 'Excellent' ? 'bg-emerald-100 text-emerald-800' :
                       item.grade === 'Good' ? 'bg-indigo-100 text-indigo-800' :
                       item.grade === 'Fair' ? 'bg-amber-100 text-amber-800' :
-                      'bg-rose-100 text-rose-800'
+                      item.grade === 'Critical' ? 'bg-rose-100 text-rose-800' :
+                      'bg-slate-100 text-slate-600'
                     }`}>
                       {item.grade}
                     </span>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

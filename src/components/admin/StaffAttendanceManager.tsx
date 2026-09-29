@@ -12,6 +12,7 @@ import { StaffAttendanceReportService, WorkingHoursConfig } from '../../services
 import { StaffAttendanceExportService } from '../../services/supabase/staffAttendanceExportService';
 import EntranceQRPrintPage from './EntranceQRPrintPage';
 import StaffAttendanceReport from './StaffAttendanceReport';
+import StaffAttendanceQRScanner from '../staff/StaffAttendanceQRScanner';
 
 export default function StaffAttendanceManager() {
   // Resolve profile from optional Supabase context or fallback to localStorage safely
@@ -31,7 +32,7 @@ export default function StaffAttendanceManager() {
   }
   
   // Dashboard tab switching
-  const [activeSubTab, setActiveSubTab] = useState<'today_attendance' | 'monthly_reports' | 'hours_configuration' | 'qr_management'>('today_attendance');
+  const [activeSubTab, setActiveSubTab] = useState<'today_attendance' | 'monthly_reports' | 'hours_configuration' | 'qr_management' | 'scan_qr'>('today_attendance');
   
   // Campuses state
   const [campuses, setCampuses] = useState<{ id: string; name: string }[]>([]);
@@ -469,6 +470,17 @@ export default function StaffAttendanceManager() {
             <span>Daily Attendance Log</span>
           </button>
           <button
+            onClick={() => { setActiveSubTab('scan_qr'); setViewingStaffDetailId(null); }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeSubTab === 'scan_qr' 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40' 
+                : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Live Attendance Scanner</span>
+          </button>
+          <button
             onClick={() => { setActiveSubTab('monthly_reports'); setViewingStaffDetailId(null); }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeSubTab === 'monthly_reports' 
@@ -598,6 +610,13 @@ export default function StaffAttendanceManager() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* LIVE ENTRANCE QR SCANNER TAB */}
+      {activeSubTab === 'scan_qr' && (
+        <div className="space-y-6">
+          <StaffAttendanceQRScanner currentUser={profile} employee={profile} />
         </div>
       )}
 

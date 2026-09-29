@@ -957,32 +957,6 @@ export default function ExaminationManager({
                 Endorse teacher continuous assessments (30%) and terminal examination marks (70%)
               </p>
             </div>
-
-            {scoreApprovals.length === 0 && (
-              <button
-                onClick={async () => {
-                  const demoApproval: ScoreApprovalRecord = {
-                    id: `sa-${Date.now()}`,
-                    className: 'Basic 1',
-                    subjectName: 'Mathematics',
-                    academicYear: '2025-2026',
-                    term: 'Third Term',
-                    teacherId: 'TCH-001',
-                    teacherName: 'Mr. Emmanuel Tetteh',
-                    status: 'Submitted',
-                    submittedAt: new Date().toISOString(),
-                    scoresCount: 15,
-                    averageScore: 72.4,
-                    campus: 'JIPAS 1'
-                  };
-                  await saveScoreApproval(demoApproval);
-                  triggerApprovalToast('Created sample score approval batch for review.');
-                }}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" /> Create Test Batch
-              </button>
-            )}
           </div>
 
           {scoreApprovals.length === 0 ? (

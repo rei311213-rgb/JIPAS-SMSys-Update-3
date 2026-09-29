@@ -33,6 +33,7 @@ import OverdueFeeAlertsManager from './admin/OverdueFeeAlertsManager';
 import SecretarySidebar, { SecretaryTabType } from './secretary/SecretarySidebar';
 import GraduatedBatchManager from './common/GraduatedBatchManager';
 import PastEmployeeHistoryManager from './common/PastEmployeeHistoryManager';
+import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
 import SyncNowButton from './common/SyncNowButton';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
 import CampusSelector from './common/CampusSelector';
@@ -74,6 +75,8 @@ import {
   User as UserIcon,
   UserPlus,
   AlertTriangle,
+  GraduationCap,
+  Briefcase,
   Filter,
   Menu,
   LogOut
@@ -106,7 +109,8 @@ type SecretaryActiveTab =
   | 'collections_log'
   | 'bulk_fee_entry'
   | 'graduated_batch'
-  | 'employee_history';
+  | 'employee_history'
+  | 'staff_attendance';
 
 export default function SecretaryPortal({
   secretary,
@@ -126,27 +130,8 @@ export default function SecretaryPortal({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Campus Multi-Campus State and shadow filters
-  const [selectedCampus, setSelectedCampus] = useState<'General' | 'JIPAS 1' | 'JIPAS 2'>(() => {
-    const saved = localStorage.getItem('jipas_active_campus') || localStorage.getItem('jipas_selected_campus');
-    return (saved as any) || secretary.campus || 'General';
-  });
-
-  useEffect(() => {
-    const handleEvent = () => {
-      const active = (localStorage.getItem('jipas_active_campus') as any) || (localStorage.getItem('jipas_selected_campus') as any) || 'General';
-      setSelectedCampus(active);
-    };
-    window.addEventListener('jipas_campus_changed', handleEvent);
-    return () => window.removeEventListener('jipas_campus_changed', handleEvent);
-  }, []);
-
-  const handleCampusChange = (campus: 'General' | 'JIPAS 1' | 'JIPAS 2') => {
-    setSelectedCampus(campus);
-    localStorage.setItem('jipas_active_campus', campus);
-    localStorage.setItem('jipas_selected_campus', campus);
-    window.dispatchEvent(new Event('jipas_campus_changed'));
-  };
+  // Secretaries are restricted strictly to their assigned campus established during account creation
+  const selectedCampus: 'General' | 'JIPAS 1' | 'JIPAS 2' = (secretary.campus as any) || 'JIPAS 1';
 
   const students = useMemo(() => {
     const campusFiltered = filterStudentsByCampus(propStudents, selectedCampus);
@@ -958,7 +943,7 @@ export default function SecretaryPortal({
 
         {/* Active Tab Minimal Header */}
         {(() => {
-          const tabMeta = {
+          const tabMeta = ({
             fee_collection: { title: 'Collect School Fees', subtitle: 'Process student payments & generate instant official receipts', icon: CreditCard, color: 'bg-emerald-600' },
             expenses: { title: 'Record Daily Expenses', subtitle: 'Log petty cash disbursements & petty purchases', icon: Receipt, color: 'bg-rose-600' },
             daily_reconcile: { title: 'Daily Handover & Reconcile', subtitle: 'Balance desk totals & register bursar handover summary', icon: Layers, color: 'bg-indigo-600' },
@@ -966,9 +951,18 @@ export default function SecretaryPortal({
             bank_deposits: { title: 'Bank Deposits', subtitle: 'Verify bank wire receipts, transfers & slip registers', icon: Building, color: 'bg-emerald-600' },
             enroll_student: { title: 'Enroll New Student', subtitle: 'Enter official admission details & submit for approval', icon: UserPlus, color: 'bg-violet-600' },
             overdue_alerts: { title: 'Overdue Fee Alerts', subtitle: 'Send automated custom reminders via WhatsApp / SMS', icon: AlertTriangle, color: 'bg-red-600' },
-            collections_log: { title: 'Payment Collections', subtitle: 'Browse full desk collections logs and audit trails', icon: TrendingUp, color: 'bg-cyan-600' }
-          }[activeTab];
-          const Icon = tabMeta.icon;
+            collections_log: { title: 'Payment Collections', subtitle: 'Browse full desk collections logs and audit trails', icon: TrendingUp, color: 'bg-cyan-600' },
+            bulk_fee_entry: { title: 'Bulk Fee & Billing Entry', subtitle: 'Batch upload bills or payments for multiple students', icon: Layers, color: 'bg-indigo-600' },
+            graduated_batch: { title: 'Graduated Batch (BECE/WASSCE)', subtitle: 'Candidate index numbers, exam types, biodata & placements', icon: GraduationCap, color: 'bg-purple-600' },
+            employee_history: { title: 'Employee History (Past Staff)', subtitle: 'Service history, past roles & subjects records', icon: Briefcase, color: 'bg-slate-700' },
+            staff_attendance: { title: 'Staff Attendance Scanner', subtitle: 'Scan daily entrance QR code and view attendance status', icon: QrCode, color: 'bg-indigo-600' }
+          } as Record<string, { title: string; subtitle: string; icon: React.ElementType; color: string }>)[activeTab] || {
+            title: 'Secretary Workspace',
+            subtitle: 'Administrative and desk operations',
+            icon: Layers,
+            color: 'bg-indigo-600'
+          };
+          const Icon = tabMeta.icon || Layers;
           return (
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1015,8 +1009,11 @@ export default function SecretaryPortal({
                 </div>
 
                 <div className="hidden sm:flex items-center gap-2">
-                  <CampusSelector selectedCampus={selectedCampus} onCampusChange={handleCampusChange} theme="light" />
-                  <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200">
+                    <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Campus: {selectedCampus}</span>
+                  </div>
+                  <span className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200">
                     Secretary: {secretary.name}
                   </span>
                 </div>
@@ -2760,6 +2757,15 @@ export default function SecretaryPortal({
             readOnly={false}
             selectedCampus={selectedCampus}
           />
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* TAB 11: STAFF ATTENDANCE SCANNER                                */}
+      {/* ------------------------------------------------------------- */}
+      {activeTab === 'staff_attendance' && (
+        <div className="space-y-6">
+          <StaffAttendanceQRScanner currentUser={secretary} employee={secretary} />
         </div>
       )}
 

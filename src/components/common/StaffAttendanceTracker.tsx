@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, CheckCircle2, AlertCircle, Calendar, UserCheck, ShieldCheck, DollarSign, FileText, Download, RefreshCw, Award 
+  Clock, CheckCircle2, AlertCircle, Calendar, UserCheck, ShieldCheck, DollarSign, FileText, Download, RefreshCw, Award, QrCode 
 } from 'lucide-react';
 import { Teacher } from '../../types';
+import StaffAttendanceQRScanner from '../staff/StaffAttendanceQRScanner';
 
 interface StaffAttendanceRecord {
   id: string;
@@ -27,26 +28,16 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
   const [attendanceRecords, setAttendanceRecords] = useState<StaffAttendanceRecord[]>(() => {
     const saved = localStorage.getItem('jipas_staff_attendance');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      try { 
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) { /* fallback */ }
     }
-    // Default initial mock attendance for demonstration
-    return teachers.slice(0, 5).map((t, i) => ({
-      id: `att_${Date.now()}_${i}`,
-      teacherId: t.id,
-      teacherName: t.name,
-      department: t.department || 'General Education',
-      date: todayStr,
-      clockInTime: '07:45 AM',
-      clockOutTime: '03:30 PM',
-      status: i === 2 ? 'Late' : 'Present',
-      notes: i === 2 ? 'Traffic delay on ring road' : 'On-time biometric clock-in'
-    }));
+    return [];
   });
 
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [activeTab, setActiveTab] = useState<'my_attendance' | 'all_records' | 'payroll_summary'>(
-    userRole === 'accountant' || userRole === 'admin' ? 'all_records' : 'my_attendance'
-  );
+  const [activeTab, setActiveTab] = useState<'scan_qr' | 'my_attendance' | 'all_records' | 'payroll_summary'>('scan_qr');
   const [notesInput, setNotesInput] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -135,6 +126,16 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('scan_qr')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'scan_qr' 
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" /> Scan Entrance QR
+          </button>
           {(userRole === 'teacher' || !userRole) && (
             <button
               onClick={() => setActiveTab('my_attendance')}
@@ -178,6 +179,13 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
         <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* LIVE ENTRANCE QR SCANNER TAB */}
+      {activeTab === 'scan_qr' && (
+        <div className="space-y-4">
+          <StaffAttendanceQRScanner currentUser={currentUser} />
         </div>
       )}
 
@@ -274,25 +282,35 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {attendanceRecords.map(rec => (
-                  <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="p-3.5 font-bold text-slate-900 dark:text-white">{rec.teacherName}</td>
-                    <td className="p-3.5 text-slate-600 dark:text-slate-300">{rec.department}</td>
-                    <td className="p-3.5 font-mono text-slate-500">{rec.date}</td>
-                    <td className="p-3.5 font-mono text-emerald-600 dark:text-emerald-400 font-bold">{rec.clockInTime}</td>
-                    <td className="p-3.5 font-mono text-slate-500">{rec.clockOutTime || 'Active'}</td>
-                    <td className="p-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                        rec.status === 'Present' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' :
-                        rec.status === 'Late' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' :
-                        'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'
-                      }`}>
-                        {rec.status}
-                      </span>
+                {attendanceRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
+                      <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No staff attendance records logged</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Staff clock-in entries via QR scanner will appear here in real time.</p>
                     </td>
-                    <td className="p-3.5 text-slate-500 max-w-xs truncate">{rec.notes || '—'}</td>
                   </tr>
-                ))}
+                ) : (
+                  attendanceRecords.map(rec => (
+                    <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">{rec.teacherName}</td>
+                      <td className="p-3.5 text-slate-600 dark:text-slate-300">{rec.department}</td>
+                      <td className="p-3.5 font-mono text-slate-500">{rec.date}</td>
+                      <td className="p-3.5 font-mono text-emerald-600 dark:text-emerald-400 font-bold">{rec.clockInTime}</td>
+                      <td className="p-3.5 font-mono text-slate-500">{rec.clockOutTime || 'Active'}</td>
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                          rec.status === 'Present' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' :
+                          rec.status === 'Late' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' :
+                          'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'
+                        }`}>
+                          {rec.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-slate-500 max-w-xs truncate">{rec.notes || '—'}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

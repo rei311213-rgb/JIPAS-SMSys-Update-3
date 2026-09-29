@@ -103,10 +103,27 @@ export const StaffAttendanceService = {
     profileId: string,
     staffCampusId: string
   ): Promise<{ status: 'SIGNED_IN' | 'SIGNED_OUT'; record: StaffAttendanceRecord; message: string }> {
-    // 1. Verify and resolve QR details from token
+    // 1. Verify user profile and employee role authorization
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role, full_name, campus_id')
+      .eq('id', profileId)
+      .maybeSingle();
+
+    if (profile) {
+      const normalizedRole = (profile.role || '').toLowerCase().trim();
+      if (normalizedRole === 'ceo' || normalizedRole === 'director') {
+        throw new Error('Executive leadership (CEO / Director) are exempt from daily entrance QR attendance scanning.');
+      }
+      if (normalizedRole === 'student' || normalizedRole === 'parent') {
+        throw new Error('Only school staff and employees are authorized to record attendance.');
+      }
+    }
+
+    // 2. Verify and resolve QR details from token
     const qrCode = await EntranceQrService.verifyQrToken(rawToken);
 
-    // 2. Validate campus alignment (Critical Isolation Boundary)
+    // 3. Validate campus alignment (Critical Isolation Boundary)
     if (qrCode.campus_id !== staffCampusId) {
       throw new Error('Invalid entrance QR for your assigned campus.');
     }

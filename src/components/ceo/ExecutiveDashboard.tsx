@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, LineChart, Line
 } from 'recharts';
-import { Student, Teacher, TermReport, PaymentRecord, StudentAttendanceRecord, SchoolExpenseRecord } from '../../types';
+import { Student, Teacher, TermReport, PaymentRecord, StudentAttendanceRecord, SchoolExpenseRecord, StudentBill } from '../../types';
 import { getStoredExpenses, getStoredStudentAttendance } from '../../services/storageService';
 
 interface ExecutiveDashboardProps {
@@ -17,6 +17,7 @@ interface ExecutiveDashboardProps {
   teachers: Teacher[];
   reports: TermReport[];
   payments: PaymentRecord[];
+  bills?: StudentBill[];
 }
 
 const MiniSparkline = ({ data, color }: { data: any[], color: string }) => (
@@ -36,7 +37,7 @@ const MiniSparkline = ({ data, color }: { data: any[], color: string }) => (
   </div>
 );
 
-export default function ExecutiveDashboard({ students, teachers, reports, payments }: ExecutiveDashboardProps) {
+export default function ExecutiveDashboard({ students, teachers, reports, payments, bills = [] }: ExecutiveDashboardProps) {
   const [expenses, setExpenses] = useState<SchoolExpenseRecord[]>([]);
   const [attendanceTrends, setAttendanceTrends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,19 +50,19 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
     try {
       // 1. Expenses
       let expList: SchoolExpenseRecord[] = getStoredExpenses();
-      setExpenses(expList);
+      setExpenses(expList || []);
 
       // 2. Attendance trends
       let attRecords: StudentAttendanceRecord[] = getStoredStudentAttendance();
 
-      const attData = attRecords.slice(0, 7).map(d => {
+      const attData = (attRecords || []).slice(0, 7).map(d => {
         const total = Object.keys(d.records || {}).length;
         const present = Object.values(d.records || {}).filter(s => s === 'Present').length;
-        return { value: total > 0 ? Math.round((present / total) * 100) : 95 };
+        return { value: total > 0 ? Math.round((present / total) * 100) : 100 };
       }).reverse();
 
       setAttendanceTrends(attData.length > 0 ? attData : [
-        { value: 92 }, { value: 94 }, { value: 91 }, { value: 95 }, { value: 96 }, { value: 94 }, { value: 97 }
+        { value: 100 }
       ]);
 
     } catch (err) {
@@ -71,25 +72,47 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
     }
   };
 
-  // 1. School at a Glance Stats
+  // 1. School at a Glance Stats (derived from verified database records)
   const totalStudents = students.length;
   const totalTeachers = teachers.length;
-  const nonTeachingStaff = 12; 
-  const totalClasses = new Set(students.map(s => s.className)).size;
-  const newAdmissions = students.filter(s => s.status === 'Active' && s.academicYear === '2024/2025').length; 
-  const avgAttendance = 94; 
+  const nonTeachingStaff = 0; 
+  const totalClasses = new Set(students.map(s => s.className).filter(Boolean)).size;
+  const newAdmissions = students.filter(s => {
+    const st = (s.status || '').toLowerCase();
+    return st === 'active' || st === 'enrolled';
+  }).length; 
+  
+  // Calculate average attendance from actual student attendance records
+  const avgAttendance = useMemo(() => {
+    const attRecords: StudentAttendanceRecord[] = getStoredStudentAttendance();
+    if (!attRecords || attRecords.length === 0) return totalStudents > 0 ? 100 : 0;
+    let presentCount = 0;
+    let totalCount = 0;
+    attRecords.forEach(rec => {
+      if (rec.records) {
+        Object.values(rec.records).forEach((status: any) => {
+          totalCount++;
+          if (status === 'Present') presentCount++;
+        });
+      }
+    });
+    return totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 100;
+  }, [totalStudents]);
 
-  // Admissions Sparkline Data (last 7 weeks or similar - simplified mock for visual consistency)
+  // Admissions Trends derived from actual student roster
   const admissionTrends = useMemo(() => {
-    const counts = [2, 5, 3, 8, 4, 12, 7]; // Mock weekly admissions trend
-    return counts.map(v => ({ value: v }));
-  }, []);
+    if (students.length === 0) return [{ value: 0 }];
+    const count = students.length;
+    return [{ value: Math.max(1, Math.round(count / 2)) }, { value: count }];
+  }, [students]);
 
-  // 2. Financial Overview
+  // 2. Financial Overview (derived from real payments, bills, and expenses)
   const totalFeesCollected = payments.reduce((acc, p) => acc + (p.paid || p.amount || 0), 0);
-  const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
-  const totalFeesExpected = 1250000; // Mock target
-  const outstandingFees = totalFeesExpected - totalFeesCollected;
+  const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+  const totalFeesExpected = bills.length > 0 
+    ? bills.reduce((acc, b) => acc + (b.payable || b.amount || 0), 0) 
+    : totalFeesCollected;
+  const outstandingFees = Math.max(0, totalFeesExpected - totalFeesCollected);
   const netPosition = totalFeesCollected - totalExpenses;
 
   // 3. Academic Data for Charts
@@ -291,15 +314,21 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
           <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-slate-800">
             <div className="text-center">
               <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Top Performing</span>
-              <span className="text-sm font-black text-white">JHS 3 (92%)</span>
+              <span className="text-sm font-black text-white">
+                {classPerformance[0] ? `${classPerformance[0].name} (${classPerformance[0].avg}%)` : '—'}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pass Rate</span>
-              <span className="text-sm font-black text-emerald-400">98.2%</span>
+              <span className="text-sm font-black text-emerald-400">
+                {reports.length > 0 ? `${Math.round((reports.filter(r => (r.averageScore || 0) >= 50).length / reports.length) * 1000) / 10}%` : '—'}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Intervention Needed</span>
-              <span className="text-sm font-black text-rose-400">12 Students</span>
+              <span className="text-sm font-black text-rose-400">
+                {reports.length > 0 ? `${reports.filter(r => (r.averageScore || 0) < 50).length} Students` : '0 Students'}
+              </span>
             </div>
           </div>
         </div>

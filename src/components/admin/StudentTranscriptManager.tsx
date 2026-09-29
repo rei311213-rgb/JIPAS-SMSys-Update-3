@@ -67,29 +67,33 @@ export default function StudentTranscriptManager({
 
   // Calculate Cumulative Academic Statistics
   const allScores = studentReports.flatMap(r => r.scores || []);
-  const totalSubjectsCount = allScores.length || 1;
+  const totalSubjectsCount = allScores.length;
   const cumulativeTotalScore = allScores.reduce((acc, sc) => acc + (sc.total || 0), 0);
-  const cumulativeAverage = ((cumulativeTotalScore ?? 0) / Math.max(1, totalSubjectsCount)).toFixed(1);
+  const cumulativeAverage = totalSubjectsCount > 0 
+    ? ((cumulativeTotalScore ?? 0) / totalSubjectsCount).toFixed(1) 
+    : '0.0';
 
   // Derive GPA on standard 4.0 scale based on average percentage
   const avgNum = parseFloat(cumulativeAverage);
-  let gpa = '4.00';
-  let academicHonors = 'First Class Honours / High Distinction';
-  if (avgNum >= 80) {
-    gpa = '4.00';
-    academicHonors = 'Principal\'s Honor List (Distinction)';
-  } else if (avgNum >= 70) {
-    gpa = '3.50';
-    academicHonors = 'First Class Standing';
-  } else if (avgNum >= 60) {
-    gpa = '3.00';
-    academicHonors = 'Second Class Upper';
-  } else if (avgNum >= 50) {
-    gpa = '2.50';
-    academicHonors = 'Second Class Lower';
-  } else {
-    gpa = '2.00';
-    academicHonors = 'Pass';
+  let gpa = totalSubjectsCount > 0 ? '4.00' : '—';
+  let academicHonors = totalSubjectsCount > 0 ? 'First Class Honours / High Distinction' : 'Pending Assessments';
+  if (totalSubjectsCount > 0) {
+    if (avgNum >= 80) {
+      gpa = '4.00';
+      academicHonors = 'Principal\'s Honor List (Distinction)';
+    } else if (avgNum >= 70) {
+      gpa = '3.50';
+      academicHonors = 'First Class Standing';
+    } else if (avgNum >= 60) {
+      gpa = '3.00';
+      academicHonors = 'Second Class Upper';
+    } else if (avgNum >= 50) {
+      gpa = '2.50';
+      academicHonors = 'Second Class Lower';
+    } else {
+      gpa = '2.00';
+      academicHonors = 'Pass';
+    }
   }
 
   const transcriptId = `TR-${activeStudent.admissionNo?.replace(/[^a-zA-Z0-9]/g, '') || '2026'}-${Date.now().toString().slice(-4)}`;
@@ -539,44 +543,12 @@ export default function StudentTranscriptManager({
                   </div>
                 ))
               ) : (
-                /* Fallback sample curriculum records if no custom reports yet */
-                <div className="border border-slate-300 rounded-lg overflow-hidden">
-                  <div className="bg-slate-800 text-white px-4 py-2 flex items-center justify-between text-xs font-bold">
-                    <span>ACADEMIC YEAR: 2025-2026 — Third Term</span>
-                    <span className="text-slate-300 text-[11px]">Terminal Standing: 1st out of 30</span>
-                  </div>
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 border-b border-slate-300 text-[11px] font-bold text-slate-700">
-                        <th className="py-2 px-3">Subject</th>
-                        <th className="py-2 px-3 text-center">Class (40%)</th>
-                        <th className="py-2 px-3 text-center">Exam (60%)</th>
-                        <th className="py-2 px-3 text-center">Total (100%)</th>
-                        <th className="py-2 px-3 text-center">Grade</th>
-                        <th className="py-2 px-3">Remark</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {[
-                        { s: 'English Language', c: 36, e: 54, t: 90, g: '1', r: 'Highest' },
-                        { s: 'Mathematics', c: 38, e: 58, t: 96, g: '1', r: 'Highest' },
-                        { s: 'Integrated Science', c: 34, e: 52, t: 86, g: '2', r: 'Higher' },
-                        { s: 'Computing', c: 39, e: 59, t: 98, g: '1', r: 'Highest' },
-                        { s: 'Creative Arts', c: 32, e: 48, t: 80, g: '2', r: 'Higher' },
-                        { s: 'Religious & Moral Edu.', c: 35, e: 50, t: 85, g: '2', r: 'Higher' },
-                        { s: 'the regionian Language', c: 30, e: 46, t: 76, g: '3', r: 'High' }
-                      ].map((row, i) => (
-                        <tr key={i}>
-                          <td className="py-1.5 px-3 font-bold text-slate-800">{row.s}</td>
-                          <td className="py-1.5 px-3 text-center font-mono text-slate-600">{row.c}</td>
-                          <td className="py-1.5 px-3 text-center font-mono text-slate-600">{row.e}</td>
-                          <td className="py-1.5 px-3 text-center font-mono font-bold text-slate-900">{row.t}</td>
-                          <td className="py-1.5 px-3 text-center font-bold text-indigo-700">{row.g}</td>
-                          <td className="py-1.5 px-3 text-slate-700">{row.r}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="border border-dashed border-slate-300 rounded-2xl p-10 text-center bg-slate-50">
+                  <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-slate-700">No Terminal Examination Reports Recorded</p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    Terminal assessment scores entered and endorsed by class teachers for {activeStudent.fullName} will compile automatically into this official cumulative transcript.
+                  </p>
                 </div>
               )}
             </div>
