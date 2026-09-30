@@ -126,7 +126,7 @@ import {
   restoreEntireDatabase
 } from './services/dbService';
 import { initLocalForageStore, idbClear } from './services/idbService';
-import { initBackgroundSync, subscribeSupabaseRealtime, pullFromSupabaseCloud } from './services/syncService';
+import { initBackgroundSync, subscribeSupabaseRealtime, pullFromSupabaseCloud, pushToSupabaseCloud } from './services/syncService';
 
 export type AuthBootstrapState = 
   | 'AUTH_LOADING'
@@ -798,6 +798,7 @@ export default function App() {
     } catch (err) {
       console.warn('saveAllAcademicYears sync notice:', err);
     }
+    pushToSupabaseCloud().catch(console.warn);
   };
 
   const handleUpdateTerms = async (newTerms: TermItem[]) => {
@@ -808,6 +809,7 @@ export default function App() {
     } catch (err) {
       console.warn('saveAllTerms sync notice:', err);
     }
+    pushToSupabaseCloud().catch(console.warn);
   };
 
   const handleUpdateDepartments = async (newDepts: DepartmentItem[]) => {

@@ -1973,14 +1973,16 @@ export async function saveStaffSecretCode(_code: string): Promise<void> {
 // Academic Setup CRUD Operations (Authoritative Cloud-First Synchronization)
 // -------------------------------------------------------------
 export async function saveAcademicYear(ay: AcademicYearItem | AcademicYear) {
+  const current = getStoredAcademicYears();
+  const idx = current.findIndex(a => a.id === ay.id);
+  const updated = idx >= 0 ? current.map(a => a.id === ay.id ? (ay as AcademicYearItem) : a) : [ay as AcademicYearItem, ...current];
+  saveStoredAcademicYears(updated);
+  pushToSupabaseCloud().catch(console.warn);
   return executeCloudWrite(
     'academicYears',
     ay.id,
     ay,
     () => {
-      const current = getStoredAcademicYears();
-      const idx = current.findIndex(a => a.id === ay.id);
-      const updated = idx >= 0 ? current.map(a => a.id === ay.id ? (ay as AcademicYearItem) : a) : [ay as AcademicYearItem, ...current];
       saveStoredAcademicYears(updated);
     },
     undefined,
@@ -1989,10 +1991,40 @@ export async function saveAcademicYear(ay: AcademicYearItem | AcademicYear) {
 }
 
 export async function saveAllAcademicYears(years: AcademicYearItem[]) {
-  return commitInBatchChunks('academicYears', years, saveStoredAcademicYears);
+  saveStoredAcademicYears(years);
+  
+  // Clean up any deleted academic years in Firestore
+  try {
+    const snap = await getDocs(query(collection(db, 'academicYears'), ...applyCampusQueryFilter('academicYears')));
+    const keepIds = new Set(years.map(y => y.id));
+    for (const d of snap.docs) {
+      if (!keepIds.has(d.id)) {
+        await deleteDoc(doc(db, 'academicYears', d.id));
+      }
+    }
+  } catch (err) {
+    console.warn('[dbService] Orphaned academic years delete notice:', err);
+  }
+
+  try {
+    await commitInBatchChunks('academicYears', years, saveStoredAcademicYears);
+  } catch (err) {
+    console.warn('[dbService] commitInBatchChunks notice:', err);
+  }
+
+  await pushToSupabaseCloud();
 }
 
 export async function deleteAcademicYear(ayId: string) {
+  try {
+    await deleteDoc(doc(db, 'academicYears', ayId));
+  } catch (err) {
+    console.warn('[dbService] Firestore deleteDoc academicYears error:', err);
+  }
+  const current = getStoredAcademicYears();
+  const updated = current.filter(a => a.id !== ayId);
+  saveStoredAcademicYears(updated);
+  await pushToSupabaseCloud();
   return executeCloudDelete(
     'academicYears',
     ayId,

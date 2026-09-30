@@ -1452,7 +1452,7 @@ export default function TeacherPortal({
         aria-label="Teacher Portal Sidebar"
       >
         <div className="overflow-y-auto flex-1 custom-scrollbar">
-          {/* Brand & Logo Header with Minimize Toggle */}
+          {/* Brand & Logo Header */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700/60 bg-[#1a222f]">
             <div className="flex items-center gap-3 overflow-hidden">
               <JIPASLogo size="sm" />
@@ -1462,11 +1462,6 @@ export default function TeacherPortal({
                 </span>
               )}
             </div>
-            <SidebarToggleButton
-              isOpen={isSidebarOpen}
-              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-              variant="subtle"
-            />
           </div>
 
           {/* Teacher Profile Identifier Banner */}
@@ -1709,20 +1704,11 @@ export default function TeacherPortal({
         {/* Top Header Bar */}
         <div className="bg-white border-b border-slate-200 h-14 px-4 sm:px-6 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-600 border border-slate-200 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
-              title={isSidebarOpen ? "Collapse Navigation Sidebar" : "Expand Navigation Sidebar"}
-            >
-              {isSidebarOpen ? (
-                <PanelLeftClose className="w-4 h-4 text-slate-500" />
-              ) : (
-                <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-              )}
-              <span className="hidden sm:inline">
-                {isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-              </span>
-            </button>
+            <SidebarToggleButton
+              isOpen={isSidebarOpen}
+              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              label={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+            />
           </div>
 
           <div className="flex items-center gap-2">

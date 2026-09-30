@@ -99,6 +99,24 @@ export default function StudentPortal({
   const [broadcastsList, setBroadcastsList] = useState<ClassReportBroadcast[]>(propBroadcasts || []);
 
   useEffect(() => {
+    console.log('[StudentPortal] LIFECYCLE: StudentPortal MOUNTED.', {
+      studentId: student?.id,
+      studentName: student?.name,
+      reportsCount: reports?.length || 0,
+      isReportsEmpty: !reports || reports.length === 0,
+      billsCount: bills?.length || 0,
+      isBillsEmpty: !bills || bills.length === 0,
+      paymentsCount: payments?.length || 0,
+      isPaymentsEmpty: !payments || payments.length === 0,
+      timestamp: new Date().toISOString()
+    });
+
+    return () => {
+      console.log('[StudentPortal] LIFECYCLE: StudentPortal UNMOUNTED.');
+    };
+  }, []);
+
+  useEffect(() => {
     if (propBroadcasts && propBroadcasts.length > 0) {
       setBroadcastsList(propBroadcasts);
     }

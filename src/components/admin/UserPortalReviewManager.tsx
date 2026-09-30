@@ -27,13 +27,16 @@ import {
   FileText,
   CreditCard,
   Layers,
-  Award
+  Award,
+  Crown,
+  ChevronLeft
 } from 'lucide-react';
 
 interface UserPortalReviewManagerProps {
   studentsCount: number;
   teachersCount: number;
   onPreviewRole?: (role: UserRole) => void;
+  onBackToDashboard?: () => void;
 }
 
 interface PortalRoleSpec {
@@ -130,20 +133,85 @@ const PORTAL_SPECS: PortalRoleSpec[] = [
       'Upload Bank / MoMo Payment Receipts for Clearance',
       'Access School Calendar & Broadcast Announcements'
     ]
+  },
+  {
+    role: 'ceo',
+    title: 'CEO & Executive Director Portal',
+    subtitle: 'High-Level Governance & Strategic Oversight',
+    badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    icon: Crown,
+    accessLevel: 'Full Administrative',
+    overviewText: 'High-level executive dashboard delivering strategic oversight across multi-campus operations, enrollment numbers, aggregate fee revenues, collection metrics, and cross-campus performance.',
+    capabilities: [
+      'Multi-Campus Enrollment & Staff Demographics',
+      'High-Level Financial Performance & Revenue Aggregation',
+      'Cross-Campus Student Performance & Exam Metrics',
+      'Campus Selector & Consolidated Reporting',
+      'Direct Communication Channels with School Leadership'
+    ]
+  },
+  {
+    role: 'headmaster',
+    title: 'Headmaster & Academic Director Portal',
+    subtitle: 'Institutional Academic Leadership & Faculty Supervision',
+    badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
+    icon: Award,
+    accessLevel: 'Academic Grading',
+    overviewText: 'Administrative hub for Headteachers, Headmasters, and Heads of Departments to oversee curriculum coverage, lesson delivery, terminal report card approvals, and academic excellence.',
+    capabilities: [
+      'Supervise Teaching Faculty & Departmental Allocations',
+      'Approve Class Continuous Assessments & Broadsheets',
+      'Monitor Academic Calendar Milestones & Term Deadlines',
+      'Review Class Attendance & Student Disciplinary Trends',
+      'Publish Official Headmaster Termly Directives'
+    ]
   }
 ];
 
 export default function UserPortalReviewManager({
   studentsCount,
   teachersCount,
-  onPreviewRole
+  onPreviewRole,
+  onBackToDashboard
 }: UserPortalReviewManagerProps) {
-  const [users, setUsers] = useState<UserAccountItem[]>(() => getStoredUsers());
+  const [users, setUsers] = useState<UserAccountItem[]>(() => {
+    const initial = getStoredUsers();
+    console.log('[UsersPortalReview] Initializing state from getStoredUsers(). Found count:', initial ? initial.length : 0);
+    return initial || [];
+  });
 
   useEffect(() => {
-    const unsub = subscribeUsers((loaded) => setUsers(loaded));
-    return () => unsub();
+    console.log('[UsersPortalReview] LIFECYCLE: Component MOUNTED into DOM.', {
+      initialUsersCount: users.length,
+      isUsersArrayEmpty: users.length === 0,
+      studentsCount,
+      teachersCount,
+      timestamp: new Date().toISOString()
+    });
+
+    const unsub = subscribeUsers((loaded) => {
+      console.log('[UsersPortalReview] DATA_FETCH: subscribeUsers callback fired.', {
+        loadedCount: loaded ? loaded.length : 0,
+        isLoadedArrayEmpty: !loaded || loaded.length === 0,
+        isArray: Array.isArray(loaded),
+        sampleData: loaded && loaded.length > 0 ? loaded.slice(0, 2) : 'EMPTY_ARRAY',
+        timestamp: new Date().toISOString()
+      });
+      if (!loaded || loaded.length === 0) {
+        console.warn('[UsersPortalReview] Warning: Fetched users array is empty. Fallback counts will be applied.');
+      }
+      setUsers(loaded || []);
+    });
+
+    return () => {
+      console.log('[UsersPortalReview] LIFECYCLE: Component UNMOUNTING from DOM (Cleanup).', {
+        lastUsersCount: users.length,
+        timestamp: new Date().toISOString()
+      });
+      unsub();
+    };
   }, []);
+
   const [selectedRole, setSelectedRole] = useState<UserRole>('teacher');
 
   const selectedSpec = useMemo(() => {
@@ -157,10 +225,21 @@ export default function UserPortalReviewManager({
       teacher: teachersCount || users.filter(u => u.role === 'teacher').length,
       accountant: users.filter(u => u.role === 'accountant').length,
       secretary: users.filter(u => u.role === 'secretary').length,
-      student: studentsCount || users.filter(u => u.role === 'student').length
+      student: studentsCount || users.filter(u => u.role === 'student').length,
+      ceo: users.filter(u => u.role === 'ceo' || u.role === 'director').length,
+      headmaster: users.filter(u => u.role === 'headmaster' || u.role === 'headteacher' || u.role === 'hod').length
     };
     return counts;
   }, [users, teachersCount, studentsCount]);
+
+  // Render diagnostics logging
+  console.log('[UsersPortalReview] RENDER: Rendering component view.', {
+    usersArrayLength: users.length,
+    isUsersArrayEmpty: users.length === 0,
+    selectedRole,
+    roleCounts,
+    specTitle: selectedSpec?.title
+  });
 
   return (
     <div className="space-y-6 text-slate-900 animate-fade-in">
@@ -182,10 +261,19 @@ export default function UserPortalReviewManager({
             Inspect the functional scopes, permissions, and dashboards experienced by Teachers, Accountants, Sub-Accountants, Secretaries, and Students across the JIPAS ecosystem.
           </p>
         </div>
+        {onBackToDashboard && (
+          <button
+            onClick={onBackToDashboard}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center gap-2 cursor-pointer self-start md:self-auto shrink-0 shadow-xs"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </button>
+        )}
       </div>
 
       {/* Role Selector Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         {PORTAL_SPECS.map(spec => {
           const Icon = spec.icon;
           const isSelected = selectedRole === spec.role;
@@ -240,6 +328,17 @@ export default function UserPortalReviewManager({
               <p className="text-xs text-slate-500">{selectedSpec.subtitle}</p>
             </div>
           </div>
+
+          {onPreviewRole && (
+            <button
+              onClick={() => onPreviewRole(selectedRole)}
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+              title={`Switch session to test ${selectedSpec.title}`}
+            >
+              <span>Test {selectedSpec.title.replace(' Portal', '')} View</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 text-xs text-slate-700 leading-relaxed">

@@ -34,6 +34,7 @@ import CeoRoleManager from './admin/CeoRoleManager';
 import FinancialAuditManager from './admin/FinancialAuditManager';
 import FinancialReconciliationDashboard from './admin/FinancialReconciliationDashboard';
 import SecurityAuditLogsManager from './admin/SecurityAuditLogsManager';
+import UserPortalReviewManager from './admin/UserPortalReviewManager';
 import DepartmentalFinancialSummary from './common/DepartmentalFinancialSummary';
 import FinancialAuditTrail from './common/FinancialAuditTrail';
 import ExpenseManager from './common/ExpenseManager';
@@ -199,6 +200,7 @@ export const normalizeAdminModuleId = (mod: string): string => {
   if (clean === 'past_employees' || clean === 'employee_history' || clean === 'past_staff') return 'past_employees';
   if (clean === 'tree' || clean === 'academic_tree' || clean === 'tree_view') return 'academic_tree_view';
   if (clean === 'system_users' || clean === 'users') return 'system_users_roles';
+  if (clean === 'portal_review' || clean === 'users_review' || clean === 'user_portal_review') return 'users_portal_review';
   if (clean === 'system_school_setup' || clean === 'school_setup') return 'system_settings';
   if (clean === 'reports_terminal') return 'admin_terminal_reports';
   if (clean === 'backup_recovery' || clean === 'backup_restore') return 'system_backup_restore';
@@ -261,6 +263,7 @@ const ADMIN_NAV_GROUPS = [
       { id: 'system_theme_palette', label: 'Theme & Color Palette', icon: Palette },
       { id: 'system_account_requests', label: 'Account Requests', icon: UserCheck },
       { id: 'system_users_roles', label: 'Users & Roles', icon: UserCog },
+      { id: 'users_portal_review', label: 'Users Portal Review', icon: Eye },
       { id: 'ceo_director_roles', label: 'CEO & Director Management', icon: Crown },
       { id: 'security_audit', label: 'Security & Role Audit Logs', icon: ShieldCheck },
       { id: 'session_controls', label: 'Session Controls & Active Logins', icon: ShieldAlert },
@@ -912,20 +915,6 @@ export default function AdminPortal({
             </div>
             
             <div className="flex items-center gap-1 shrink-0">
-              {/* Desktop Expand/Collapse rail button */}
-              <button
-                onClick={toggleSidebarCollapse}
-                title={isSidebarCollapsed ? "Expand Navigation Sidebar" : "Collapse to Compact Rail"}
-                id="jipas-admin-sidebar-collapse-btn"
-                className="hidden lg:flex p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-colors cursor-pointer border border-slate-700/50"
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className="w-4 h-4 text-blue-400" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4" />
-                )}
-              </button>
-
               {/* Mobile Close Drawer button */}
               <button
                 onClick={() => toggleSidebar(false)}
@@ -2174,6 +2163,16 @@ export default function AdminPortal({
               bills={bills}
             />
           </div>
+        )}
+
+        {/* 7A0. USERS PORTAL REVIEW & EXPERIENCE INSPECTOR */}
+        {(activeModule === 'users_portal_review' || activeModule === 'portal_review' || activeModule === 'users_review') && (
+          <UserPortalReviewManager
+            studentsCount={students.length}
+            teachersCount={teachers.length}
+            onPreviewRole={(role) => onLoginAsUser?.({ role } as any)}
+            onBackToDashboard={() => handleNavigate('dashboard')}
+          />
         )}
 
         {/* 7A1. SECURITY AUDIT LOGS MANAGER MODULE */}

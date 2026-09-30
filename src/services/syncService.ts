@@ -266,7 +266,9 @@ export async function pushToSupabaseCloud(): Promise<boolean> {
       reports: getStoredReports(),
       classes: getStoredClasses(),
       academicYears: getStoredAcademicYears(),
+      academicYearsUpdatedAt: typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_academic_years_updated_at') : null,
       terms: getStoredTerms(),
+      termsUpdatedAt: typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_terms_updated_at') : null,
       departments: getStoredDepartments(),
       courses: getStoredCourses(),
       houses: getStoredHouses(),
@@ -443,11 +445,40 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
     if (Array.isArray(remotePayload.classes) && remotePayload.classes.length > 0) {
       saveStoredClasses(remotePayload.classes);
     }
-    if (Array.isArray(remotePayload.academicYears) && remotePayload.academicYears.length > 0) {
-      saveStoredAcademicYears(remotePayload.academicYears);
+    
+    // --- Merge Academic Years (Timestamp-aware to prevent wiping out custom years/deletions) ---
+    if (Array.isArray(remotePayload.academicYears)) {
+      const localUpdated = typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_academic_years_updated_at') : null;
+      const remoteUpdated = remotePayload.academicYearsUpdatedAt;
+      
+      const localTime = localUpdated ? new Date(localUpdated).getTime() : 0;
+      const remoteTime = remoteUpdated ? new Date(remoteUpdated).getTime() : 0;
+
+      if (remoteTime > localTime) {
+        saveStoredAcademicYears(remotePayload.academicYears);
+      } else if (localTime > remoteTime && remoteTime > 0) {
+        // Local state was modified more recently; push local up to cloud
+        scheduleCloudSyncPush();
+      } else if (!localUpdated && remotePayload.academicYears.length > 0) {
+        saveStoredAcademicYears(remotePayload.academicYears);
+      }
     }
-    if (Array.isArray(remotePayload.terms) && remotePayload.terms.length > 0) {
-      saveStoredTerms(remotePayload.terms);
+
+    // --- Merge Terms (Timestamp-aware) ---
+    if (Array.isArray(remotePayload.terms)) {
+      const localUpdated = typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_terms_updated_at') : null;
+      const remoteUpdated = remotePayload.termsUpdatedAt;
+      
+      const localTime = localUpdated ? new Date(localUpdated).getTime() : 0;
+      const remoteTime = remoteUpdated ? new Date(remoteUpdated).getTime() : 0;
+
+      if (remoteTime > localTime) {
+        saveStoredTerms(remotePayload.terms);
+      } else if (localTime > remoteTime && remoteTime > 0) {
+        scheduleCloudSyncPush();
+      } else if (!localUpdated && remotePayload.terms.length > 0) {
+        saveStoredTerms(remotePayload.terms);
+      }
     }
     if (Array.isArray(remotePayload.departments) && remotePayload.departments.length > 0) {
       saveStoredDepartments(remotePayload.departments);

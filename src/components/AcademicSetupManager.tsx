@@ -88,8 +88,8 @@ export default function AcademicSetupManager({
   const classes = (propClasses && propClasses.length > 0) ? propClasses : INITIAL_CLASSES;
   const houses = (propHouses && propHouses.length > 0) ? propHouses : INITIAL_HOUSES;
   const subjects = (propSubjects && propSubjects.length > 0) ? propSubjects : INITIAL_SUBJECTS;
-  const academicYears = (propAcademicYears && propAcademicYears.length > 0) ? propAcademicYears : INITIAL_ACADEMIC_YEARS;
-  const terms = (propTerms && propTerms.length > 0) ? propTerms : INITIAL_TERMS;
+  const academicYears = Array.isArray(propAcademicYears) ? propAcademicYears : INITIAL_ACADEMIC_YEARS;
+  const terms = Array.isArray(propTerms) ? propTerms : INITIAL_TERMS;
   const students = propStudents || [];
   const teachers = propTeachers || [];
 
@@ -467,13 +467,18 @@ export default function AcademicSetupManager({
   const handleDeleteAy = async (id: string, name: string) => {
     const item = academicYears.find(a => a.id === id);
     if (item?.status === 'Current') {
-      showToast('Cannot delete the active Current Academic Year.');
+      showToast('Cannot delete the active Current Academic Year. Please set another year as Current first.');
       return;
     }
     if (confirm(`Are you sure you want to delete Academic Year "${name}"?`)) {
-      onUpdateAcademicYears(academicYears.filter(a => a.id !== id));
+      const remaining = academicYears.filter(a => a.id !== id);
+      onUpdateAcademicYears(remaining);
       showToast(`Academic Year ${name} deleted.`);
-      try { await deleteAcademicYear(id); } catch(e) { console.error(e); }
+      try { 
+        await deleteAcademicYear(id); 
+      } catch(e) { 
+        console.error('[AcademicSetup] Delete error:', e); 
+      }
     }
   };
 

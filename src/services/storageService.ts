@@ -409,10 +409,16 @@ export function saveStoredUsers(users: UserAccountItem[]): void {
 
 export function saveStoredAcademicYears(years: AcademicYearItem[]): void {
   writeStorage(STORAGE_KEYS.ACADEMIC_YEARS, years);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('jipas_academic_years_updated_at', new Date().toISOString());
+  }
 }
 
 export function saveStoredTerms(terms: TermItem[]): void {
   writeStorage(STORAGE_KEYS.TERMS, terms);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('jipas_terms_updated_at', new Date().toISOString());
+  }
 }
 
 export function saveStoredDepartments(departments: DepartmentItem[]): void {
