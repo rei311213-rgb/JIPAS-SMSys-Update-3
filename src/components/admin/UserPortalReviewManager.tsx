@@ -55,7 +55,7 @@ const PORTAL_SPECS: PortalRoleSpec[] = [
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
     icon: ShieldCheck,
     accessLevel: 'Full Administrative',
-    overviewText: 'Master oversight over academic setup, teacher management, student records, fee billing, payroll processing, system backups, and financial audit.',
+    overviewText: 'Master oversight over academic setup, staff management, student records, fee billing, payroll processing, system backups, and financial audit.',
     capabilities: [
       'Complete Setup (Years, Terms, Classes, SHS Courses)',
       'Manage Faculty & Staff Assignments',

@@ -561,7 +561,7 @@ export default function BulkTeacherUploadModal({
                   onClick={onClose}
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
                 >
-                  Return to Teacher Management
+                  Return to Staff Management
                 </button>
               </div>
             </div>

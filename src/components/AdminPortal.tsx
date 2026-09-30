@@ -40,6 +40,7 @@ import ExpenseManager from './common/ExpenseManager';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
+import SkeletonCard from './common/SkeletonCard';
 import { LiveActivityFeed } from './common/LiveActivityFeed';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
 import SidebarToggleButton from './common/SidebarToggleButton';
@@ -273,7 +274,7 @@ const ADMIN_NAV_GROUPS = [
   },
   {
     id: 'teacher',
-    title: 'Teacher Management',
+    title: 'Staff Management',
     icon: UserCheck,
     items: [
       { id: 'teacher_profile', label: 'Employee (Current Staff)', icon: UserCheck },
@@ -1413,6 +1414,35 @@ export default function AdminPortal({
               <LiveActivityFeed />
             </div>
 
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 mb-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" /> Quick Actions
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleNavigate('student_enroll')}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-blue-200"
+                >
+                  <Plus className="w-4 h-4" /> Add Student
+                </button>
+                <button
+                  onClick={() => handleNavigate('notification_center')}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-amber-200"
+                >
+                  <Bell className="w-4 h-4" /> Post Notice
+                </button>
+                <button
+                  onClick={() => handleNavigate('new_payment')}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-emerald-200"
+                >
+                  <CreditCard className="w-4 h-4" /> Quick Payment
+                </button>
+              </div>
+            </div>
+
             {/* Main Admin Navigation Menus & Command Hub Grid */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1426,53 +1456,63 @@ export default function AdminPortal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3.5 pt-1">
-                {/* Menu 1: Students */}
-                <button
-                  onClick={() => handleNavigate('student_enrolled')}
-                  className="group p-4 bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border border-indigo-100 hover:border-indigo-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 bg-indigo-600 group-hover:bg-white text-white group-hover:text-indigo-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white uppercase tracking-wider transition-colors">
-                      {students.length} Students
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
-                      Student Management
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                    </h4>
-                    <p className="text-[11px] text-slate-500 group-hover:text-indigo-100 transition-colors mt-0.5 line-clamp-2">
-                      Admissions, enrollment, transcript generator & class rosters
-                    </p>
-                  </div>
-                </button>
+                {(!students.length && !teachers.length) ? (
+                  <>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </>
+                ) : (
+                  <>
+                    {/* Menu 1: Students */}
+                    <button
+                      onClick={() => handleNavigate('student_enrolled')}
+                      className="group p-4 bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border border-indigo-100 hover:border-indigo-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 bg-indigo-600 group-hover:bg-white text-white group-hover:text-indigo-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white uppercase tracking-wider transition-colors">
+                          {students.length} Students
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
+                          Student Management
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                        </h4>
+                        <p className="text-[11px] text-slate-500 group-hover:text-indigo-100 transition-colors mt-0.5 line-clamp-2">
+                          Admissions, enrollment, transcript generator & class rosters
+                        </p>
+                      </div>
+                    </button>
 
-                {/* Menu 2: Teachers */}
-                <button
-                  onClick={() => handleNavigate('teachers')}
-                  className="group p-4 bg-gradient-to-br from-emerald-50/80 to-slate-50 hover:from-emerald-600 hover:to-emerald-700 border border-emerald-100 hover:border-emerald-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
-                      <UserCog className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white uppercase tracking-wider transition-colors">
-                      {teachers.length} Faculty
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
-                      Teacher & Staff Portal
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                    </h4>
-                    <p className="text-[11px] text-slate-500 group-hover:text-emerald-100 transition-colors mt-0.5 line-clamp-2">
-                      Staff profiles, subject allocations & digital teacher ID generator
-                    </p>
-                  </div>
-                </button>
+                    {/* Menu 2: Teachers */}
+                    <button
+                      onClick={() => handleNavigate('teachers')}
+                      className="group p-4 bg-gradient-to-br from-emerald-50/80 to-slate-50 hover:from-emerald-600 hover:to-emerald-700 border border-emerald-100 hover:border-emerald-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
+                          <UserCog className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white uppercase tracking-wider transition-colors">
+                          {teachers.length} Faculty
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
+                          Teacher & Staff Portal
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                        </h4>
+                        <p className="text-[11px] text-slate-500 group-hover:text-emerald-100 transition-colors mt-0.5 line-clamp-2">
+                          Staff profiles, subject allocations & digital teacher ID generator
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                )}
 
                 {/* Menu 3: Examination & Marks */}
                 <button
@@ -1862,7 +1902,7 @@ export default function AdminPortal({
           />
         )}
 
-        {/* 4. TEACHER MANAGEMENT MODULES */}
+        {/* 4. STAFF MANAGEMENT MODULES */}
         {activeModule === 'staff_qr_attendance_dashboard' && (
           <StaffAttendanceManager />
         )}

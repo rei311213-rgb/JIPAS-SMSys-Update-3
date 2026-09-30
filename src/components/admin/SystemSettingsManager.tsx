@@ -2448,7 +2448,7 @@ export default function SystemSettingsManager({
                     {[
                       { id: 'setup_management', label: 'Setup Management (Academic Years, Terms, Classes, Subjects)', icon: School },
                       { id: 'system_settings', label: 'System Settings & User Account Approvals', icon: Settings },
-                      { id: 'teachers', label: 'Teacher Management & Staff Attendance', icon: UserCheck },
+                      { id: 'teachers', label: 'Staff Management & Staff Attendance', icon: UserCheck },
                       { id: 'students', label: 'Student Enrollment, Attendance & Promotions', icon: Users },
                       { id: 'exams', label: 'Examination Management & Report Cards', icon: Award },
                       { id: 'fees', label: 'Fee Billing, Collections & Financial Statements', icon: DollarSign },
@@ -3853,7 +3853,7 @@ export default function SystemSettingsManager({
                       {[
                         { id: 'setup_management', label: 'Setup Management' },
                         { id: 'system_settings', label: 'System Settings & Users' },
-                        { id: 'teachers', label: 'Teacher Management' },
+                        { id: 'teachers', label: 'Staff Management' },
                         { id: 'students', label: 'Student Management' },
                         { id: 'exams', label: 'Examination Management' },
                         { id: 'fees', label: 'Fee Management' },
