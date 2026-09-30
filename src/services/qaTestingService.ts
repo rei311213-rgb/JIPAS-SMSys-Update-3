@@ -9,7 +9,7 @@ import { runDataGovernanceCheck } from './dataGovernanceService';
 import { evaluateDisasterRecoveryReadiness } from './disasterRecoveryService';
 import { verifyReleaseReadiness } from './releaseManagementService';
 import { recordChangeEvent } from './changeAuditService';
-import { getStoredStudents, getStoredPayments, getStoredClasses, getStoredTerms, saveStoredTerms } from './storageService';
+import { getStoredStudents, getStoredPayments, getStoredClasses, getStoredTerms, saveStoredTerms, getStoredAcademicYears, saveStoredAcademicYears, verifyAcademicYearsPersistence } from './storageService';
 import { saveAllTerms } from './dbService';
 import { runFinancialReconciliationAudit } from './financialReconciliationService';
 import { 
@@ -1609,6 +1609,25 @@ export async function runAutomatedTestSuite(): Promise<QATestSummary> {
     if (!targetTerm) throw new Error('Term was not saved to local storage.');
     if (targetTerm.endDate !== '2025-12-20') throw new Error(`Term end date not updated in local storage: expected '2025-12-20', got '${targetTerm.endDate}'`);
     if (targetTerm.daysOpen !== 75) throw new Error(`Term daysOpen not updated in local storage: expected 75, got ${targetTerm.daysOpen}`);
+  });
+
+  await runTest('Test 109: Academic years state check validation and dual-write persistence to IndexedDB and local storage', 'ACADEMIC_TERMS_PERSISTENCE', async () => {
+    const testYears: any[] = [
+      { id: 'ay-verify-test-1', name: '2026-2027', startDate: '2026-09-01', endDate: '2027-07-20', status: 'Current' as const, hasRecords: false },
+      { id: 'ay-verify-test-2', name: '2027-2028', startDate: '2027-09-01', endDate: '2028-07-20', status: 'Upcoming' as const, hasRecords: false }
+    ];
+
+    const check = await verifyAcademicYearsPersistence(testYears);
+    if (!check.verified) throw new Error('verifyAcademicYearsPersistence returned unverified state.');
+    if (!check.persistedInLocalStorage) throw new Error('Academic years failed to persist to local storage.');
+    if (!check.persistedInIdb) throw new Error('Academic years failed to persist to IndexedDB.');
+    if (!check.countMatch) throw new Error('Academic years record count mismatch between stores.');
+
+    const retrieved = getStoredAcademicYears();
+    if (retrieved.length !== testYears.length) throw new Error(`Expected ${testYears.length} items in local state, found ${retrieved.length}`);
+    if (!retrieved.some(y => y.id === 'ay-verify-test-1' && y.name === '2026-2027')) {
+      throw new Error('Current academic year verification failed.');
+    }
   });
 
   // =========================================================================

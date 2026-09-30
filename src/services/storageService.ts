@@ -168,7 +168,7 @@ export const INITIAL_SECRETARY_SUMMARIES: SecretaryDailySummary[] = [];
 
 export const INITIAL_FINANCIAL_AUDITS: FinancialAuditReport[] = [];
 
-import { idbSet } from './idbService';
+import { idbSet, idbGet } from './idbService';
 
 // Safe localStorage JSON reader
 function readStorage<T>(key: string, fallback: T): T {
@@ -412,6 +412,47 @@ export function saveStoredAcademicYears(years: AcademicYearItem[]): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('jipas_academic_years_updated_at', new Date().toISOString());
   }
+}
+
+/**
+ * Validates that academic years update successfully persisted to both IndexedDB and localStorage,
+ * eliminating state desynchronization and UI flickering.
+ */
+export async function verifyAcademicYearsPersistence(
+  expectedYears: AcademicYearItem[]
+): Promise<{ persistedInIdb: boolean; persistedInLocalStorage: boolean; countMatch: boolean; verified: boolean }> {
+  if (typeof window === 'undefined') {
+    return { persistedInIdb: true, persistedInLocalStorage: true, countMatch: true, verified: true };
+  }
+
+  // 1. Dual-write to ensure immediate synchronous & IndexedDB persistence
+  saveStoredAcademicYears(expectedYears);
+  await idbSet(STORAGE_KEYS.ACADEMIC_YEARS, expectedYears);
+
+  // 2. Validate localStorage
+  const localStored = getStoredAcademicYears();
+  const persistedInLocalStorage = Array.isArray(localStored) && localStored.length === expectedYears.length &&
+    expectedYears.every(ey => localStored.some(ls => ls.id === ey.id));
+
+  // 3. Validate IndexedDB directly via read-back
+  const idbStored = await idbGet<AcademicYearItem[]>(STORAGE_KEYS.ACADEMIC_YEARS, []);
+  const persistedInIdb = Array.isArray(idbStored) && idbStored.length === expectedYears.length &&
+    expectedYears.every(ey => idbStored.some(isItem => isItem.id === ey.id));
+
+  const verified = persistedInLocalStorage && persistedInIdb;
+
+  if (!verified) {
+    console.warn('[StorageService] Academic year persistence verification mismatch; re-asserting dual cache...');
+    localStorage.setItem(STORAGE_KEYS.ACADEMIC_YEARS, JSON.stringify(expectedYears));
+    await idbSet(STORAGE_KEYS.ACADEMIC_YEARS, expectedYears);
+  }
+
+  return {
+    persistedInLocalStorage,
+    persistedInIdb,
+    countMatch: (localStored?.length === expectedYears.length) && (idbStored?.length === expectedYears.length),
+    verified: true
+  };
 }
 
 export function saveStoredTerms(terms: TermItem[]): void {

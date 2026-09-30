@@ -15,10 +15,12 @@ import {
   deleteAcademicYear, deleteTerm, deleteDepartment, deleteClass, deleteHouse, deleteSubject, deleteCourse,
   saveAllStudents, saveAllTeachers, saveAllClasses, saveAllSubjects, saveAllCourses, saveCourse, saveStoredCourses,
   saveAllDepartments, saveAllAcademicYears, saveAllTerms, saveAllHouses,
+  subscribeAcademicYears, subscribeTerms,
   subscribeCalendarEvents, saveCalendarEvent, deleteCalendarEvent,
   subscribeGraduatedBatches, saveGraduatedBatch, deleteGraduatedBatch
 } from '../services/dbService';
 import { 
+  getStoredAcademicYears, getStoredTerms, verifyAcademicYearsPersistence,
   getStoredCalendarEvents, getStoredGraduatedBatches, saveStoredStudents, saveStoredUsers, getStoredUsers
 } from '../services/storageService';
 import { 
@@ -88,8 +90,50 @@ export default function AcademicSetupManager({
   const classes = (propClasses && propClasses.length > 0) ? propClasses : INITIAL_CLASSES;
   const houses = (propHouses && propHouses.length > 0) ? propHouses : INITIAL_HOUSES;
   const subjects = (propSubjects && propSubjects.length > 0) ? propSubjects : INITIAL_SUBJECTS;
-  const academicYears = Array.isArray(propAcademicYears) ? propAcademicYears : INITIAL_ACADEMIC_YEARS;
-  const terms = Array.isArray(propTerms) ? propTerms : INITIAL_TERMS;
+  const [academicYearsList, setAcademicYearsList] = useState<AcademicYearItem[]>(() => {
+    const stored = getStoredAcademicYears();
+    if (Array.isArray(stored) && stored.length > 0) return stored;
+    return Array.isArray(propAcademicYears) && propAcademicYears.length > 0 ? propAcademicYears : INITIAL_ACADEMIC_YEARS;
+  });
+
+  const [termsList, setTermsList] = useState<TermItem[]>(() => {
+    const stored = getStoredTerms();
+    if (Array.isArray(stored) && stored.length > 0) return stored;
+    return Array.isArray(propTerms) && propTerms.length > 0 ? propTerms : INITIAL_TERMS;
+  });
+
+  useEffect(() => {
+    if (Array.isArray(propAcademicYears) && propAcademicYears.length > 0) {
+      setAcademicYearsList(propAcademicYears);
+    }
+  }, [propAcademicYears]);
+
+  useEffect(() => {
+    if (Array.isArray(propTerms) && propTerms.length > 0) {
+      setTermsList(propTerms);
+    }
+  }, [propTerms]);
+
+  useEffect(() => {
+    const unsub = subscribeAcademicYears((ays) => {
+      if (Array.isArray(ays) && ays.length > 0) {
+        setAcademicYearsList(ays);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = subscribeTerms((tms) => {
+      if (Array.isArray(tms) && tms.length > 0) {
+        setTermsList(tms);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const academicYears = academicYearsList;
+  const terms = termsList;
   const students = propStudents || [];
   const teachers = propTeachers || [];
 
@@ -409,15 +453,16 @@ export default function AcademicSetupManager({
     setShowAyModal(true);
   };
 
-  const handleSaveAy = (e: React.FormEvent) => {
+  const handleSaveAy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ayFormName || !ayFormStartDate || !ayFormEndDate) {
       showToast('Please fill in all required academic year fields.');
       return;
     }
 
+    let updated: AcademicYearItem[];
     if (editingAy) {
-      const updated = academicYears.map(item => {
+      updated = academicYears.map(item => {
         if (item.id === editingAy.id) {
           return {
             ...item,
@@ -433,6 +478,7 @@ export default function AcademicSetupManager({
         }
         return item;
       });
+      setAcademicYearsList(updated);
       onUpdateAcademicYears(updated);
       showToast(`Academic Year ${ayFormName} updated successfully.`);
     } else {
@@ -448,20 +494,43 @@ export default function AcademicSetupManager({
       if (ayFormStatus === 'Current') {
         list = list.map(a => a.status === 'Current' ? { ...a, status: 'Active' as const } : a);
       }
-      onUpdateAcademicYears([newAy, ...list]);
+      updated = [newAy, ...list];
+      setAcademicYearsList(updated);
+      onUpdateAcademicYears(updated);
       showToast(`Academic Year ${ayFormName} created successfully.`);
     }
     setShowAyModal(false);
+
+    // State check: validate persistence into IndexedDB and localStorage to prevent UI flickering
+    try {
+      const check = await verifyAcademicYearsPersistence(updated);
+      if (check.verified) {
+        setAcademicYearsList(updated);
+      }
+    } catch (err) {
+      console.warn('[AcademicSetup] State persistence verification check notice:', err);
+    }
   };
 
-  const handleSetCurrentAy = (id: string) => {
+  const handleSetCurrentAy = async (id: string) => {
     const updated = academicYears.map(ay => {
       if (ay.id === id) return { ...ay, status: 'Current' as const };
       if (ay.status === 'Current') return { ...ay, status: 'Active' as const };
       return ay;
     });
+    setAcademicYearsList(updated);
     onUpdateAcademicYears(updated);
     showToast('Current Academic Year updated.');
+
+    // State check: validate persistence into IndexedDB and localStorage
+    try {
+      const check = await verifyAcademicYearsPersistence(updated);
+      if (check.verified) {
+        setAcademicYearsList(updated);
+      }
+    } catch (err) {
+      console.warn('[AcademicSetup] State persistence verification check notice:', err);
+    }
   };
 
   const handleDeleteAy = async (id: string, name: string) => {
@@ -472,10 +541,12 @@ export default function AcademicSetupManager({
     }
     if (confirm(`Are you sure you want to delete Academic Year "${name}"?`)) {
       const remaining = academicYears.filter(a => a.id !== id);
+      setAcademicYearsList(remaining);
       onUpdateAcademicYears(remaining);
       showToast(`Academic Year ${name} deleted.`);
       try { 
         await deleteAcademicYear(id); 
+        await verifyAcademicYearsPersistence(remaining);
       } catch(e) { 
         console.error('[AcademicSetup] Delete error:', e); 
       }

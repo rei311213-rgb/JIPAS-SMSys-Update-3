@@ -123,7 +123,8 @@ import {
   saveThemePalette,
   recordSecurityAuditLogInFirestore,
   subscribeDemoStatus,
-  restoreEntireDatabase
+  restoreEntireDatabase,
+  verifyAcademicYearsPersistence
 } from './services/dbService';
 import { initLocalForageStore, idbClear } from './services/idbService';
 import { initBackgroundSync, subscribeSupabaseRealtime, pullFromSupabaseCloud, pushToSupabaseCloud } from './services/syncService';
@@ -793,6 +794,11 @@ export default function App() {
   const handleUpdateAcademicYears = async (newAys: AcademicYearItem[]) => {
     setAcademicYears(newAys);
     saveStoredAcademicYears(newAys);
+    try {
+      await verifyAcademicYearsPersistence(newAys);
+    } catch (err) {
+      console.warn('verifyAcademicYearsPersistence notice:', err);
+    }
     try {
       await saveAllAcademicYears(newAys);
     } catch (err) {
