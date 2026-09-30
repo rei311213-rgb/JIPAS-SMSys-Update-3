@@ -606,7 +606,8 @@ export type FinancialDiscrepancyType =
   | 'PERIOD_INCONSISTENCY'
   | 'EXPENSE_VARIANCE'
   | 'PAYROLL_VARIANCE'
-  | 'DASHBOARD_VARIANCE';
+  | 'DASHBOARD_VARIANCE'
+  | 'ZERO_ENROLLMENT_TARIFF';
 
 export type DiscrepancySeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 

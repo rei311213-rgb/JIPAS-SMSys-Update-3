@@ -586,6 +586,46 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
     }
   });
 
+  // 10B. Check for classes with active fee tariffs but zero student enrollments
+  if (Array.isArray(rawTariffs) && rawTariffs.length > 0) {
+    rawTariffs.forEach(tariff => {
+      const tariffClass = tariff.classTitle;
+      if (!tariffClass) return;
+
+      const enrolledCount = scopedStudents.filter(s => s.className === tariffClass).length;
+      if (enrolledCount === 0) {
+        const tariffTotal = addMoney(
+          tariff.baseTuition || 0,
+          tariff.ptaDues || 0,
+          tariff.ictFee || 0,
+          tariff.examFee || 0,
+          tariff.healthLevy || 0,
+          tariff.busTransit || 0
+        );
+
+        if (tariffTotal > 0) {
+          exceptions.push({
+            id: `exc-zero-enrollment-${tariff.id}`,
+            studentRef: `Class: ${tariffClass}`,
+            studentName: `No Students Enrolled`,
+            campus: campus,
+            academicPeriod: `${academicYear === 'All' ? 'All Years' : academicYear} ${term === 'All' ? 'All Terms' : term}`.trim(),
+            category: 'ZERO_ENROLLMENT_TARIFF',
+            severity: 'LOW',
+            expectedAmount: 0,
+            recordedAmount: tariffTotal,
+            variance: tariffTotal,
+            transactionRefs: [tariff.id],
+            description: `Active fee tariff schedule of ${formatCurrency(tariffTotal)} exists for class "${tariffClass}" but there are 0 students currently enrolled.`,
+            verificationStatus: 'NOT VERIFIED',
+            recommendedInvestigation: `Verify if class "${tariffClass}" is active or delete the stale fee tariff if no student enrollment is expected.`,
+            detectedAt: detectedAtStr
+          });
+        }
+      }
+    });
+  }
+
   // 11. Cross-System Dashboard Reconciliation (Accountant vs Secretary vs CEO)
   // Accountant dashboard computes: addMoney(...bills.map(b => b.paid || 0))
   const accountantReportedCollections = addMoney(...scopedBills.map(b => b.paid || 0));
