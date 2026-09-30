@@ -488,18 +488,29 @@ export default function AccountantPortal({
   const [alertModalInitialFilter, setAlertModalInitialFilter] = useState<'all' | 'unpaid' | 'partially-paid'>('all');
   const [selectedBillsForBatchAlert, setSelectedBillsForBatchAlert] = useState<string[]>([]);
 
-  // Financial calculations
-  const totalCollected = useMemo(() => addMoney(...payments.map(p => p.paid)), [payments]);
-  const totalOutstanding = useMemo(() => addMoney(...bills.map(b => b.balance)), [bills]);
-  const totalBilled = useMemo(() => addMoney(...bills.map(b => b.payable)), [bills]);
+  // Financial calculations: Scoped to active students to eliminate phantom/orphaned bills
+  const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
+  const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
+
+  const activeBills = useMemo(() => {
+    return bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+  }, [bills, activeStudentIds, activeAdmissionNos]);
+
+  const activePayments = useMemo(() => {
+    return payments.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+  }, [payments, activeStudentIds, activeAdmissionNos]);
+
+  const totalCollected = useMemo(() => addMoney(...activePayments.map(p => p.paid)), [activePayments]);
+  const totalOutstanding = useMemo(() => addMoney(...activeBills.map(b => b.balance)), [activeBills]);
+  const totalBilled = useMemo(() => addMoney(...activeBills.map(b => b.payable)), [activeBills]);
 
   // Unpaid & Partially Paid breakdown
-  const unpaidBills = bills.filter(b => b.balance > 0 && b.paid === 0);
-  const partiallyPaidBills = bills.filter(b => b.balance > 0 && b.paid > 0);
-  const overdueBillsList = bills.filter(b => b.balance > 0);
+  const unpaidBills = activeBills.filter(b => b.balance > 0 && b.paid === 0);
+  const partiallyPaidBills = activeBills.filter(b => b.balance > 0 && b.paid > 0);
+  const overdueBillsList = activeBills.filter(b => b.balance > 0);
 
   // Action Required overdue fee accounts
-  const actionRequiredBills = bills.filter(b => b.actionRequired || b.balance > 0);
+  const actionRequiredBills = activeBills.filter(b => b.actionRequired || b.balance > 0);
   const totalActionRequiredBalance = useMemo(() => addMoney(...actionRequiredBills.map(b => b.balance)), [actionRequiredBills]);
 
   const criticalCount = actionRequiredBills.filter(

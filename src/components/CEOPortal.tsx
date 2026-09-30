@@ -117,21 +117,26 @@ export default function CEOPortal({
     return propTeachers.filter(t => (t.campus || 'JIPAS 1') === selectedCampus);
   }, [propTeachers, selectedCampus]);
 
+  const validStudentIds = useMemo(() => new Set(propStudents.map(s => s.id)), [propStudents]);
+  const validAdmissionNos = useMemo(() => new Set(propStudents.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [propStudents]);
+
   const bills = useMemo(() => {
-    if (selectedCampus === 'General') return propBills;
-    return propBills.filter(b => {
-      const student = propStudents.find(s => s.id === b.studentId);
+    const active = propBills.filter(b => validStudentIds.has(b.studentId) || (b.admissionNo && validAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+    if (selectedCampus === 'General') return active;
+    return active.filter(b => {
+      const student = propStudents.find(s => s.id === b.studentId || (b.admissionNo && s.admissionNo === b.admissionNo));
       return (student?.campus || 'JIPAS 1') === selectedCampus;
     });
-  }, [propBills, propStudents, selectedCampus]);
+  }, [propBills, propStudents, selectedCampus, validStudentIds, validAdmissionNos]);
 
   const payments = useMemo(() => {
-    if (selectedCampus === 'General') return propPayments;
-    return propPayments.filter(p => {
-      const student = propStudents.find(s => s.id === p.studentId);
+    const active = propPayments.filter(p => validStudentIds.has(p.studentId) || (p.admissionNo && validAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+    if (selectedCampus === 'General') return active;
+    return active.filter(p => {
+      const student = propStudents.find(s => s.id === p.studentId || (p.admissionNo && s.admissionNo === p.admissionNo));
       return (student?.campus || 'JIPAS 1') === selectedCampus;
     });
-  }, [propPayments, propStudents, selectedCampus]);
+  }, [propPayments, propStudents, selectedCampus, validStudentIds, validAdmissionNos]);
 
   const [activeModule, setActiveModule] = useState<string>(() => {
     const hash = window.location.hash.replace('#', '');

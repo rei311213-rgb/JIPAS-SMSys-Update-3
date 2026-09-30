@@ -9,8 +9,13 @@ import { runDataGovernanceCheck } from './dataGovernanceService';
 import { evaluateDisasterRecoveryReadiness } from './disasterRecoveryService';
 import { verifyReleaseReadiness } from './releaseManagementService';
 import { recordChangeEvent } from './changeAuditService';
-import { getStoredStudents, getStoredPayments, getStoredClasses, getStoredTerms, saveStoredTerms, getStoredAcademicYears, saveStoredAcademicYears, verifyAcademicYearsPersistence } from './storageService';
-import { saveAllTerms } from './dbService';
+import { 
+  getStoredStudents, saveStoredStudents, getStoredPayments, saveStoredPayments, 
+  getStoredClasses, getStoredTerms, saveStoredTerms, getStoredAcademicYears, 
+  saveStoredAcademicYears, verifyAcademicYearsPersistence, getStoredBills, 
+  saveStoredBills, getStoredReports, saveStoredReports 
+} from './storageService';
+import { saveAllTerms, deleteStudent, purgeOrphanedStudentData } from './dbService';
 import { runFinancialReconciliationAudit } from './financialReconciliationService';
 import { 
   CURRENCY, 
@@ -1627,6 +1632,80 @@ export async function runAutomatedTestSuite(): Promise<QATestSummary> {
     if (retrieved.length !== testYears.length) throw new Error(`Expected ${testYears.length} items in local state, found ${retrieved.length}`);
     if (!retrieved.some(y => y.id === 'ay-verify-test-1' && y.name === '2026-2027')) {
       throw new Error('Current academic year verification failed.');
+    }
+  });
+
+  await runTest('Test 110: Deleting a student cascades deletion to their fee bills and reports, clearing pending balances', 'ACADEMIC_TERMS_PERSISTENCE', async () => {
+    // 1. Create mock student, bill, and report
+    const testStudent = {
+      id: 'st-cascade-test-1',
+      admissionNo: 'JIPAS/2026/9999',
+      fullName: 'Cascade Test Student',
+      className: 'JHS 1',
+      campus: 'JIPAS 1',
+      status: 'Active' as const,
+      gender: 'Male' as const,
+      dob: '2010-01-01',
+      admissionDate: '2026-09-01',
+      guardianName: 'Parent Test',
+      guardianPhone: '00000000',
+      address: 'Lome'
+    };
+
+    const testBill = {
+      id: 'bill-cascade-test-1',
+      billNo: 'BILL-9999',
+      studentId: 'st-cascade-test-1',
+      admissionNo: 'JIPAS/2026/9999',
+      studentName: 'Cascade Test Student',
+      className: 'JHS 1',
+      campus: 'JIPAS 1',
+      term: 'Third Term 2025/2026',
+      academicYear: '2025-2026',
+      totalAmount: 715,
+      payable: 715,
+      paid: 0,
+      paidAmount: 0,
+      balance: 715,
+      status: 'Unpaid' as const,
+      issueDate: '2026-09-01',
+      dueDate: '2026-10-01',
+      items: []
+    };
+
+    saveStoredStudents([testStudent as any]);
+    saveStoredBills([testBill as any]);
+
+    // 2. Verify bill is present
+    let billsBefore = getStoredBills();
+    if (!billsBefore.some(b => b.id === 'bill-cascade-test-1')) {
+      throw new Error('Test bill failed to save.');
+    }
+
+    // 3. Delete the student
+    await deleteStudent('st-cascade-test-1');
+
+    // 4. Verify student is deleted and their bill is completely removed
+    const studentsAfter = getStoredStudents();
+    if (studentsAfter.some(s => s.id === 'st-cascade-test-1')) {
+      throw new Error('Student was not removed from stored students.');
+    }
+
+    const billsAfter = getStoredBills();
+    if (billsAfter.some(b => b.id === 'bill-cascade-test-1' || b.studentId === 'st-cascade-test-1')) {
+      throw new Error('Cascading bill deletion failed: Orphaned bill still exists in stored bills.');
+    }
+
+    // 5. Test purgeOrphanedStudentData
+    saveStoredBills([testBill as any]);
+    const purgeResult = await purgeOrphanedStudentData();
+    if (purgeResult.cleanedBills === 0) {
+      throw new Error('purgeOrphanedStudentData failed to detect and clean orphaned bill.');
+    }
+
+    const billsAfterPurge = getStoredBills();
+    if (billsAfterPurge.some(b => b.id === 'bill-cascade-test-1')) {
+      throw new Error('purgeOrphanedStudentData did not purge the orphaned bill.');
     }
   });
 

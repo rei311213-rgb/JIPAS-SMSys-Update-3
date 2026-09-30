@@ -579,16 +579,28 @@ export default function FeeManager({
     }
   };
 
+  // Active Students Scoping: Guarantees deleted students do not linger in billing sheets or totals
+  const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
+  const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
+
+  const activeBillsList = useMemo(() => {
+    return billsList.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+  }, [billsList, activeStudentIds, activeAdmissionNos]);
+
+  const activePaymentsList = useMemo(() => {
+    return paymentsList.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+  }, [paymentsList, activeStudentIds, activeAdmissionNos]);
+
   // Compute Totals
   const totalIncome = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Income').map(i => i.amount || 0)), [incomeExpenses]);
   const totalExpense = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Expense').map(i => i.amount || 0)), [incomeExpenses]);
   const netBalance = subtractMoney(totalIncome, totalExpense);
 
-  const totalBilled = useMemo(() => addMoney(...billsList.map(b => b.payable ?? b.totalAmount ?? 0)), [billsList]);
-  const totalPaid = useMemo(() => addMoney(...billsList.map(b => b.paid ?? b.paidAmount ?? 0)), [billsList]);
-  const totalOutstanding = useMemo(() => addMoney(...billsList.map(b => b.balance ?? 0)), [billsList]);
+  const totalBilled = useMemo(() => addMoney(...activeBillsList.map(b => b.payable ?? b.totalAmount ?? 0)), [activeBillsList]);
+  const totalPaid = useMemo(() => addMoney(...activeBillsList.map(b => b.paid ?? b.paidAmount ?? 0)), [activeBillsList]);
+  const totalOutstanding = useMemo(() => addMoney(...activeBillsList.map(b => b.balance ?? 0)), [activeBillsList]);
 
-  const filteredPayments = paymentsList.filter(p => 
+  const filteredPayments = activePaymentsList.filter(p => 
     p.studentName.toLowerCase().includes(paymentSearch.toLowerCase()) ||
     p.admissionNo.toLowerCase().includes(paymentSearch.toLowerCase()) ||
     p.receiptNo.toLowerCase().includes(paymentSearch.toLowerCase())
@@ -600,13 +612,13 @@ export default function FeeManager({
       {(activeModule === 'fee_overdue_alerts' || activeModule === 'overdue_alerts') && (
         <OverdueFeeAlertsManager
           students={students}
-          bills={billsList}
-          payments={paymentsList}
+          bills={activeBillsList}
+          payments={activePaymentsList}
           onAddNotification={onAddNotification}
           onUpdateBills={onUpdateBills}
           onRecordPaymentClick={(studentId) => {
             setCollectStudentId(studentId);
-            const b = billsList.find(x => x.studentId === studentId);
+            const b = activeBillsList.find(x => x.studentId === studentId);
             if (b && b.balance > 0) {
               setCollectAmount(b.balance);
             }
@@ -631,7 +643,7 @@ export default function FeeManager({
           classFeeTariffs={classTariffs}
           onUpdateClassTariffs={(newTariffs) => setClassTariffs(newTariffs)}
           students={students}
-          bills={billsList}
+          bills={activeBillsList}
           onAddPayment={onAddPayment}
           onAddNotification={onAddNotification}
           onApplyToBills={(updatedOpts) => {
@@ -645,12 +657,12 @@ export default function FeeManager({
       {(activeModule === 'fee_bill_students' || activeModule === 'bill_students' || activeModule === 'fee_generate_sheets' || activeModule === 'fee_generate_all_sheets' || activeModule === 'generate_all_sheets' || activeModule === 'generate_sheets' || activeModule === 'bills') && (() => {
         const uniqueClassesList = Array.from(new Set([
           ...getStoredClasses().map(c => c.name),
-          ...billsList.map(b => b.className)
+          ...activeBillsList.map(b => b.className)
         ])).filter(Boolean);
 
         const filteredBillsListForBilling = selectedBillingClass === 'All'
-          ? billsList
-          : billsList.filter(b => b.className === selectedBillingClass);
+          ? activeBillsList
+          : activeBillsList.filter(b => b.className === selectedBillingClass);
 
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">

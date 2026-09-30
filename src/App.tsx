@@ -124,7 +124,8 @@ import {
   recordSecurityAuditLogInFirestore,
   subscribeDemoStatus,
   restoreEntireDatabase,
-  verifyAcademicYearsPersistence
+  verifyAcademicYearsPersistence,
+  purgeOrphanedStudentData
 } from './services/dbService';
 import { initLocalForageStore, idbClear } from './services/idbService';
 import { initBackgroundSync, subscribeSupabaseRealtime, pullFromSupabaseCloud, pushToSupabaseCloud } from './services/syncService';
@@ -355,6 +356,12 @@ export default function App() {
             try {
               await forceSyncCollections(profile.role);
               setDbSynced(true);
+              // Automatically purge any stale orphaned records from deleted students
+              purgeOrphanedStudentData().then(() => {
+                setBills(getStoredBills());
+                setReports(getStoredReports());
+                setPayments(getStoredPayments());
+              }).catch(console.warn);
             } catch (syncErr) {
               console.warn('[App Bootstrap] Initial sync notice:', syncErr);
             }
@@ -750,7 +757,10 @@ export default function App() {
       setStudents(prev => prev.filter(s => s.id !== studentId));
       await deleteStudent(studentId);
       setStudents(getStoredStudents());
-      triggerToast('Student deleted successfully from database.');
+      setBills(getStoredBills());
+      setPayments(getStoredPayments());
+      setReports(getStoredReports());
+      triggerToast('Student and associated billing/terminal records deleted successfully.');
     } catch (err) {
       console.error('handleDeleteStudent error:', err);
       triggerToast('Failed to delete student.');
@@ -947,51 +957,15 @@ export default function App() {
   };
 
   const handleCleanOrphanedRecords = async () => {
-    const validStudentIds = new Set(students.map(s => s.id));
-    const validAdmissionNos = new Set(students.map(s => s.admissionNo.toLowerCase().trim()).filter(Boolean));
-
-    const isStudentAlive = (studentId?: string, admissionNo?: string) => {
-      if (studentId && validStudentIds.has(studentId)) return true;
-      if (admissionNo && validAdmissionNos.has(admissionNo.toLowerCase().trim())) return true;
-      return false;
-    };
-
-    const orphanedBills = bills.filter(b => !isStudentAlive(b.studentId, b.admissionNo));
-    const orphanedReports = reports.filter(r => !isStudentAlive(r.studentId, r.admissionNo));
-
-    if (orphanedBills.length === 0 && orphanedReports.length === 0) {
-      return { cleanedBillsCount: 0, cleanedReportsCount: 0, totalCleaned: 0 };
-    }
-
-    const nextBills = bills.filter(b => isStudentAlive(b.studentId, b.admissionNo));
-    const nextReports = reports.filter(r => isStudentAlive(r.studentId, r.admissionNo));
-
-    setBills(nextBills);
-    saveStoredBills(nextBills);
-
-    setReports(nextReports);
-    saveStoredReports(nextReports);
-
-    for (const b of orphanedBills) {
-      try {
-        await deleteBill(b.id);
-      } catch (err) {
-        console.error('Failed to delete orphaned bill:', err);
-      }
-    }
-    for (const r of orphanedReports) {
-      try {
-        await deleteReport(r.id);
-      } catch (err) {
-        console.error('Failed to delete orphaned report:', err);
-      }
-    }
-
-    triggerToast(`Quick Clean: Removed ${orphanedBills.length} orphaned bills and ${orphanedReports.length} orphaned reports.`);
+    const res = await purgeOrphanedStudentData();
+    setBills(getStoredBills());
+    setReports(getStoredReports());
+    setPayments(getStoredPayments());
+    triggerToast(`Quick Clean: Removed ${res.cleanedBills} orphaned bills, ${res.cleanedReports} orphaned reports, and ${res.cleanedPayments} orphaned payments.`);
     return {
-      cleanedBillsCount: orphanedBills.length,
-      cleanedReportsCount: orphanedReports.length,
-      totalCleaned: orphanedBills.length + orphanedReports.length
+      cleanedBillsCount: res.cleanedBills,
+      cleanedReportsCount: res.cleanedReports,
+      totalCleaned: res.cleanedBills + res.cleanedReports + res.cleanedPayments
     };
   };
 

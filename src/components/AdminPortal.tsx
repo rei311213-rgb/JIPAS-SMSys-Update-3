@@ -693,9 +693,20 @@ export default function AdminPortal({
     }
   };
 
-  // Financial calculations
-  const totalRevenue = useMemo(() => addMoney(...payments.map(p => p.paid || 0)), [payments]);
-  const totalPending = useMemo(() => addMoney(...bills.map(b => b.balance || 0)), [bills]);
+  // Financial calculations: Scoped strictly to active non-deleted students
+  const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
+  const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
+
+  const activeStudentBills = useMemo(() => {
+    return bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+  }, [bills, activeStudentIds, activeAdmissionNos]);
+
+  const activeStudentPayments = useMemo(() => {
+    return payments.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+  }, [payments, activeStudentIds, activeAdmissionNos]);
+
+  const totalRevenue = useMemo(() => addMoney(...activeStudentPayments.map(p => p.paid || 0)), [activeStudentPayments]);
+  const totalPending = useMemo(() => addMoney(...activeStudentBills.map(b => b.balance || 0)), [activeStudentBills]);
   
   // Notification calculations
   const unreadNotifications = notifications.filter(n => !n.read).length;

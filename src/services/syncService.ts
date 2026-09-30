@@ -408,35 +408,53 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       saveStoredTeachers(Array.from(map.values()));
     }
 
+    // Existing students lookup to prevent resurrecting deleted students' bills/reports/payments
+    const aliveStudents = getStoredStudents();
+    const aliveStudentIds = new Set(aliveStudents.map(s => s.id));
+    const aliveAdmissionNos = new Set(aliveStudents.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean));
+
+    const isStudentAlive = (studentId?: string, admissionNo?: string) => {
+      if (aliveStudents.length === 0) return false;
+      if (studentId && aliveStudentIds.has(studentId)) return true;
+      if (admissionNo && aliveAdmissionNos.has(admissionNo.toLowerCase().trim())) return true;
+      return false;
+    };
+
     // --- Merge Bills ---
-    if (Array.isArray(remotePayload.bills) && remotePayload.bills.length > 0) {
-      const localBills = getStoredBills();
+    if (Array.isArray(remotePayload.bills)) {
+      const localBills = getStoredBills().filter(b => isStudentAlive(b.studentId, b.admissionNo));
       const map = new Map<string, any>();
       localBills.forEach(b => { if (b.id) map.set(b.id, b); });
       remotePayload.bills.forEach((rb: any) => {
-        if (rb && rb.id && !map.has(rb.id)) map.set(rb.id, rb);
+        if (rb && rb.id && !map.has(rb.id) && isStudentAlive(rb.studentId, rb.admissionNo)) {
+          map.set(rb.id, rb);
+        }
       });
       saveStoredBills(Array.from(map.values()));
     }
 
     // --- Merge Payments ---
-    if (Array.isArray(remotePayload.payments) && remotePayload.payments.length > 0) {
-      const localPayments = getStoredPayments();
+    if (Array.isArray(remotePayload.payments)) {
+      const localPayments = getStoredPayments().filter(p => isStudentAlive(p.studentId, p.admissionNo));
       const map = new Map<string, any>();
       localPayments.forEach(p => { if (p.id) map.set(p.id, p); });
       remotePayload.payments.forEach((rp: any) => {
-        if (rp && rp.id && !map.has(rp.id)) map.set(rp.id, rp);
+        if (rp && rp.id && !map.has(rp.id) && isStudentAlive(rp.studentId, rp.admissionNo)) {
+          map.set(rp.id, rp);
+        }
       });
       saveStoredPayments(Array.from(map.values()));
     }
 
     // --- Merge Reports ---
-    if (Array.isArray(remotePayload.reports) && remotePayload.reports.length > 0) {
-      const localReports = getStoredReports();
+    if (Array.isArray(remotePayload.reports)) {
+      const localReports = getStoredReports().filter(r => isStudentAlive(r.studentId, r.admissionNo));
       const map = new Map<string, any>();
       localReports.forEach(r => { if (r.id) map.set(r.id, r); });
       remotePayload.reports.forEach((rr: any) => {
-        if (rr && rr.id && !map.has(rr.id)) map.set(rr.id, rr);
+        if (rr && rr.id && !map.has(rr.id) && isStudentAlive(rr.studentId, rr.admissionNo)) {
+          map.set(rr.id, rr);
+        }
       });
       saveStoredReports(Array.from(map.values()));
     }

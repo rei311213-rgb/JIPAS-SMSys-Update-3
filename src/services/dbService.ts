@@ -1244,9 +1244,75 @@ export async function archiveStudent(studentId: string, reason: string = 'Admini
 export async function deleteStudent(studentId: string) {
   console.log(`[dbService:deleteStudent] Deleting student ID: ${studentId}`);
   const current = getStoredStudents();
+  const targetStudent = current.find(s => s.id === studentId);
+  const targetAdm = (targetStudent?.admissionNo || '').toLowerCase().trim();
   const updated = current.filter(s => s.id !== studentId);
   saveStoredStudents(updated);
   
+  // 1. Cascade delete all associated bills
+  const currentBills = getStoredBills();
+  const orphanedBills = currentBills.filter(b => b.studentId === studentId || (targetAdm && (b.admissionNo || '').toLowerCase().trim() === targetAdm));
+  if (orphanedBills.length > 0) {
+    const nextBills = currentBills.filter(b => b.studentId !== studentId && (!targetAdm || (b.admissionNo || '').toLowerCase().trim() !== targetAdm));
+    saveStoredBills(nextBills);
+    for (const b of orphanedBills) {
+      try {
+        await deleteDoc(doc(db, 'bills', b.id));
+      } catch (err) {
+        console.warn(`[deleteStudent] Error deleting bill ${b.id}:`, err);
+      }
+    }
+  }
+
+  // 2. Cascade delete all associated reports
+  const currentReports = getStoredReports();
+  const orphanedReports = currentReports.filter(r => r.studentId === studentId || (targetAdm && (r.admissionNo || '').toLowerCase().trim() === targetAdm));
+  if (orphanedReports.length > 0) {
+    const nextReports = currentReports.filter(r => r.studentId !== studentId && (!targetAdm || (r.admissionNo || '').toLowerCase().trim() !== targetAdm));
+    saveStoredReports(nextReports);
+    for (const r of orphanedReports) {
+      try {
+        await deleteDoc(doc(db, 'reports', r.id));
+      } catch (err) {
+        console.warn(`[deleteStudent] Error deleting report ${r.id}:`, err);
+      }
+    }
+  }
+
+  // 3. Cascade delete all associated payments
+  const currentPayments = getStoredPayments();
+  const orphanedPayments = currentPayments.filter(p => p.studentId === studentId || (targetAdm && (p.admissionNo || '').toLowerCase().trim() === targetAdm));
+  if (orphanedPayments.length > 0) {
+    const nextPayments = currentPayments.filter(p => p.studentId !== studentId && (!targetAdm || (p.admissionNo || '').toLowerCase().trim() !== targetAdm));
+    saveStoredPayments(nextPayments);
+    for (const p of orphanedPayments) {
+      try {
+        await deleteDoc(doc(db, 'payments', p.id));
+      } catch (err) {
+        console.warn(`[deleteStudent] Error deleting payment ${p.id}:`, err);
+      }
+    }
+  }
+
+  // 4. Cascade delete student attendance
+  const currentAttendance = getStoredStudentAttendance();
+  const updatedAttendance = currentAttendance.map(a => {
+    if (a.records && a.records[studentId]) {
+      const { [studentId]: _, ...rest } = a.records;
+      return { ...a, records: rest };
+    }
+    return a;
+  });
+  saveStoredStudentAttendance(updatedAttendance);
+
+  // 5. Cascade delete fee submissions
+  const currentSubmissions = getStoredFeeSubmissions();
+  const updatedSubmissions = currentSubmissions.filter(s => s.studentId !== studentId);
+  if (updatedSubmissions.length !== currentSubmissions.length) {
+    saveStoredFeeSubmissions(updatedSubmissions);
+  }
+
+  // 6. Delete student in cloud
   await executeCloudDelete('students', studentId, () => {
     saveStoredStudents(getStoredStudents().filter(s => s.id !== studentId));
   }, `Delete Student: ${studentId}`);
@@ -1254,6 +1320,10 @@ export async function deleteStudent(studentId: string) {
   // Force immediate sync push to Supabase Cloud so the remote snapshot is updated
   await pushToSupabaseCloud();
   
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+  }
+
   return updated;
 }
 
@@ -1262,8 +1332,60 @@ export async function deleteMultipleStudents(studentIds: string[]): Promise<{ de
   
   const uniqueIds = new Set(studentIds);
   const current = getStoredStudents();
+  const targetAdmissions = new Set(
+    current.filter(s => uniqueIds.has(s.id)).map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)
+  );
+
   const updated = current.filter(s => !uniqueIds.has(s.id));
   saveStoredStudents(updated);
+
+  // 1. Cascade delete bills
+  const currentBills = getStoredBills();
+  const orphanedBills = currentBills.filter(b => uniqueIds.has(b.studentId) || (b.admissionNo && targetAdmissions.has(b.admissionNo.toLowerCase().trim())));
+  if (orphanedBills.length > 0) {
+    const nextBills = currentBills.filter(b => !uniqueIds.has(b.studentId) && (!b.admissionNo || !targetAdmissions.has(b.admissionNo.toLowerCase().trim())));
+    saveStoredBills(nextBills);
+    for (const b of orphanedBills) {
+      try { await deleteDoc(doc(db, 'bills', b.id)); } catch (e) {}
+    }
+  }
+
+  // 2. Cascade delete reports
+  const currentReports = getStoredReports();
+  const orphanedReports = currentReports.filter(r => uniqueIds.has(r.studentId) || (r.admissionNo && targetAdmissions.has(r.admissionNo.toLowerCase().trim())));
+  if (orphanedReports.length > 0) {
+    const nextReports = currentReports.filter(r => !uniqueIds.has(r.studentId) && (!r.admissionNo || !targetAdmissions.has(r.admissionNo.toLowerCase().trim())));
+    saveStoredReports(nextReports);
+    for (const r of orphanedReports) {
+      try { await deleteDoc(doc(db, 'reports', r.id)); } catch (e) {}
+    }
+  }
+
+  // 3. Cascade delete payments
+  const currentPayments = getStoredPayments();
+  const orphanedPayments = currentPayments.filter(p => uniqueIds.has(p.studentId) || (p.admissionNo && targetAdmissions.has(p.admissionNo.toLowerCase().trim())));
+  if (orphanedPayments.length > 0) {
+    const nextPayments = currentPayments.filter(p => !uniqueIds.has(p.studentId) && (!p.admissionNo || !targetAdmissions.has(p.admissionNo.toLowerCase().trim())));
+    saveStoredPayments(nextPayments);
+    for (const p of orphanedPayments) {
+      try { await deleteDoc(doc(db, 'payments', p.id)); } catch (e) {}
+    }
+  }
+
+  // 4. Cascade delete attendance & submissions
+  const currentAttendance = getStoredStudentAttendance();
+  const updatedAttendance = currentAttendance.map(a => {
+    if (a.records) {
+      const rest = { ...a.records };
+      uniqueIds.forEach(id => delete rest[id]);
+      return { ...a, records: rest };
+    }
+    return a;
+  });
+  saveStoredStudentAttendance(updatedAttendance);
+
+  const currentSubmissions = getStoredFeeSubmissions();
+  saveStoredFeeSubmissions(currentSubmissions.filter(s => !uniqueIds.has(s.studentId)));
 
   for (const id of Array.from(uniqueIds)) {
     await executeCloudDelete('students', id, () => {}, `Delete Student: ${id}`);
@@ -1271,7 +1393,89 @@ export async function deleteMultipleStudents(studentIds: string[]): Promise<{ de
   
   await pushToSupabaseCloud();
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+  }
+
   return { deletedCount: uniqueIds.size };
+}
+
+/**
+ * Automatically purges any orphaned bills, reports, and payments whose students no longer exist.
+ * Keeps fee statistics, billing sheets, and outstanding balances completely accurate.
+ */
+export async function purgeOrphanedStudentData(): Promise<{
+  cleanedBills: number;
+  cleanedReports: number;
+  cleanedPayments: number;
+}> {
+  const students = getStoredStudents();
+  const validStudentIds = new Set(students.map(s => s.id));
+  const validAdmissionNos = new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean));
+
+  const isStudentAlive = (studentId?: string, admissionNo?: string) => {
+    if (studentId && validStudentIds.has(studentId)) return true;
+    if (admissionNo && validAdmissionNos.has(admissionNo.toLowerCase().trim())) return true;
+    return false;
+  };
+
+  // 1. Bills
+  const allBills = getStoredBills();
+  const validBills = allBills.filter(b => isStudentAlive(b.studentId, b.admissionNo));
+  const orphanedBills = allBills.filter(b => !isStudentAlive(b.studentId, b.admissionNo));
+  if (orphanedBills.length > 0) {
+    saveStoredBills(validBills);
+    for (const b of orphanedBills) {
+      try {
+        await deleteDoc(doc(db, 'bills', b.id));
+      } catch (err) {
+        console.warn(`[purgeOrphaned] Error deleting orphaned bill ${b.id}:`, err);
+      }
+    }
+  }
+
+  // 2. Reports
+  const allReports = getStoredReports();
+  const validReports = allReports.filter(r => isStudentAlive(r.studentId, r.admissionNo));
+  const orphanedReports = allReports.filter(r => !isStudentAlive(r.studentId, r.admissionNo));
+  if (orphanedReports.length > 0) {
+    saveStoredReports(validReports);
+    for (const r of orphanedReports) {
+      try {
+        await deleteDoc(doc(db, 'reports', r.id));
+      } catch (err) {
+        console.warn(`[purgeOrphaned] Error deleting orphaned report ${r.id}:`, err);
+      }
+    }
+  }
+
+  // 3. Payments
+  const allPayments = getStoredPayments();
+  const validPayments = allPayments.filter(p => isStudentAlive(p.studentId, p.admissionNo));
+  const orphanedPayments = allPayments.filter(p => !isStudentAlive(p.studentId, p.admissionNo));
+  if (orphanedPayments.length > 0) {
+    saveStoredPayments(validPayments);
+    for (const p of orphanedPayments) {
+      try {
+        await deleteDoc(doc(db, 'payments', p.id));
+      } catch (err) {
+        console.warn(`[purgeOrphaned] Error deleting orphaned payment ${p.id}:`, err);
+      }
+    }
+  }
+
+  if (orphanedBills.length > 0 || orphanedReports.length > 0 || orphanedPayments.length > 0) {
+    await pushToSupabaseCloud();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+    }
+  }
+
+  return {
+    cleanedBills: orphanedBills.length,
+    cleanedReports: orphanedReports.length,
+    cleanedPayments: orphanedPayments.length
+  };
 }
 
 export async function saveTeacher(teacher: Teacher) {
