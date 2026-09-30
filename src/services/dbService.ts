@@ -70,6 +70,7 @@ import {
   pushToSupabaseCloud,
   pullFromSupabaseCloud,
   subscribeSupabaseRealtime,
+  scheduleCloudSyncPush,
   UnsyncedDraft
 } from './syncService';
 
@@ -812,6 +813,7 @@ export async function commitInBatchChunks<T extends { id: string; campus?: strin
     await batch.commit();
   }
   if (saveLocal) saveLocal(items);
+  scheduleCloudSyncPush();
 }
 
 // -------------------------------------------------------------

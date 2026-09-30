@@ -9,13 +9,14 @@ import { runDataGovernanceCheck } from './dataGovernanceService';
 import { evaluateDisasterRecoveryReadiness } from './disasterRecoveryService';
 import { verifyReleaseReadiness } from './releaseManagementService';
 import { recordChangeEvent } from './changeAuditService';
-import { getStoredStudents, getStoredPayments, getStoredClasses } from './storageService';
+import { getStoredStudents, getStoredPayments, getStoredClasses, getStoredTerms, saveStoredTerms } from './storageService';
+import { saveAllTerms } from './dbService';
 import { runFinancialReconciliationAudit } from './financialReconciliationService';
 
 export interface TestResult {
   id: string;
   name: string;
-  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY' | 'PHASE_30_FINANCIAL_RECONCILIATION';
+  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY' | 'PHASE_30_FINANCIAL_RECONCILIATION' | 'ACADEMIC_TERMS_PERSISTENCE';
   status: 'PASS' | 'FAIL' | 'BLOCKED';
   durationMs: number;
   message?: string;
@@ -1570,6 +1571,29 @@ export async function runAutomatedTestSuite(): Promise<QATestSummary> {
     const pmtAfter = JSON.stringify(originalPmt);
     if (billBefore !== billAfter) throw new Error('Bill was mutated during reconciliation audit!');
     if (pmtBefore !== pmtAfter) throw new Error('Payment was mutated during reconciliation audit!');
+  });
+
+  await runTest('Test 108: Academic terms persistence and cloud sync scheduling', 'ACADEMIC_TERMS_PERSISTENCE', async () => {
+    // 1. Setup clean initial terms state
+    const originalTerms: any[] = [
+      { id: 'term-test-1', academicYear: '2025-2026', name: 'First Term', startDate: '2025-09-01', endDate: '2025-12-15', daysOpen: 70, nextTermDate: '2026-01-10', holidays: 5, status: 'Completed' as const }
+    ];
+    saveStoredTerms(originalTerms);
+
+    // 2. Modify one term
+    const updatedTerms: any[] = [
+      { id: 'term-test-1', academicYear: '2025-2026', name: 'First Term', startDate: '2025-09-01', endDate: '2025-12-20', daysOpen: 75, nextTermDate: '2026-01-10', holidays: 5, status: 'Completed' as const }
+    ];
+
+    // 3. Trigger saveAllTerms (which internally calls commitInBatchChunks and then triggers scheduleCloudSyncPush)
+    await saveAllTerms(updatedTerms);
+
+    // 4. Verify local storage has been updated
+    const retrievedLocal = getStoredTerms();
+    const targetTerm = retrievedLocal.find(t => t.id === 'term-test-1');
+    if (!targetTerm) throw new Error('Term was not saved to local storage.');
+    if (targetTerm.endDate !== '2025-12-20') throw new Error(`Term end date not updated in local storage: expected '2025-12-20', got '${targetTerm.endDate}'`);
+    if (targetTerm.daysOpen !== 75) throw new Error(`Term daysOpen not updated in local storage: expected 75, got ${targetTerm.daysOpen}`);
   });
 
   const totalDurationMs = Date.now() - startTime;

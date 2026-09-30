@@ -26,6 +26,7 @@ import AutomatedFeeReminderUtility from './accountant/AutomatedFeeReminderUtilit
 import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
+import { printContent } from '../utils/printUtils';
 import { runDailyFeeAudit, isDailyAuditDueToday, getStoredAuditSummary, getFormattedTimestamp } from '../services/feeAuditService';
 import { 
   getStoredSecretarySummaries, 
