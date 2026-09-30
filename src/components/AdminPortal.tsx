@@ -43,6 +43,7 @@ import CampusSelector from './common/CampusSelector';
 import { LiveActivityFeed } from './common/LiveActivityFeed';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
 import SidebarToggleButton from './common/SidebarToggleButton';
+import FeatureShowcase from './common/FeatureShowcase/FeatureShowcase';
 import GettingStartedTour from './common/GettingStartedTour';
 import PayrollManager from './common/PayrollManager';
 import StaffAttendanceManager from './admin/StaffAttendanceManager';
@@ -1260,6 +1261,7 @@ export default function AdminPortal({
             {/* 1. DASHBOARD MODULE */}
             {activeModule === 'dashboard' && (
               <div className="space-y-6">
+                <FeatureShowcase onNavigate={handleNavigate} />
                 {/* Dashboard Header with Quick Actions & Bulk Export Button */}
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div>
