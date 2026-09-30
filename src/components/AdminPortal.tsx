@@ -40,7 +40,7 @@ import ExpenseManager from './common/ExpenseManager';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
-import SkeletonCard from './common/SkeletonCard';
+import DashboardSkeleton from './common/DashboardSkeleton';
 import { LiveActivityFeed } from './common/LiveActivityFeed';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
 import SidebarToggleButton from './common/SidebarToggleButton';
@@ -86,6 +86,7 @@ import PerformanceOverview from './admin/PerformanceOverview';
 
 interface AdminPortalProps {
   currentUser?: any;
+  isLoading?: boolean;
   themePalette?: ThemePaletteConfig;
   onUpdateThemePalette?: (palette: ThemePaletteConfig) => void;
   students: Student[];
@@ -395,6 +396,7 @@ const ADMIN_NAV_GROUPS = [
 
 export default function AdminPortal({
   currentUser: propCurrentUser,
+  isLoading = false,
   themePalette,
   onUpdateThemePalette,
   students: propStudents,
@@ -1456,12 +1458,8 @@ export default function AdminPortal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3.5 pt-1">
-                {(!students.length && !teachers.length) ? (
-                  <>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                  </>
+                {isLoading ? (
+                  <DashboardSkeleton />
                 ) : (
                   <>
                     {/* Menu 1: Students */}

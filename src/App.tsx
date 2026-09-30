@@ -1234,6 +1234,7 @@ export default function App() {
             {sessionRole === 'admin' && (
               <AdminPortal
                 currentUser={currentUser}
+                isLoading={!dbSynced}
                 themePalette={themePalette}
                 onUpdateThemePalette={(newPalette) => {
                   setThemePalette(newPalette);
