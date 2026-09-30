@@ -32,6 +32,8 @@ import {
 import { pullFromSupabaseCloud, JIPAS_SUPABASE_SCHOOL_ID } from '../services/syncService';
 import { StaffAttendanceService } from '../services/supabase/staffAttendanceService';
 
+import { addMoney, subtractMoney, formatCurrency } from '../utils/financeUtils';
+
 export type DashboardStatus = 'LIVE' | 'SYNCED' | 'OFFLINE' | 'UPDATING' | 'ERROR';
 
 export interface DashboardMetrics {
@@ -389,7 +391,7 @@ export function useRealtimeDashboardData(options: UseRealtimeDashboardOptions = 
     let executiveInsight = 'Executive insight will appear when sufficient institutional data is available.';
     if (totalStudents > 0 || feesCollected > 0) {
       const netStatus = netPosition >= 0 ? 'positive surplus' : 'operating deficit';
-      executiveInsight = `Institutional roster records ${totalStudents} active student${totalStudents === 1 ? '' : 's'} across ${activeCampus}. Desk collections report CFA ${feesCollected.toLocaleString()} in verified revenue with a ${netStatus} of CFA ${Math.abs(netPosition).toLocaleString()}.`;
+      executiveInsight = `Institutional roster records ${totalStudents} active student${totalStudents === 1 ? '' : 's'} across ${activeCampus}. Desk collections report ${formatCurrency(feesCollected)} in verified revenue with a ${netStatus} of ${formatCurrency(Math.abs(netPosition))}.`;
     }
 
     return {

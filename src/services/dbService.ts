@@ -29,6 +29,7 @@ import {
 export type QueryConstraint = any;
 import { getActiveCampus, Campus, isAllCampus } from '../lib/campusUtils';
 import { idbClear } from './idbService';
+import { formatCurrency } from '../utils/financeUtils';
 // ... rest of imports
 
 /**
@@ -1356,7 +1357,7 @@ export async function savePayment(payment: PaymentRecord) {
       saveStoredPayments(getStoredPayments());
     },
     undefined,
-    `Payment: CFA ${payment.amount} - ${payment.studentName || payment.studentId} (Receipt: ${payment.receiptNo || payment.id})`
+    `Payment: ${formatCurrency(payment.amount)} - ${payment.studentName || payment.studentId} (Receipt: ${payment.receiptNo || payment.id})`
   );
 
   return payment;
@@ -2220,7 +2221,7 @@ export async function saveExpense(expense: SchoolExpenseRecord) {
       saveStoredExpenses(updated);
     },
     undefined,
-    `Expense: CFA ${expense.amount} - ${expense.title}`
+    `Expense: ${formatCurrency(expense.amount)} - ${expense.title}`
   );
 }
 
@@ -2252,7 +2253,7 @@ export async function saveBankDeposit(deposit: BankDepositRecord) {
       saveStoredBankDeposits(updated);
     },
     undefined,
-    `Bank Deposit: CFA ${deposit.amount} (${deposit.bankName})`
+    `Bank Deposit: ${formatCurrency(deposit.amount)} (${deposit.bankName})`
   );
 }
 
@@ -2880,7 +2881,7 @@ export async function saveFeeSubmission(submission: FeeSubmissionItem): Promise<
       saveStoredFeeSubmissions(updated);
     },
     undefined,
-    `Fee Submission: ${submission.studentName} (CFA ${submission.amount})`
+    `Fee Submission: ${submission.studentName} (${formatCurrency(submission.amount)})`
   );
 }
 

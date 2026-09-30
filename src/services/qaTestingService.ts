@@ -12,11 +12,26 @@ import { recordChangeEvent } from './changeAuditService';
 import { getStoredStudents, getStoredPayments, getStoredClasses, getStoredTerms, saveStoredTerms } from './storageService';
 import { saveAllTerms } from './dbService';
 import { runFinancialReconciliationAudit } from './financialReconciliationService';
+import { 
+  CURRENCY, 
+  CURRENCY_CODE, 
+  CURRENCY_SYMBOL, 
+  CURRENCY_DECIMALS, 
+  formatCurrency, 
+  formatCurrencyCompact, 
+  parseCurrency, 
+  formatMoneyForPrint, 
+  formatMoneyForExport, 
+  addMoney, 
+  subtractMoney, 
+  calculateBillBalance 
+} from '../utils/financeUtils';
+import { PDFGeneratorService } from './pdfService';
 
 export interface TestResult {
   id: string;
   name: string;
-  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY' | 'PHASE_30_FINANCIAL_RECONCILIATION' | 'ACADEMIC_TERMS_PERSISTENCE';
+  category: 'AUTH_RBAC' | 'CAMPUS_ISOLATION' | 'E2E_WORKFLOWS' | 'FINANCE_PAYROLL' | 'OFFLINE_SYNC' | 'DOC_VAULT' | 'PHASE_17_REGRESSION' | 'STAFF_QR_ATTENDANCE' | 'PHASE_26_CAMERA_SCANNER' | 'PHASE_27_CAMERA_REPLACEMENT' | 'PHASE_28_REAL_DEVICE_VERIFICATION' | 'PHASE_28A_LIVE_CAMERA_ONLY' | 'PHASE_30_FINANCIAL_RECONCILIATION' | 'ACADEMIC_TERMS_PERSISTENCE' | 'GLOBAL_CFA_CURRENCY';
   status: 'PASS' | 'FAIL' | 'BLOCKED';
   durationMs: number;
   message?: string;
@@ -1594,6 +1609,189 @@ export async function runAutomatedTestSuite(): Promise<QATestSummary> {
     if (!targetTerm) throw new Error('Term was not saved to local storage.');
     if (targetTerm.endDate !== '2025-12-20') throw new Error(`Term end date not updated in local storage: expected '2025-12-20', got '${targetTerm.endDate}'`);
     if (targetTerm.daysOpen !== 75) throw new Error(`Term daysOpen not updated in local storage: expected 75, got ${targetTerm.daysOpen}`);
+  });
+
+  // =========================================================================
+  // 14. PHASE 34 — GLOBAL CFA (XOF) CURRENCY STANDARDIZATION TESTS
+  // =========================================================================
+
+  await runTest('Test 125 — Global Currency Configuration', 'GLOBAL_CFA_CURRENCY', () => {
+    if (CURRENCY.code !== 'XOF') throw new Error(`Expected currency code XOF, got ${CURRENCY.code}`);
+    if (CURRENCY.symbol !== 'CFA') throw new Error(`Expected currency symbol CFA, got ${CURRENCY.symbol}`);
+    if (CURRENCY.decimalPlaces !== 0) throw new Error(`Expected currency decimalPlaces 0, got ${CURRENCY.decimalPlaces}`);
+    if (CURRENCY_CODE !== 'XOF' || CURRENCY_SYMBOL !== 'CFA' || CURRENCY_DECIMALS !== 0) {
+      throw new Error('Currency configuration exports mismatch');
+    }
+  });
+
+  await runTest('Test 126 — Currency Formatting', 'GLOBAL_CFA_CURRENCY', () => {
+    const testCases = [
+      { input: 0, expected: '0 CFA' },
+      { input: 1, expected: '1 CFA' },
+      { input: 100, expected: '100 CFA' },
+      { input: 1000, expected: '1,000 CFA' },
+      { input: 10000, expected: '10,000 CFA' },
+      { input: 100000, expected: '100,000 CFA' },
+      { input: 150000, expected: '150,000 CFA' },
+      { input: 1000000, expected: '1,000,000 CFA' }
+    ];
+
+    for (const tc of testCases) {
+      const res = formatCurrency(tc.input);
+      if (res !== tc.expected) {
+        throw new Error(`formatCurrency(${tc.input}) expected '${tc.expected}', got '${res}'`);
+      }
+    }
+  });
+
+  await runTest('Test 127 — Financial Calculation Integrity', 'GLOBAL_CFA_CURRENCY', () => {
+    const payable = 150000;
+    const arrears = 10000;
+    const paid = 50000;
+    const discount = 10000;
+
+    const balance = calculateBillBalance(payable, paid, discount, arrears);
+    if (balance !== 100000) {
+      throw new Error(`calculateBillBalance failed: expected 100000, got ${balance}`);
+    }
+
+    const sum = addMoney(150000, 25000, 5000);
+    if (sum !== 180000) {
+      throw new Error(`addMoney failed: expected 180000, got ${sum}`);
+    }
+
+    const diff = subtractMoney(180000, 30000);
+    if (diff !== 150000) {
+      throw new Error(`subtractMoney failed: expected 150000, got ${diff}`);
+    }
+  });
+
+  await runTest('Test 128 — No Legacy Currency Display', 'GLOBAL_CFA_CURRENCY', () => {
+    const formatted = formatCurrency(150000);
+    const legacySymbols = ['GHS', 'GH₵', 'GH¢', '₵', 'USD', 'EUR', '€'];
+    for (const sym of legacySymbols) {
+      if (formatted.includes(sym)) {
+        throw new Error(`Formatted currency string contains legacy symbol ${sym}: ${formatted}`);
+      }
+    }
+  });
+
+  await runTest('Test 129 — Persistence', 'GLOBAL_CFA_CURRENCY', () => {
+    const testBill = {
+      id: 'cfa-test-bill-1',
+      studentId: 'st-cfa-1',
+      studentName: 'CFA Test Student',
+      admissionNo: 'ADM-CFA-001',
+      className: 'Primary 1',
+      academicYear: '2025-2026',
+      term: 'Third Term',
+      payable: 150000,
+      paid: 50000,
+      discount: 0,
+      arrears: 0,
+      balance: 100000,
+      currency: CURRENCY.code,
+      status: 'Partially Paid' as const
+    };
+
+    const serialized = JSON.stringify(testBill);
+    const rehydrated = JSON.parse(serialized);
+    if (rehydrated.currency !== 'XOF') {
+      throw new Error(`Rehydrated currency expected XOF, got ${rehydrated.currency}`);
+    }
+    if (rehydrated.payable !== 150000 || rehydrated.balance !== 100000) {
+      throw new Error('Rehydrated monetary values were corrupted');
+    }
+  });
+
+  await runTest('Test 130 — Supabase Snapshot', 'GLOBAL_CFA_CURRENCY', () => {
+    const snapshotPayload = {
+      schoolId: 'jipas-main',
+      bills: [
+        { id: 'b-snap-1', amount: 150000, paid: 50000, balance: 100000, currency: CURRENCY_CODE }
+      ]
+    };
+
+    const json = JSON.stringify(snapshotPayload);
+    const parsed = JSON.parse(json);
+    if (parsed.bills[0].currency !== 'XOF') {
+      throw new Error('Supabase snapshot payload lost XOF currency metadata');
+    }
+    if (parsed.bills[0].balance !== 100000) {
+      throw new Error('Supabase snapshot payload corrupted monetary amounts');
+    }
+  });
+
+  await runTest('Test 131 — Firestore Persistence', 'GLOBAL_CFA_CURRENCY', () => {
+    const firestoreDoc = {
+      id: 'payment-fs-1',
+      amount: 75000,
+      paidAs: 'Tuition Fee',
+      currency: CURRENCY.symbol,
+      createdAt: new Date().toISOString()
+    };
+
+    if (firestoreDoc.currency !== 'CFA') {
+      throw new Error('Firestore doc currency expected CFA');
+    }
+    if (formatCurrency(firestoreDoc.amount) !== '75,000 CFA') {
+      throw new Error(`Firestore doc amount formatting failed: ${formatCurrency(firestoreDoc.amount)}`);
+    }
+  });
+
+  await runTest('Test 132 — A4 Invoice', 'GLOBAL_CFA_CURRENCY', () => {
+    const printStr = formatMoneyForPrint(150000);
+    if (printStr !== '150,000 CFA') {
+      throw new Error(`A4 Invoice formatMoneyForPrint expected '150,000 CFA', got '${printStr}'`);
+    }
+  });
+
+  await runTest('Test 133 — Receipt', 'GLOBAL_CFA_CURRENCY', () => {
+    const receiptAmountStr = formatCurrency(50000);
+    if (receiptAmountStr !== '50,000 CFA') {
+      throw new Error(`Receipt formatCurrency expected '50,000 CFA', got '${receiptAmountStr}'`);
+    }
+  });
+
+  await runTest('Test 134 — Payroll', 'GLOBAL_CFA_CURRENCY', () => {
+    const basicSalary = 250000;
+    const allowances = 50000;
+    const deductions = 30000;
+    const netSalary = subtractMoney(addMoney(basicSalary, allowances), deductions);
+
+    if (netSalary !== 270000) {
+      throw new Error(`Payroll net salary calculation failed: expected 270000, got ${netSalary}`);
+    }
+
+    const formattedNet = formatCurrency(netSalary);
+    if (formattedNet !== '270,000 CFA') {
+      throw new Error(`Payroll net salary formatting expected '270,000 CFA', got '${formattedNet}'`);
+    }
+  });
+
+  await runTest('Test 135 — Financial Reconciliation', 'GLOBAL_CFA_CURRENCY', () => {
+    const reconciliationAudit = runFinancialReconciliationAudit({
+      bills: [
+        { id: 'b-rec-1', studentId: 'st-rec-1', payable: 150000, paid: 100000, arrears: 0, discount: 0, balance: 50000, studentName: 'Rec Student', className: 'JHS 1' } as any
+      ],
+      payments: [
+        { id: 'p-rec-1', receiptNo: 'REC-001', studentId: 'st-rec-1', paid: 100000, amount: 100000, date: '2026-03-01', method: 'Cash', studentName: 'Rec Student' } as any
+      ],
+      students: [
+        { id: 'st-rec-1', fullName: 'Rec Student', admissionNo: 'ADM-REC-1', className: 'JHS 1', campus: 'JIPAS 1' } as any
+      ]
+    });
+
+    if (reconciliationAudit.totalPostedCharges !== 150000) {
+      throw new Error(`Reconciliation posted charges failed: ${reconciliationAudit.totalPostedCharges}`);
+    }
+    if (reconciliationAudit.totalValidCollections !== 100000) {
+      throw new Error(`Reconciliation valid collections failed: ${reconciliationAudit.totalValidCollections}`);
+    }
+    const formattedCharges = formatCurrency(reconciliationAudit.totalPostedCharges);
+    if (formattedCharges !== '150,000 CFA') {
+      throw new Error(`Reconciliation charges format failed: ${formattedCharges}`);
+    }
   });
 
   const totalDurationMs = Date.now() - startTime;

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { formatCurrency } from '../utils/financeUtils';
 import { 
   getUnsyncedDrafts, 
   removeUnsyncedDraftByDoc, 
@@ -290,7 +291,7 @@ export const CONFLICT_COLLECTIONS: MonitoredCollectionConfig[] = [
     getDeviceData: getStoredBills,
     setDeviceData: saveStoredBills,
     getTitle: (item) => `Bill: ${item.studentName || item.studentId || item.id}`,
-    getSubtitle: (item) => `Amount: CFA ${item.totalAmount || item.amount || 0} • Status: ${item.status || 'Pending'}`
+    getSubtitle: (item) => `Amount: ${formatCurrency(item.totalAmount || item.amount || 0)} • Status: ${item.status || 'Pending'}`
   },
   {
     name: 'payments',
@@ -298,7 +299,7 @@ export const CONFLICT_COLLECTIONS: MonitoredCollectionConfig[] = [
     getDeviceData: getStoredPayments,
     setDeviceData: saveStoredPayments,
     getTitle: (item) => `Receipt #${item.receiptNo || item.id} (${item.studentName || 'Student'})`,
-    getSubtitle: (item) => `Paid: CFA ${item.amountPaid || item.amount || 0} • Date: ${item.date || 'N/A'}`
+    getSubtitle: (item) => `Paid: ${formatCurrency(item.amountPaid || item.amount || 0)} • Date: ${item.date || 'N/A'}`
   },
   {
     name: 'reports',

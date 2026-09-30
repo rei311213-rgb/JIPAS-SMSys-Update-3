@@ -298,16 +298,16 @@ export default function AccountantPortal({
                 <tr>
                   <td><strong>${receipt.paidAs || 'Tuition & Terminal Instruction Fee'}</strong></td>
                   <td>2025/2026 Academic Session</td>
-                  <td class="amount">${totalPayable} CFA</td>
-                  <td class="amount" style="font-weight: bold; color: #047857;">${amountPaid} CFA</td>
+                  <td class="amount">${totalPayable}</td>
+                  <td class="amount" style="font-weight: bold; color: #047857;">${amountPaid}</td>
                 </tr>
                 <tr class="paid-row">
                   <td colspan="3">Net Amount Paid This Transaction</td>
-                  <td class="amount">${amountPaid} CFA</td>
+                  <td class="amount">${amountPaid}</td>
                 </tr>
                 <tr class="balance-row">
                   <td colspan="3">Net Remaining Outstanding Balance</td>
-                  <td class="amount">${balanceRemaining} CFA</td>
+                  <td class="amount">${balanceRemaining}</td>
                 </tr>
               </tbody>
             </table>
@@ -861,18 +861,8 @@ export default function AccountantPortal({
 
       {/* Main Content Area */}
       <div className="flex-1 w-full min-w-0 space-y-6">
-        {/* Centralized Global Header Search & Campus Switcher */}
+        {/* Centralized Global Header Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 w-full px-1">
-          <div className="flex items-center gap-3 shrink-0">
-            <CampusSelector selectedCampus={selectedCampus} onCampusChange={handleCampusChange} theme="light" />
-            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 ${
-              selectedCampus === 'General' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-              selectedCampus === 'JIPAS 1' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-              'bg-emerald-100 text-emerald-800 border-emerald-300'
-            }`}>
-              <span className="truncate">{selectedCampus === 'General' ? 'All Campuses' : selectedCampus}</span>
-            </div>
-          </div>
 
           <GlobalSearchHeader
             students={students}
@@ -1052,7 +1042,7 @@ export default function AccountantPortal({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-600">
           <span className="text-xl sm:text-2xl font-black text-emerald-700">
-            {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {formatCurrency(totalCollected)}
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Total Collections</p>
           <span className="text-[10px] text-slate-500">{payments.length} verified receipts</span>
@@ -1060,7 +1050,7 @@ export default function AccountantPortal({
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-rose-600">
           <span className="text-xl sm:text-2xl font-black text-rose-600">
-            {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {formatCurrency(totalOutstanding)}
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Outstanding Balance</p>
           <span className="text-[10px] text-slate-500">Uncollected arrears</span>
@@ -1068,7 +1058,7 @@ export default function AccountantPortal({
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-blue-600">
           <span className="text-xl sm:text-2xl font-black text-blue-700">
-            {totalBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })} CFA
+            {formatCurrency(totalBilled)}
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Total Billable Amount</p>
           <span className="text-[10px] text-slate-500">{bills.length} student term bills</span>
@@ -1787,17 +1777,17 @@ export default function AccountantPortal({
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Billed Fees</span>
                 <h4 className="text-2xl font-black text-slate-900 font-mono">
-                  {((totalCollections || 0) + (totalOutstanding || 0)).toFixed(2)} CFA
+                  {formatCurrency((totalCollections || 0) + (totalOutstanding || 0))}
                 </h4>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-100/60 border border-emerald-200 p-3 rounded-2xl">
                   <span className="text-[9px] font-black uppercase text-emerald-800">Collected</span>
-                  <h5 className="text-base font-bold text-emerald-950 font-mono">{(totalCollections || 0).toFixed(2)} CFA</h5>
+                  <h5 className="text-base font-bold text-emerald-950 font-mono">{formatCurrency(totalCollections || 0)}</h5>
                 </div>
                 <div className="bg-rose-100/60 border border-rose-200 p-3 rounded-2xl">
                   <span className="text-[9px] font-black uppercase text-rose-800">Outstanding</span>
-                  <h5 className="text-base font-bold text-rose-950 font-mono">{(totalOutstanding || 0).toFixed(2)} CFA</h5>
+                  <h5 className="text-base font-bold text-rose-950 font-mono">{formatCurrency(totalOutstanding || 0)}</h5>
                 </div>
               </div>
             </div>
@@ -1824,7 +1814,7 @@ export default function AccountantPortal({
                       <Cell fill="#f43f5e" />
                     </Pie>
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} CFA`, '']}
+                      formatter={(value: any) => [formatCurrency(value || 0), '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                   </PieChart>
@@ -1846,7 +1836,7 @@ export default function AccountantPortal({
                     <XAxis dataKey="class" tick={{ fontSize: 9, fontWeight: 'bold', fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      formatter={(value: any) => [`${Number(value || 0).toFixed(2)} CFA`, '']}
+                      formatter={(value: any) => [formatCurrency(value || 0), '']}
                       contentStyle={{ borderRadius: '12px', fontSize: '10px' }}
                     />
                     <Bar dataKey="collected" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -3207,7 +3197,7 @@ export default function AccountantPortal({
                       <span className="text-slate-600 font-medium">Logged by: {summary.secretaryName}</span>
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Collections: <strong className="text-emerald-700 font-mono">CFA {(summary.totalFeesCollected ?? 0).toFixed(2)}</strong> ({summary.receiptsCount} receipts) • Expenses: <strong className="text-rose-600 font-mono">CFA {((summary.totalExpensesIncurred ?? summary.totalExpensesLogged) ?? 0).toFixed(2)}</strong> • Net Cash to Bursary: <strong className="text-slate-900 font-mono">CFA {(summary.netCashOnHand ?? 0).toFixed(2)}</strong>
+                      Collections: <strong className="text-emerald-700 font-mono">{formatCurrency(summary.totalFeesCollected ?? 0)}</strong> ({summary.receiptsCount} receipts) • Expenses: <strong className="text-rose-600 font-mono">{formatCurrency((summary.totalExpensesIncurred ?? summary.totalExpensesLogged) ?? 0)}</strong> • Net Cash to Bursary: <strong className="text-slate-900 font-mono">{formatCurrency(summary.netCashOnHand ?? 0)}</strong>
                     </div>
                   </div>
 

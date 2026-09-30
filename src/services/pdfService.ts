@@ -18,6 +18,7 @@ export interface SchoolPerformanceSummaryOptions {
 }
 
 import { printBlob } from '../utils/printUtils';
+import { formatCurrency } from '../utils/financeUtils';
 
 export class PDFGeneratorService {
   private static readonly SCHOOL_NAME = 'JOY INTERNATIONAL SCHOOL (JIPAS)';
@@ -418,7 +419,7 @@ export class PDFGeneratorService {
         payment.description || 'School Fees Payment',
         payment.method || (payment as any).paymentMethod || 'Cash',
         payment.referenceNo || (payment as any).transactionId || 'N/A',
-        (paidAmount ?? 0).toFixed(2)
+        formatCurrency(paidAmount)
       ]],
       theme: 'grid',
       headStyles: { fillColor: this.SCHOOL_COLOR },
@@ -429,7 +430,7 @@ export class PDFGeneratorService {
     // Totals
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(`TOTAL PAID: CFA ${(paidAmount ?? 0).toFixed(2)}`, 190, finalY + 15, { align: 'right' });
+    doc.text(`TOTAL PAID: ${formatCurrency(paidAmount)}`, 190, finalY + 15, { align: 'right' });
 
     // Authorization
     doc.setFontSize(10);

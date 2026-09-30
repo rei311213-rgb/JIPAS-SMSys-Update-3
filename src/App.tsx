@@ -64,6 +64,7 @@ import SecretaryPortal from './components/SecretaryPortal';
 import StudentPortal from './components/StudentPortal';
 import CEOPortal from './components/CEOPortal';
 import HeadmasterPortal from './components/HeadmasterPortal';
+import HeaderNavigation from './components/common/HeaderNavigation';
 import JIPASLogo from './components/common/JIPASLogo';
 import LanguageSwitcher from './components/common/LanguageSwitcher';
 import { CampusProvider } from './context/CampusContext';
@@ -1211,91 +1212,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Header Navbar */}
-      <header 
-        className="border-b sticky top-0 z-40 backdrop-blur-md shadow-lg shadow-black/20"
-        style={{
-          backgroundColor: `${themePalette.headerBgColor || themePalette.cardBackgroundColor}f2`,
-          borderColor: `${themePalette.primaryColor}30`
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 min-h-[4rem] py-2 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 relative z-10 overflow-x-hidden">
-          <div className="flex items-center justify-between w-sm sm:w-auto gap-2 min-w-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="shrink-0 scale-90 sm:scale-100">
-                <JIPASLogo size="sm" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white leading-tight truncate">
-                  {t('app.name', 'JIPAS')}
-                </h1>
-                <p className="text-[10px] sm:text-xs font-semibold text-indigo-400 truncate">
-                  {t('app.subtitle', 'Système de Gestion Scolaire • 1990')}
-                </p>
-              </div>
-            </div>
-
-            {/* Mobile-only quick profile/logout toggle if needed */}
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end w-full sm:w-auto">
-            {/* PWA Install Button */}
-            <div className="hidden xs:block">
-              <PWAInstallButton />
-            </div>
-
-            {/* Sync Now Button for all roles except student */}
-            {currentUser.role !== 'student' && (
-              <SyncNowButton variant="compact" />
-            )}
-
-            {/* Campus Selector */}
-            {(currentUser.role === 'admin' || currentUser.role === 'accountant' || currentUser.role === 'ceo' || currentUser.role === 'director' || currentUser.role === 'secretary') && (
-              <CampusSelector />
-            )}
-
-            {/* Top Navigation Language Switcher for all users */}
-            <LanguageSwitcher />
-
-            {/* Role Badge */}
-            <div className="hidden lg:flex items-center gap-1.5 bg-[#0B142A] px-3 py-1 rounded-xl border border-blue-900/50 text-[11px] font-bold text-slate-200 shadow-inner">
-              {(sessionRole === 'admin' || currentUser.role === 'admin') && <ShieldCheck className="w-3.5 h-3.5 text-rose-500" />}
-              {sessionRole === 'teacher' && <UserCheck className="w-3.5 h-3.5 text-emerald-400" />}
-              {sessionRole === 'accountant' && <Calculator className="w-3.5 h-3.5 text-cyan-400" />}
-              {sessionRole === 'secretary' && <FileText className="w-3.5 h-3.5 text-pink-400" />}
-              {sessionRole === 'student' && <BookOpen className="w-3.5 h-3.5 text-indigo-400" />}
-              {(sessionRole === 'ceo' || sessionRole === 'director') && <Crown className="w-3.5 h-3.5 text-amber-400" />}
-              {(sessionRole === 'headteacher' || sessionRole === 'headmaster') && <Award className="w-3.5 h-3.5 text-blue-400" />}
-              {sessionRole === 'hod' && <GraduationCap className="w-3.5 h-3.5 text-purple-400" />}
-              <span className="capitalize truncate max-w-[100px]">
-                {currentUser.executiveTitle ? currentUser.executiveTitle : sessionRole}
-              </span>
-            </div>
-
-            {/* User Profile & Logout */}
-            <div className="flex items-center gap-2 border-l border-slate-800/80 pl-2 sm:pl-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-md shadow-blue-500/20 shrink-0">
-                <div className="w-full h-full rounded-full bg-[#070D1E] flex items-center justify-center overflow-hidden">
-                  {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[11px] font-black text-blue-400">{currentUser.name?.charAt(0) || 'U'}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                id="header-logout-btn"
-                title={t('app.logout', 'Logout')}
-                className="flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/65 text-rose-400 px-2.5 py-1.5 rounded-xl text-xs font-bold border border-rose-900/50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5 text-rose-500" />
-                <span className="hidden md:inline">{t('app.logout', 'Déconnexion')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Consolidated Site Header Component */}
+      <HeaderNavigation 
+        currentUser={currentUser} 
+        sessionRole={sessionRole} 
+        themePalette={themePalette} 
+        handleLogout={handleLogout} 
+      />
 
       {/* Main Content Area with Subtle Slide-In Portal Transition */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 overflow-x-hidden">

@@ -10,6 +10,7 @@ import {
   HardDrive, Database, QrCode, Camera, LogIn, BarChart3
 } from 'lucide-react';
 import JIPASLogo from './common/JIPASLogo';
+import SidebarToggleButton from './common/SidebarToggleButton';
 import PhotoUploader from './common/PhotoUploader';
 import BackupRecoveryManager from './admin/BackupRecoveryManager';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
@@ -1431,38 +1432,6 @@ export default function TeacherPortal({
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] flex flex-col md:flex-row -mx-4 sm:-mx-6 lg:-mx-8 -my-8 font-sans relative">
-      {/* ========================================================================= */}
-      {/* STATIC FLOATING TOGGLE ICON ON SCREEN (Docked to left edge when minimized) */}
-      {/* ========================================================================= */}
-      {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          title="Open Navigation Menu"
-          id="jipas-teacher-static-sidebar-open-btn"
-          className="fixed left-0 top-24 z-50 bg-[#202938]/95 hover:bg-blue-600 text-white pl-2.5 pr-3.5 py-2.5 rounded-r-xl shadow-2xl border-y border-r border-slate-700 backdrop-blur-xs transition-all flex items-center gap-2 cursor-pointer group animate-fadeIn"
-          aria-label="Open Navigation Menu"
-        >
-          <Menu className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
-          <span className="text-[11px] font-bold tracking-wide">Menu</span>
-        </button>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 1. LEFT SIDEBAR (Dark Navy/Slate #202938 Theme, Responsive Collapsible) */}
-      {/* ========================================================================= */}
-      {/* Floating Toggle Icon (Docked to left edge on mobile when sidebar is closed) */}
-      {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          title="Open Teacher Navigation Menu"
-          id="jipas-teacher-floating-toggle-btn"
-          className="fixed left-0 top-20 z-50 md:hidden bg-[#1a222f]/95 hover:bg-blue-600 text-white pl-2 pr-3 py-2 rounded-r-xl shadow-2xl border-y border-r border-slate-700 backdrop-blur-xs transition-all flex items-center gap-1.5 cursor-pointer group"
-        >
-          <Menu className="w-4 h-4 text-blue-400 group-hover:text-white" />
-          <span className="text-[10px] font-bold">Menu</span>
-        </button>
-      )}
-
       {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div
@@ -1493,18 +1462,11 @@ export default function TeacherPortal({
                 </span>
               )}
             </div>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              title={isSidebarOpen ? "Collapse Navigation Sidebar" : "Expand Navigation Sidebar"}
-              id="jipas-teacher-sidebar-minimize-btn"
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer shrink-0 border border-slate-700/50"
-            >
-              {isSidebarOpen ? (
-                <PanelLeftClose className="w-4 h-4" />
-              ) : (
-                <PanelLeftOpen className="w-4 h-4 text-blue-400" />
-              )}
-            </button>
+            <SidebarToggleButton
+              isOpen={isSidebarOpen}
+              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              variant="subtle"
+            />
           </div>
 
           {/* Teacher Profile Identifier Banner */}

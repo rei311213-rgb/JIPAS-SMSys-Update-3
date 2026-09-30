@@ -3,6 +3,7 @@ import {
   Clock, CheckCircle2, AlertCircle, Calendar, UserCheck, ShieldCheck, DollarSign, FileText, Download, RefreshCw, Award, QrCode 
 } from 'lucide-react';
 import { Teacher } from '../../types';
+import { formatCurrency } from '../../utils/financeUtils';
 import StaffAttendanceQRScanner from '../staff/StaffAttendanceQRScanner';
 
 interface StaffAttendanceRecord {
@@ -353,9 +354,9 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
                     <td className="p-3.5 text-slate-600 dark:text-slate-300">{item.teacher.department || 'General'}</td>
                     <td className="p-3.5 font-mono font-bold text-emerald-600">{item.presentCount}</td>
                     <td className="p-3.5 font-mono font-bold text-rose-500">{item.absentCount}</td>
-                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">CFA {item.baseMonthlySalary.toFixed(2)}</td>
-                    <td className="p-3.5 font-mono text-rose-600">-CFA {item.deduction.toFixed(2)}</td>
-                    <td className="p-3.5 font-mono font-black text-blue-600 dark:text-blue-400">CFA {item.netSalary.toFixed(2)}</td>
+                    <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">{formatCurrency(item.baseMonthlySalary)}</td>
+                    <td className="p-3.5 font-mono text-rose-600">-{formatCurrency(item.deduction)}</td>
+                    <td className="p-3.5 font-mono font-black text-blue-600 dark:text-blue-400">{formatCurrency(item.netSalary)}</td>
                   </tr>
                 ))}
               </tbody>

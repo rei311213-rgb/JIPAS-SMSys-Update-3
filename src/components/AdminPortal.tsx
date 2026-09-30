@@ -42,6 +42,7 @@ import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
 import { LiveActivityFeed } from './common/LiveActivityFeed';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
+import SidebarToggleButton from './common/SidebarToggleButton';
 import GettingStartedTour from './common/GettingStartedTour';
 import PayrollManager from './common/PayrollManager';
 import StaffAttendanceManager from './admin/StaffAttendanceManager';
@@ -870,23 +871,6 @@ export default function AdminPortal({
 
   return (
     <div className="relative flex flex-col lg:flex-row gap-6 w-full">
-      {/* Floating Toggle Icon (Docked to left edge when sidebar is completely hidden) */}
-      {!isSidebarOpen && (
-        <button
-          onClick={() => toggleSidebar(true)}
-          title="Open Navigation Menu"
-          id="jipas-static-sidebar-open-btn"
-          className="fixed left-4 top-24 z-50 bg-[#0A1226]/95 hover:bg-blue-600 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5),0_8px_10px_-6px_rgba(0,0,0,0.5)] border border-blue-800/60 backdrop-blur-xs transition-all flex items-center justify-center cursor-pointer group animate-fadeIn w-14 h-14"
-        >
-          <img 
-            src={getSchoolLogo()} 
-            alt="JIPAS Crest" 
-            className="w-8 h-8 object-contain" 
-            onError={(e) => { e.currentTarget.src = '/logo.png'; }}
-          />
-        </button>
-      )}
-
       {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div
@@ -1112,8 +1096,10 @@ export default function AdminPortal({
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 w-full px-1">
             {/* Header Sidebar Collapse/Expand Toggle Button & Campus Switcher */}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
+            <SidebarToggleButton
+              isOpen={isSidebarOpen}
+              isCollapsed={isSidebarCollapsed}
+              onToggle={(e) => {
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
                 if (isMobile) {
                   toggleSidebar(!isSidebarOpen);
@@ -1125,56 +1111,12 @@ export default function AdminPortal({
                   }
                 }
               }}
-              className="px-3 py-2 bg-slate-900/80 hover:bg-blue-900/40 text-slate-300 hover:text-white border border-slate-700/60 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
-              title={
+              label={
                 typeof window !== 'undefined' && window.innerWidth < 1024
                   ? (isSidebarOpen ? "Close Menu" : "Open Menu")
-                  : (!isSidebarOpen ? "Open Navigation Sidebar" : isSidebarCollapsed ? "Expand Navigation Sidebar" : "Collapse Navigation Sidebar")
+                  : (!isSidebarOpen ? "Open Menu" : isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar")
               }
-            >
-              {(() => {
-                const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                if (isMobile) {
-                  return isSidebarOpen ? (
-                    <>
-                      <X className="w-4 h-4 text-rose-400" />
-                      <span className="hidden sm:inline">Close Menu</span>
-                    </>
-                  ) : (
-                    <>
-                      <Menu className="w-4 h-4 text-blue-400" />
-                      <span className="hidden sm:inline">Open Menu</span>
-                    </>
-                  );
-                } else {
-                  return !isSidebarOpen ? (
-                    <>
-                      <PanelLeftOpen className="w-4 h-4 text-blue-400" />
-                      <span className="hidden sm:inline">Open Menu</span>
-                    </>
-                  ) : isSidebarCollapsed ? (
-                    <>
-                      <PanelLeftOpen className="w-4 h-4 text-emerald-400" />
-                      <span className="hidden sm:inline">Expand Sidebar</span>
-                    </>
-                  ) : (
-                    <>
-                      <PanelLeftClose className="w-4 h-4 text-slate-400" />
-                      <span className="hidden sm:inline">Collapse Sidebar</span>
-                    </>
-                  );
-                }
-              })()}
-            </button>
-
-            <CampusSelector selectedCampus={selectedCampus} onCampusChange={handleCampusChange} theme="light" />
-            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 ${
-              selectedCampus === 'General' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-              selectedCampus === 'JIPAS 1' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-              'bg-emerald-100 text-emerald-800 border-emerald-300'
-            }`}>
-              <span className="truncate">{selectedCampus === 'General' ? 'All Campuses' : selectedCampus}</span>
-            </div>
+            />
           </div>
 
           <GlobalSearchHeader

@@ -413,7 +413,7 @@ export default function CEOPortal({
           label: 'School Finances',
           description: 'Total revenue vs expenses summary & net financial position',
           icon: Wallet,
-          badge: `CFA${totalRevenue.toLocaleString()}`,
+          badge: formatCurrency(totalRevenue),
           color: 'from-emerald-600 to-green-700',
           badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
         },
@@ -587,17 +587,6 @@ export default function CEOPortal({
                 </span>
               </div>
               <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider truncate min-w-0">{executiveTitle}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <CampusSelector selectedCampus={selectedCampus} onCampusChange={handleCampusChange} theme="dark" />
-            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 ${
-              selectedCampus === 'General' ? 'bg-amber-950/30 text-amber-500 border-amber-900/50' :
-              selectedCampus === 'JIPAS 1' ? 'bg-blue-950/30 text-blue-400 border-blue-900/50' :
-              'bg-emerald-950/30 text-emerald-400 border-emerald-900/50'
-            }`}>
-              <span className="truncate">{selectedCampus === 'General' ? 'All Campuses' : selectedCampus}</span>
             </div>
           </div>
 
@@ -913,15 +902,15 @@ export default function CEOPortal({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="p-6 bg-blue-900/10 rounded-2xl border border-blue-900/30">
                              <span className="text-[10px] font-black text-blue-400 uppercase">Total Revenue</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalRevenue.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">{formatCurrency(totalRevenue)}</h3>
                           </div>
                           <div className="p-6 bg-rose-900/10 rounded-2xl border border-rose-900/30">
                              <span className="text-[10px] font-black text-rose-400 uppercase">Total Expenditure</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {totalExpenditure.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">{formatCurrency(totalExpenditure)}</h3>
                           </div>
                           <div className="p-6 bg-emerald-900/10 rounded-2xl border border-emerald-900/30">
                              <span className="text-[10px] font-black text-emerald-400 uppercase">Net Surplus</span>
-                             <h3 className="text-2xl font-black text-white mt-1">CFA {netSurplus.toLocaleString()}</h3>
+                             <h3 className="text-2xl font-black text-white mt-1">{formatCurrency(netSurplus)}</h3>
                           </div>
                       </div>
                     </div>

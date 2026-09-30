@@ -5,6 +5,7 @@ import {
   TrendingUp, Sparkles, User, ShieldCheck, Wallet, Receipt, Layers, Building, Building2, BellRing, BarChart3, Clock, Users, Scale
 } from 'lucide-react';
 import JIPASLogo from '../common/JIPASLogo';
+import SidebarToggleButton from '../common/SidebarToggleButton';
 
 export type AccountantTabType = 
   | 'dashboard' 
@@ -225,38 +226,16 @@ export default function AccountantSidebar({
   return (
     <>
       {/* ========================================================================= */}
-      {/* STATIC FLOATING TOGGLE ICON ON SCREEN (Docked to left edge) */}
-      {/* ========================================================================= */}
-      <button
-        onClick={() => {
-          if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-            setIsMobileOpen(true);
-          } else {
-            setIsPinned(prev => !prev);
-          }
-        }}
-        title="Toggle Finance Navigation Menu"
-        id="accountant-static-sidebar-open-btn"
-        className="fixed left-0 top-24 z-50 bg-cyan-950/95 hover:bg-cyan-800 text-white pl-2.5 pr-3 py-2.5 rounded-r-xl shadow-2xl border-y border-r border-cyan-700 backdrop-blur-xs transition-all flex items-center gap-2 cursor-pointer group animate-fadeIn"
-        aria-label="Toggle Finance Navigation Menu"
-      >
-        <Menu className="w-4 h-4 text-cyan-400 group-hover:text-white transition-colors" />
-        <span className="text-[11px] font-bold tracking-wide hidden sm:inline">Finance</span>
-      </button>
-
-      {/* ========================================================================= */}
       {/* MOBILE TRIGGER BAR (< lg screens) */}
       {/* ========================================================================= */}
       <div className="lg:hidden w-full bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsMobileOpen(true)}
-            id="accountant-mobile-sidebar-toggle"
-            className="p-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl border border-cyan-200 transition-colors cursor-pointer"
-            aria-label="Open Finance Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <SidebarToggleButton
+            isOpen={isMobileOpen}
+            onToggle={() => setIsMobileOpen(true)}
+            variant="compact"
+            ariaLabel="Open Finance Menu"
+          />
           <div>
             <span className="text-xs font-bold text-slate-800 block">Finance Navigation</span>
             <span className="text-[10px] text-cyan-700 font-semibold uppercase tracking-wider">

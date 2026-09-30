@@ -6,6 +6,7 @@ import {
   GraduationCap, Briefcase, QrCode
 } from 'lucide-react';
 import JIPASLogo from '../common/JIPASLogo';
+import SidebarToggleButton from '../common/SidebarToggleButton';
 
 export type SecretaryTabType = 
   | 'fee_collection' 
@@ -190,34 +191,15 @@ export default function SecretarySidebar({
 
   return (
     <>
-      <button
-        onClick={() => {
-          if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-            setIsMobileOpen(true);
-          } else {
-            setIsPinned(prev => !prev);
-          }
-        }}
-        title="Toggle Secretary Navigation Menu"
-        id="secretary-static-sidebar-open-btn"
-        className="fixed left-0 top-24 z-50 bg-pink-950/95 hover:bg-pink-800 text-white pl-2.5 pr-3 py-2.5 rounded-r-xl shadow-2xl border-y border-r border-pink-700 backdrop-blur-xs transition-all flex items-center gap-2 cursor-pointer group animate-fadeIn"
-        aria-label="Toggle Secretary Navigation Menu"
-      >
-        <Menu className="w-4 h-4 text-pink-400 group-hover:text-white transition-colors" />
-        <span className="text-[11px] font-bold tracking-wide hidden sm:inline">Secretary Desk</span>
-      </button>
-
       {/* MOBILE TRIGGER BAR */}
       <div className="lg:hidden w-full bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between shadow-xs mb-4">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsMobileOpen(true)}
-            id="secretary-mobile-sidebar-toggle"
-            className="p-2 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl border border-pink-200 transition-colors cursor-pointer"
-            aria-label="Open Secretary Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <SidebarToggleButton
+            isOpen={isMobileOpen}
+            onToggle={() => setIsMobileOpen(true)}
+            variant="compact"
+            ariaLabel="Open Secretary Menu"
+          />
           <div>
             <span className="text-xs font-bold text-slate-800 block">Secretary Navigation</span>
             <span className="text-[10px] text-pink-700 font-semibold uppercase tracking-wider">

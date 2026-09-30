@@ -7,7 +7,7 @@ import {
   getStoredExpenses, 
   saveStoredExpenses 
 } from '../../services/storageService';
-import { addMoney } from '../../utils/financeUtils';
+import { addMoney, formatCurrency, formatMoneyForPrint } from '../../utils/financeUtils';
 import { 
   DollarSign, 
   Plus, 
@@ -382,7 +382,7 @@ export default function ExpenseManager({
 
           <div class="amount-box">
             <div style="font-size: 13px; text-transform: uppercase; font-weight: bold; color: #64748b; margin-bottom: 6px;">Total Amount Paid</div>
-            <div class="amount-val">CFA {(exp.amount ?? 0).toFixed(2)}</div>
+            <div class="amount-val">${formatMoneyForPrint(exp.amount ?? 0)}</div>
             <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Status: <strong>${exp.status.toUpperCase()}</strong></div>
           </div>
 
@@ -469,7 +469,7 @@ export default function ExpenseManager({
               <DollarSign className="w-4 h-4 text-rose-500" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900">
-              CFA {totalExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatCurrency(totalExpenditure)}
             </div>
             <span className="text-[10px] text-slate-500 mt-1">{expenses.length} total logged vouchers</span>
           </div>
@@ -480,7 +480,7 @@ export default function ExpenseManager({
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-emerald-900">
-              CFA {approvedExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatCurrency(approvedExpenditure)}
             </div>
             <span className="text-[10px] text-emerald-700 mt-1">Reconciled in financial records</span>
           </div>
@@ -491,7 +491,7 @@ export default function ExpenseManager({
               <Wallet className="w-4 h-4 text-amber-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-amber-900">
-              CFA {pettyCashTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatCurrency(pettyCashTotal)}
             </div>
             <span className="text-[10px] text-amber-700 mt-1">Direct cash & minor desk expenses</span>
           </div>
@@ -502,7 +502,7 @@ export default function ExpenseManager({
               <Layers className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-blue-900">
-              CFA {secretaryExpenditure.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatCurrency(secretaryExpenditure)}
             </div>
             <span className="text-[10px] text-blue-700 mt-1">Front desk operational expenses</span>
           </div>
@@ -675,7 +675,7 @@ export default function ExpenseManager({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-black text-rose-700 font-mono text-sm">
-                      CFA {(exp.amount ?? 0).toFixed(2)}
+                      {formatCurrency(exp.amount ?? 0)}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="text-[11px] font-bold text-slate-800">{exp.recordedBy}</div>
@@ -958,7 +958,7 @@ export default function ExpenseManager({
                 <div className="p-3 bg-slate-50 rounded-xl">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Amount Paid</span>
                   <span className="text-lg font-black text-rose-600 font-mono">
-                    CFA {(selectedExpenseForView.amount ?? 0).toFixed(2)}
+                    {formatCurrency(selectedExpenseForView.amount ?? 0)}
                   </span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">

@@ -1,5 +1,6 @@
 import { Student, Teacher, StudentBill, PaymentRecord } from '../types';
 import { recordSecurityAuditLog } from './storageService';
+import { formatCurrency } from '../utils/financeUtils';
 
 export interface GlobalSearchResultItem {
   id: string;
@@ -166,10 +167,10 @@ export const searchGlobalRecords = (
         .map(b => ({
           id: `bill-${b.id}`,
           title: `Student Invoice: ${b.studentName}`,
-          subtitle: `Class: ${b.className} • Adm: ${b.admissionNo} • Term: ${b.term} • Outstanding: ${(b.balance || 0).toLocaleString()} CFA`,
+          subtitle: `Class: ${b.className} • Adm: ${b.admissionNo} • Term: ${b.term} • Outstanding: ${formatCurrency(b.balance || 0)}`,
           type: 'financial',
           categoryLabel: 'Financial Bill',
-          badgeText: `${(b.payable || b.subTotal || 0).toLocaleString()} CFA`,
+          badgeText: formatCurrency(b.payable || b.subTotal || 0),
           meta: b,
           actionModuleId: 'fee_bill_students',
           actionTab: 'bills'
@@ -192,7 +193,7 @@ export const searchGlobalRecords = (
           subtitle: `Student: ${p.studentName} (${p.admissionNo}) • Channel: ${p.method} • Date: ${p.date}`,
           type: 'financial',
           categoryLabel: 'Payment Receipt',
-          badgeText: `${(p.paid || p.amount || 0).toLocaleString()} CFA`,
+          badgeText: formatCurrency(p.paid || p.amount || 0),
           meta: p,
           actionModuleId: 'fee_payment_history',
           actionTab: 'collections'
@@ -210,7 +211,7 @@ export const searchGlobalRecords = (
         .map(t => ({
           id: `tariff-${t.id}`,
           title: `Fee Schedule: ${t.classTitle}`,
-          subtitle: `Dept: ${t.dept} • Base: ${t.baseTuition.toLocaleString()} CFA • Notes: ${t.notes || 'N/A'}`,
+          subtitle: `Dept: ${t.dept} • Base: ${formatCurrency(t.baseTuition)} • Notes: ${t.notes || 'N/A'}`,
           type: 'financial',
           categoryLabel: 'Class Fee Tariff',
           badgeText: 'Tariff',
