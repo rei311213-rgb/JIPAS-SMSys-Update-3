@@ -7,7 +7,7 @@ import SchoolCalendarView from './SchoolCalendarView';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import LanguageSwitcher from './common/LanguageSwitcher';
 import { subscribePaymentSettings, subscribeFeeSubmissions, saveFeeSubmission, saveNotification, subscribeClassBroadcasts } from '../services/dbService';
-import { INITIAL_PAYMENT_SETTINGS, getStoredStudents, saveStoredStudents, getStoredUsers, saveStoredUsers } from '../services/storageService';
+import { INITIAL_PAYMENT_SETTINGS, getStoredPaymentSettings, getStoredStudents, saveStoredStudents, getStoredUsers, saveStoredUsers } from '../services/storageService';
 import { 
   Award, CreditCard, Calendar, User, Printer, CheckCircle, Clock, BookOpen, 
   AlertCircle, FileText, CheckCircle2, TrendingUp, ShieldCheck, Download,
@@ -194,7 +194,7 @@ export default function StudentPortal({
   };
 
   // Fee Payment Submission states
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettingsConfig>(INITIAL_PAYMENT_SETTINGS);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettingsConfig>(() => getStoredPaymentSettings());
   const [feeSubmissions, setFeeSubmissions] = useState<FeeSubmissionItem[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);

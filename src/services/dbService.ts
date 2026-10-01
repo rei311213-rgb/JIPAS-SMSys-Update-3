@@ -368,6 +368,7 @@ export interface SchoolSettings {
   notifyParentsForMissingGrades?: boolean;
   missingGradeThreshold?: number;
   workingHours?: StaffWorkingHoursConfig;
+  updatedAt?: string;
 }
 
 export const DEFAULT_SETTINGS: SchoolSettings = INITIAL_SCHOOL_SETTINGS;
@@ -639,20 +640,55 @@ export function subscribeSettings(callback: (settings: SchoolSettings) => void) 
 }
 
 export function subscribeThemePalette(callback: (palette: ThemePaletteConfig) => void) {
-  callback(getStoredThemePalette());
+  const initial = getStoredThemePalette();
+  applyThemePaletteToDom(initial);
+  callback(initial);
+
   const handleSync = () => {
     const pal = getStoredThemePalette();
     applyThemePaletteToDom(pal);
     callback(pal);
   };
+
   if (typeof window !== 'undefined') {
     window.addEventListener('jipas_cloud_synced', handleSync);
+    window.addEventListener('storage', handleSync);
   }
-  return () => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('jipas_cloud_synced', handleSync);
-    }
-  };
+
+  try {
+    const docRef = doc(db, 'settings', 'theme_palette');
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as ThemePaletteConfig;
+        saveStoredThemePalette(data);
+        applyThemePaletteToDom(data);
+        callback(getStoredThemePalette());
+      } else {
+        callback(getStoredThemePalette());
+      }
+    }, (err) => {
+      if (err instanceof Error && err.message.includes('permission')) {
+        handleFirestoreError(err, OperationType.GET, 'settings');
+      }
+      console.warn('subscribeThemePalette offline notice:', err);
+      callback(getStoredThemePalette());
+    });
+
+    return () => {
+      unsub();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
+  } catch (e) {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
+  }
 }
 
 export async function saveClassFeeTariff(tariff: ClassFeeTariffItem) {
@@ -3071,13 +3107,24 @@ export async function purgeOperationalDatabase(
 // Payment Settings & Fee Submissions Realtime Listeners & Writers
 // -------------------------------------------------------------
 export function subscribePaymentSettings(callback: (settings: PaymentSettingsConfig) => void) {
+  callback(getStoredPaymentSettings());
+
+  const handleSync = () => {
+    callback(getStoredPaymentSettings());
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('jipas_cloud_synced', handleSync);
+    window.addEventListener('storage', handleSync);
+  }
+
   try {
     const docRef = doc(db, 'systemSettings', 'paymentSettings');
-    return onSnapshot(docRef, (docSnap) => {
+    const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as PaymentSettingsConfig;
         saveStoredPaymentSettings(data);
-        callback(data);
+        callback(getStoredPaymentSettings());
       } else {
         callback(getStoredPaymentSettings());
       }
@@ -3088,9 +3135,21 @@ export function subscribePaymentSettings(callback: (settings: PaymentSettingsCon
       console.warn('subscribePaymentSettings offline notice:', err);
       callback(getStoredPaymentSettings());
     });
+
+    return () => {
+      unsub();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
   } catch (e) {
-    callback(getStoredPaymentSettings());
-    return () => {};
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('jipas_cloud_synced', handleSync);
+        window.removeEventListener('storage', handleSync);
+      }
+    };
   }
 }
 

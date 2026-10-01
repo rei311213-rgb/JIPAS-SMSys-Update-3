@@ -41,6 +41,7 @@ import {
   subscribeTeachers,
   subscribeSettings,
   saveSettings,
+  getStoredSettings,
   getStoredDepartments,
   subscribeDepartments,
   getStoredStaffLoginUpdateRequests,
@@ -99,7 +100,10 @@ export default function SystemSettingsManager({
   onClearAllData
 }: SystemSettingsManagerProps) {
   const { t, language } = useI18n();
-  const [settings, setSettings] = useState<SystemSettingsConfig>(INITIAL_SYSTEM_SETTINGS);
+  const [settings, setSettings] = useState<SystemSettingsConfig>(() => ({
+    ...INITIAL_SYSTEM_SETTINGS,
+    ...getStoredSettings()
+  }));
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
 
   // System Reset & Factory Clear Data State

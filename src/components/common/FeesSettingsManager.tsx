@@ -28,7 +28,7 @@ import {
   deleteClassFeeTariff,
   getStoredClassFeeTariffs
 } from '../../services/dbService';
-import { INITIAL_PAYMENT_SETTINGS, INITIAL_CLASS_FEE_TARIFFS, getStoredFeeOptions, saveStoredFeeOptions } from '../../services/storageService';
+import { INITIAL_PAYMENT_SETTINGS, getStoredPaymentSettings, INITIAL_CLASS_FEE_TARIFFS, getStoredFeeOptions, saveStoredFeeOptions } from '../../services/storageService';
 import { addMoney } from '../../utils/financeUtils';
 import { applyTariffMatrixToAllBills } from '../../services/billingService';
 import { 
@@ -128,7 +128,7 @@ export default function FeesSettingsManager({
   const [feePolicy, setFeePolicy] = useState<FeePolicySettings>(initialFeePolicy || DEFAULT_FEE_POLICY);
 
   // Payment Settings & Fee Submissions Realtime States
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettingsConfig>(INITIAL_PAYMENT_SETTINGS);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettingsConfig>(() => getStoredPaymentSettings());
   const [feeSubmissions, setFeeSubmissions] = useState<FeeSubmissionItem[]>([]);
   const [queueSearch, setQueueSearch] = useState('');
   const [queueStatusFilter, setQueueStatusFilter] = useState<'All' | 'Pending Verification' | 'Approved' | 'Rejected'>('All');

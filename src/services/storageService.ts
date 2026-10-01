@@ -895,7 +895,7 @@ export function saveStoredThemePalette(palette: ThemePaletteConfig): void {
 export type { ThemePaletteConfig };
 
 export function applyThemePaletteToDom(palette: ThemePaletteConfig): void {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.style || typeof document.documentElement.style.setProperty !== 'function') return;
   const root = document.documentElement;
   const body = document.body;
 

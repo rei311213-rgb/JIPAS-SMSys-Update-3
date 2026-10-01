@@ -548,8 +548,8 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       saveStoredExpenses(remotePayload.expenses);
     }
 
-    // --- Settings, Theme Palette, Payment Settings Synchronization with Staleness Protection ---
-    if (remotePayload.settings && typeof remotePayload.settings === 'object') {
+    // --- Settings, Theme Palette, Payment Settings Synchronization with Staleness Protection & Validation ---
+    if (remotePayload.settings && typeof remotePayload.settings === 'object' && typeof remotePayload.settings.schoolName === 'string') {
       const localSettings = getStoredSettings();
       const remoteTime = remotePayload.settings.updatedAt ? new Date(remotePayload.settings.updatedAt).getTime() : 0;
       const localTime = localSettings.updatedAt ? new Date(localSettings.updatedAt).getTime() : 0;
@@ -558,7 +558,7 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       }
     }
 
-    if (remotePayload.themePalette && typeof remotePayload.themePalette === 'object') {
+    if (remotePayload.themePalette && typeof remotePayload.themePalette === 'object' && typeof remotePayload.themePalette.primaryColor === 'string') {
       const localPalette = getStoredThemePalette();
       const remoteTime = remotePayload.themePalette.updatedAt ? new Date(remotePayload.themePalette.updatedAt).getTime() : 0;
       const localTime = localPalette.updatedAt ? new Date(localPalette.updatedAt).getTime() : 0;
@@ -568,7 +568,7 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       }
     }
 
-    if (remotePayload.paymentSettings && typeof remotePayload.paymentSettings === 'object') {
+    if (remotePayload.paymentSettings && typeof remotePayload.paymentSettings === 'object' && Array.isArray(remotePayload.paymentSettings.methods)) {
       const localPay = getStoredPaymentSettings();
       const remoteTime = remotePayload.paymentSettings.updatedAt ? new Date(remotePayload.paymentSettings.updatedAt).getTime() : 0;
       const localTime = localPay.updatedAt ? new Date(localPay.updatedAt).getTime() : 0;
