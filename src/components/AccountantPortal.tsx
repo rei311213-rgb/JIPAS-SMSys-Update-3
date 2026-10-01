@@ -27,7 +27,7 @@ import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
 import { printContent } from '../utils/printUtils';
-import { computeStudentBill } from '../services/billingService';
+import { computeStudentBill, logTariffCorrection } from '../services/billingService';
 import { runDailyFeeAudit, isDailyAuditDueToday, getStoredAuditSummary, getFormattedTimestamp } from '../services/feeAuditService';
 import { 
   getStoredSecretarySummaries, 
@@ -37,7 +37,8 @@ import {
   getStoredExpenses,
   saveStoredExpenses,
   getStoredTeachers,
-  getStoredClassFeeTariffs
+  getStoredClassFeeTariffs,
+  recordSecurityAuditLog
 } from '../services/storageService';
 import { saveBill } from '../services/dbService';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
@@ -45,7 +46,7 @@ import {
   Calculator, CreditCard, DollarSign, Plus, FileText, 
   Search, Printer, Download, CheckCircle2, ArrowDownRight, ArrowLeft, Calendar, User, Check, Settings, AlertTriangle, Send,
   RotateCw, Filter, Phone, MessageSquare, Clock, Sparkles, Wallet, Receipt, Layers, ShieldCheck,
-  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale
+  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale, Eye, X
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { addMoney, formatCurrency, calculateBillBalance, CURRENCY } from '../utils/financeUtils';
@@ -490,6 +491,12 @@ export default function AccountantPortal({
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditToastMessage, setAuditToastMessage] = useState<string | null>(null);
   const [auditToast, setAuditToast] = useState<string | null>(null);
+
+  // Fee Audit Report Search & Filter states
+  const [feeAuditSearch, setFeeAuditSearch] = useState('');
+  const [feeAuditClassFilter, setFeeAuditClassFilter] = useState('All');
+  const [feeAuditStatusFilter, setFeeAuditStatusFilter] = useState('All');
+  const [selectedAuditRow, setSelectedAuditRow] = useState<any | null>(null);
 
   // Fast Follow-up Modal states
   const [activeFollowUpBill, setActiveFollowUpBill] = useState<StudentBill | null>(null);
@@ -1738,6 +1745,14 @@ export default function AccountantPortal({
           const expectedAmount = expectedBill.payable ?? expectedBill.subTotal ?? 0;
           const variance = Math.abs(currentAmount - expectedAmount);
           const isDiscrepant = !existingBill || variance > 0.01;
+          
+          let status: 'Missing Bill' | 'Tariff Mismatch' | 'Synced' = 'Synced';
+          if (!existingBill) {
+            status = 'Missing Bill';
+          } else if (variance > 0.01) {
+            status = 'Tariff Mismatch';
+          }
+
           return {
             student,
             existingBill,
@@ -1746,23 +1761,88 @@ export default function AccountantPortal({
             expectedAmount,
             variance,
             isDiscrepant,
-            status: !existingBill ? 'Missing Bill' : (variance > 0.01 ? 'Tariff Mismatch' : 'Synced')
+            status
           };
         });
 
+        // Unique classes for filter
+        const uniqueClasses = Array.from(new Set(students.map(s => s.className).filter(Boolean))).sort();
+
+        // Filtered audit rows based on user criteria
+        const filteredAuditRows = auditRows.filter(row => {
+          // Search query match
+          const searchLower = feeAuditSearch.toLowerCase().trim();
+          const matchesSearch = !searchLower || 
+            row.student.fullName.toLowerCase().includes(searchLower) ||
+            row.student.admissionNo.toLowerCase().includes(searchLower) ||
+            row.student.className.toLowerCase().includes(searchLower);
+
+          // Class filter match
+          const matchesClass = feeAuditClassFilter === 'All' || row.student.className === feeAuditClassFilter;
+
+          // Status filter match
+          let matchesStatus = true;
+          if (feeAuditStatusFilter === 'Discrepancies') {
+            matchesStatus = row.isDiscrepant;
+          } else if (feeAuditStatusFilter === 'Tariff Mismatch') {
+            matchesStatus = row.status === 'Tariff Mismatch';
+          } else if (feeAuditStatusFilter === 'Missing Bill') {
+            matchesStatus = row.status === 'Missing Bill';
+          } else if (feeAuditStatusFilter === 'Synced') {
+            matchesStatus = row.status === 'Synced';
+          }
+
+          return matchesSearch && matchesClass && matchesStatus;
+        });
+
+        const totalStudentsAudited = auditRows.length;
         const discrepantCount = auditRows.filter(r => r.isDiscrepant).length;
         const totalVariance = auditRows.reduce((sum, r) => sum + r.variance, 0);
+        const syncedCount = auditRows.filter(r => !r.isDiscrepant).length;
 
         const handleApplyCorrection = async (row: typeof auditRows[0]) => {
           try {
-            const corrected = row.expectedBill;
+            const actorName = currentUser?.name || 'Accountant User';
+            const actorRole = currentUser?.role || 'Accountant';
+            const corrected = {
+              ...row.expectedBill,
+              updatedAt: new Date().toISOString()
+            };
             await saveBill(corrected);
+
+            // Record Governance Audit Log
+            recordSecurityAuditLog({
+              performedBy: actorName,
+              performedByRole: actorRole,
+              actionType: 'Fee Tariff Correction',
+              details: `Corrected fee structure for ${row.student.fullName} (${row.student.admissionNo}). Old Billed: ${row.currentAmount} CFA, Master Expected: ${row.expectedAmount} CFA, Variance Before: ${row.variance} CFA, Variance After: 0 CFA. Source: Fee Audit Report.`,
+              resource: 'StudentBill',
+              resourceId: corrected.id,
+              severity: 'INFO'
+            });
+
+            // Dedicated Tariff Correction Collection Event Log
+            await logTariffCorrection({
+              studentId: row.student.id,
+              studentName: row.student.fullName,
+              admissionNo: row.student.admissionNo,
+              className: row.student.className,
+              originalTariff: { payable: row.currentAmount, items: row.existingBill?.items || [] },
+              correctedTariff: { payable: row.expectedAmount, items: row.expectedBill?.items || [] },
+              accountantId: currentUser?.id || 'ACCOUNTANT-01',
+              accountantName: actorName,
+              campus: row.student.campus
+            });
+
             const nextBills = bills.map(b => b.id === corrected.id ? corrected : b);
             if (!bills.some(b => b.id === corrected.id)) {
               nextBills.push(corrected);
             }
             if (onUpdateBills) onUpdateBills(nextBills);
-            setAuditToast(`✓ Fee structure for ${row.student.fullName} successfully corrected & synced to master tariff!`);
+            setAuditToast(`✓ Fee structure for ${row.student.fullName} (${row.student.admissionNo}) successfully corrected & synced to master tariff!`);
+            if (selectedAuditRow?.student?.id === row.student.id) {
+              setSelectedAuditRow(null);
+            }
             setTimeout(() => setAuditToast(null), 4000);
           } catch (err: any) {
             alert('Failed to apply correction: ' + err.message);
@@ -1772,18 +1852,49 @@ export default function AccountantPortal({
         const handleSyncAll = async () => {
           if (!window.confirm(`Are you sure you want to apply master tariff corrections to all ${discrepantCount} discrepant student accounts?`)) return;
           try {
+            const actorName = currentUser?.name || 'Accountant User';
+            const actorRole = currentUser?.role || 'Accountant';
             let nextBills = [...bills];
+            let correctedCount = 0;
+
             for (const row of auditRows.filter(r => r.isDiscrepant)) {
-              const corrected = row.expectedBill;
+              const corrected = {
+                ...row.expectedBill,
+                updatedAt: new Date().toISOString()
+              };
               await saveBill(corrected);
+
+              recordSecurityAuditLog({
+                performedBy: actorName,
+                performedByRole: actorRole,
+                actionType: 'Fee Tariff Correction',
+                details: `Bulk tariff correction for ${row.student.fullName} (${row.student.admissionNo}). Old: ${row.currentAmount} CFA, Master Expected: ${row.expectedAmount} CFA. Source: Fee Audit Report Bulk Sync.`,
+                resource: 'StudentBill',
+                resourceId: corrected.id,
+                severity: 'INFO'
+              });
+
+              await logTariffCorrection({
+                studentId: row.student.id,
+                studentName: row.student.fullName,
+                admissionNo: row.student.admissionNo,
+                className: row.student.className,
+                originalTariff: { payable: row.currentAmount, items: row.existingBill?.items || [] },
+                correctedTariff: { payable: row.expectedAmount, items: row.expectedBill?.items || [] },
+                accountantId: currentUser?.id || 'ACCOUNTANT-01',
+                accountantName: actorName,
+                campus: row.student.campus
+              });
+
               if (!nextBills.some(b => b.id === corrected.id)) {
                 nextBills.push(corrected);
               } else {
                 nextBills = nextBills.map(b => b.id === corrected.id ? corrected : b);
               }
+              correctedCount++;
             }
             if (onUpdateBills) onUpdateBills(nextBills);
-            setAuditToast(`✓ Successfully synced all ${discrepantCount} student accounts to the global class tariff matrix!`);
+            setAuditToast(`✓ Successfully synced all ${correctedCount} student accounts to the global class tariff matrix!`);
             setTimeout(() => setAuditToast(null), 4000);
           } catch (err: any) {
             alert('Bulk sync failed: ' + err.message);
@@ -1792,11 +1903,11 @@ export default function AccountantPortal({
 
         return (
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
-                    Financial Governance & Compliance
+                    Financial Governance & Tariff Compliance
                   </span>
                 </div>
                 <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -1808,7 +1919,7 @@ export default function AccountantPortal({
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {discrepantCount > 0 && (
                   <button
                     onClick={handleSyncAll}
@@ -1831,18 +1942,66 @@ export default function AccountantPortal({
             )}
 
             {/* Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-2xl font-black text-slate-900">{auditRows.length}</span>
-                <p className="text-xs uppercase font-bold text-slate-500 mt-1">Total Students Audited</p>
+                <span className="text-2xl font-black text-slate-900 font-mono tabular-nums">{totalStudentsAudited}</span>
+                <p className="text-xs uppercase font-bold text-slate-500 mt-1">Total Audited</p>
               </div>
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
-                <span className="text-2xl font-black text-amber-700">{discrepantCount}</span>
+                <span className="text-2xl font-black text-amber-700 font-mono tabular-nums">{discrepantCount}</span>
                 <p className="text-xs uppercase font-bold text-amber-600 mt-1">Discrepant Accounts</p>
               </div>
               <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200">
-                <span className="text-2xl font-black text-rose-700">{totalVariance.toLocaleString()} CFA</span>
+                <span className="text-2xl font-black text-rose-700 font-mono tabular-nums">{totalVariance.toLocaleString()} CFA</span>
                 <p className="text-xs uppercase font-bold text-rose-600 mt-1">Total Tariff Variance</p>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                <span className="text-2xl font-black text-emerald-700 font-mono tabular-nums">{syncedCount}</span>
+                <p className="text-xs uppercase font-bold text-emerald-600 mt-1">Synced to Master</p>
+              </div>
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search student name, admission no, class..."
+                  value={feeAuditSearch}
+                  onChange={(e) => setFeeAuditSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={feeAuditClassFilter}
+                    onChange={(e) => setFeeAuditClassFilter(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                  >
+                    <option value="All">All Classes</option>
+                    {uniqueClasses.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200">
+                  <select
+                    value={feeAuditStatusFilter}
+                    onChange={(e) => setFeeAuditStatusFilter(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="Discrepancies">Discrepancies Only</option>
+                    <option value="Tariff Mismatch">Tariff Mismatch</option>
+                    <option value="Missing Bill">Missing Bill</option>
+                    <option value="Synced">Synced Only</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1855,48 +2014,58 @@ export default function AccountantPortal({
                     <th className="p-3">Admission No</th>
                     <th className="p-3">Student Name</th>
                     <th className="p-3">Class Level</th>
-                    <th className="p-3 text-right">Current Billed (CFA)</th>
-                    <th className="p-3 text-right">Master Tariff Expected (CFA)</th>
+                    <th className="p-3 text-right">Student Billed (CFA)</th>
+                    <th className="p-3 text-right">Master Expected (CFA)</th>
                     <th className="p-3 text-right">Variance (CFA)</th>
                     <th className="p-3 text-center">Audit Status</th>
-                    <th className="p-3 text-center">Action</th>
+                    <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {auditRows.length === 0 ? (
+                  {filteredAuditRows.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="p-8 text-center text-slate-500 font-bold">
-                        No student records available for fee audit.
+                        No fee audit records match your current search/filter parameters.
                       </td>
                     </tr>
                   ) : (
-                    auditRows.map((row, idx) => (
+                    filteredAuditRows.map((row, idx) => (
                       <tr key={row.student.id} className={row.isDiscrepant ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-slate-50'}>
-                        <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
-                        <td className="p-3 font-mono font-bold text-indigo-700">{row.student.admissionNo}</td>
+                        <td className="p-3 font-mono text-slate-400 tabular-nums">{idx + 1}</td>
+                        <td className="p-3 font-mono font-bold text-indigo-700 tabular-nums">{row.student.admissionNo}</td>
                         <td className="p-3 font-bold text-slate-900">{row.student.fullName}</td>
                         <td className="p-3 text-slate-700">{row.student.className}</td>
-                        <td className="p-3 text-right font-mono font-bold text-slate-800">{row.currentAmount.toLocaleString()} CFA</td>
-                        <td className="p-3 text-right font-mono font-bold text-indigo-700">{row.expectedAmount.toLocaleString()} CFA</td>
-                        <td className="p-3 text-right font-mono font-bold text-rose-700">{row.variance.toLocaleString()} CFA</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-800 tabular-nums">{row.currentAmount.toLocaleString()} CFA</td>
+                        <td className="p-3 text-right font-mono font-bold text-indigo-700 tabular-nums">{row.expectedAmount.toLocaleString()} CFA</td>
+                        <td className="p-3 text-right font-mono font-bold text-rose-700 tabular-nums">{row.variance.toLocaleString()} CFA</td>
                         <td className="p-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            row.status === 'Synced' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            row.status === 'Synced' ? 'bg-emerald-100 text-emerald-800' :
+                            row.status === 'Missing Bill' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
                           }`}>
                             {row.status}
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          {row.isDiscrepant ? (
+                          <div className="flex items-center justify-center gap-2">
                             <button
-                              onClick={() => handleApplyCorrection(row)}
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                              onClick={() => setSelectedAuditRow(row)}
+                              title="Inspect breakdown"
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                             >
-                              Apply Correction
+                              <Eye className="w-3.5 h-3.5" /> Breakdown
                             </button>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">Synced</span>
-                          )}
+                            {row.isDiscrepant ? (
+                              <button
+                                onClick={() => handleApplyCorrection(row)}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                              >
+                                Apply Correction
+                              </button>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] font-semibold px-2">Synced</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1904,6 +2073,108 @@ export default function AccountantPortal({
                 </tbody>
               </table>
             </div>
+
+            {/* DETAILED BREAKDOWN INSPECTION MODAL */}
+            {selectedAuditRow && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="bg-white rounded-3xl shadow-xl border border-slate-200 max-w-2xl w-full p-6 space-y-5 animate-in fade-in zoom-in duration-150">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                        Fee Structure Audit Inspection
+                      </span>
+                      <h4 className="text-lg font-black text-slate-900 mt-1">
+                        {selectedAuditRow.student.fullName} ({selectedAuditRow.student.admissionNo})
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Class: <span className="font-bold text-slate-700">{selectedAuditRow.student.className}</span> | Status: <span className="font-bold text-indigo-600">{selectedAuditRow.status}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedAuditRow(null)}
+                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Current Billed Items */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h5 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                        Current Student-Assigned Bill Items
+                      </h5>
+                      {!selectedAuditRow.existingBill || !selectedAuditRow.existingBill.items || selectedAuditRow.existingBill.items.length === 0 ? (
+                        <p className="text-xs text-rose-600 italic font-semibold">No bill found for this student account.</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {selectedAuditRow.existingBill.items.map((item: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200/60 pb-1">
+                              <span className="text-slate-700 font-medium">{item.name}</span>
+                              <span className="font-mono font-bold text-slate-900 tabular-nums">{(item.amount || 0).toLocaleString()} CFA</span>
+                            </div>
+                          ))}
+                          <div className="flex items-center justify-between text-xs pt-2 font-black text-slate-900 border-t border-slate-300">
+                            <span>Current Total:</span>
+                            <span className="font-mono tabular-nums">{selectedAuditRow.currentAmount.toLocaleString()} CFA</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Master Tariff Items */}
+                    <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200 space-y-3">
+                      <h5 className="text-xs font-black uppercase text-indigo-950 tracking-wider">
+                        Master Class Tariff Expected Items
+                      </h5>
+                      <div className="space-y-1.5">
+                        {(selectedAuditRow.expectedBill.items || []).map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between text-xs border-b border-indigo-100 pb-1">
+                            <span className="text-indigo-950 font-medium">{item.name}</span>
+                            <span className="font-mono font-bold text-indigo-700 tabular-nums">{(item.amount || 0).toLocaleString()} CFA</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between text-xs pt-2 font-black text-indigo-950 border-t border-indigo-200">
+                          <span>Master Expected Total:</span>
+                          <span className="font-mono tabular-nums">{selectedAuditRow.expectedAmount.toLocaleString()} CFA</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Variance Banner */}
+                  <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between ${
+                    selectedAuditRow.isDiscrepant ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  }`}>
+                    <div>
+                      <p className="font-black">Tariff Matrix Variance: {selectedAuditRow.variance.toLocaleString()} CFA</p>
+                      <p className="text-[11px] opacity-90 mt-0.5">
+                        {selectedAuditRow.isDiscrepant 
+                          ? 'This account deviates from the canonical class tariff matrix. Click below to apply correction and align individual bill line items.'
+                          : 'This student bill strictly matches the master class tariff matrix.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => setSelectedAuditRow(null)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Close
+                    </button>
+                    {selectedAuditRow.isDiscrepant && (
+                      <button
+                        onClick={() => handleApplyCorrection(selectedAuditRow)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Apply Correction & Sync Bill
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}

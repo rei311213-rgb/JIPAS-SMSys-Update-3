@@ -29,6 +29,7 @@ import {
   DEFAULT_CEO_PRIVILEGES,
   BankDepositRecord,
   SecurityAuditLog,
+  TariffCorrectionLog,
   StudentAttendanceRecord,
   ExamScheduleItem,
   GraduatedBatch,
@@ -607,7 +608,11 @@ export function getStoredPaymentSettings(): PaymentSettingsConfig {
 }
 
 export function saveStoredPaymentSettings(settings: PaymentSettingsConfig): void {
-  writeStorage(STORAGE_KEYS.PAYMENT_SETTINGS, settings);
+  const withTime = {
+    ...settings,
+    updatedAt: settings.updatedAt || new Date().toISOString()
+  };
+  writeStorage(STORAGE_KEYS.PAYMENT_SETTINGS, withTime);
 }
 
 export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
@@ -647,7 +652,8 @@ export function saveStoredSettings(settings: Partial<SchoolSettings>): void {
   const current = getStoredSettings();
   const updated: SchoolSettings = {
     ...current,
-    ...settings
+    ...settings,
+    updatedAt: settings.updatedAt || new Date().toISOString()
   };
   writeStorage(STORAGE_KEYS.GENERAL_SETTINGS, updated);
 }
@@ -879,7 +885,11 @@ export function getStoredThemePalette(): ThemePaletteConfig {
 }
 
 export function saveStoredThemePalette(palette: ThemePaletteConfig): void {
-  writeStorage(STORAGE_KEYS.THEME_PALETTE, palette);
+  const withTime = {
+    ...palette,
+    updatedAt: palette.updatedAt || new Date().toISOString()
+  };
+  writeStorage(STORAGE_KEYS.THEME_PALETTE, withTime);
 }
 
 export type { ThemePaletteConfig };
@@ -1066,6 +1076,16 @@ export function recordSecurityAuditLog(log: Omit<SecurityAuditLog, 'id' | 'times
   }
 
   return newEntry;
+}
+
+export const INITIAL_TARIFF_CORRECTION_LOGS: TariffCorrectionLog[] = [];
+
+export function getStoredTariffCorrectionLogs(): TariffCorrectionLog[] {
+  return readStorage<TariffCorrectionLog[]>(STORAGE_KEYS.TARIFF_CORRECTION_LOGS, INITIAL_TARIFF_CORRECTION_LOGS);
+}
+
+export function saveStoredTariffCorrectionLogs(logs: TariffCorrectionLog[]): void {
+  writeStorage(STORAGE_KEYS.TARIFF_CORRECTION_LOGS, logs);
 }
 
 export const INITIAL_GRADUATED_BATCHES: GraduatedBatch[] = [

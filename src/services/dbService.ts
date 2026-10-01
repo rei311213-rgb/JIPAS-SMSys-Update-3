@@ -147,6 +147,7 @@ import {
   SubjectItem,
   UserAccountItem,
   ClassFeeTariffItem,
+  TariffCorrectionLog,
   PaymentSettingsConfig,
   FeeSubmissionItem,
   ClassReportBroadcast,
@@ -220,6 +221,8 @@ import {
   saveStoredSubjects,
   getStoredBills,
   saveStoredBills,
+  getStoredTariffCorrectionLogs,
+  saveStoredTariffCorrectionLogs,
   getStoredPayments,
   saveStoredPayments,
   getStoredReports,
@@ -1595,23 +1598,42 @@ export async function deletePayment(paymentId: string) {
 }
 
 export async function saveBill(bill: StudentBill) {
+  const stampedBill: StudentBill = {
+    ...bill,
+    updatedAt: bill.updatedAt || new Date().toISOString()
+  };
   return executeCloudWrite(
     'bills',
-    bill.id,
-    bill,
+    stampedBill.id,
+    stampedBill,
     () => {
       const current = getStoredBills();
-      const idx = current.findIndex(b => b.id === bill.id);
-      const updated = idx >= 0 ? current.map(b => b.id === bill.id ? bill : b) : [bill, ...current];
+      const idx = current.findIndex(b => b.id === stampedBill.id);
+      const updated = idx >= 0 ? current.map(b => b.id === stampedBill.id ? stampedBill : b) : [stampedBill, ...current];
       saveStoredBills(updated);
     },
     undefined,
-    `Bill: ${bill.studentName || bill.studentId} (#${bill.id})`
+    `Bill: ${stampedBill.studentName || stampedBill.studentId} (#${stampedBill.id})`
   );
 }
 
 export async function saveAllBills(billsList: StudentBill[]) {
   return commitInBatchChunks('bills', billsList, saveStoredBills);
+}
+
+export async function saveTariffCorrectionLog(log: TariffCorrectionLog) {
+  return executeCloudWrite(
+    'tariffCorrectionLogs',
+    log.id,
+    log,
+    () => {
+      const current = getStoredTariffCorrectionLogs();
+      const updated = [log, ...current.filter(l => l.id !== log.id)];
+      saveStoredTariffCorrectionLogs(updated);
+    },
+    undefined,
+    `Tariff Correction: Student #${log.studentId}`
+  );
 }
 
 export async function deleteBill(billId: string) {
@@ -2140,6 +2162,7 @@ export async function saveSettings(settings: Partial<SchoolSettings>) {
   try {
     const fullMerged = getStoredSettings();
     await setDoc(doc(db, 'settings', 'general'), sanitizeForFirestore(fullMerged), { merge: true });
+    scheduleCloudSyncPush();
   } catch (err) {
     if (err instanceof Error && err.message.includes('permission')) {
       handleFirestoreError(err, OperationType.WRITE, 'settings');
@@ -2160,7 +2183,7 @@ export async function saveThemePalette(palette: ThemePaletteConfig): Promise<voi
       updatedAt: new Date().toISOString()
     });
     await setDoc(doc(db, 'settings', 'theme_palette'), sanitized, { merge: true });
-    console.log('[dbService] Theme palette persisted to Firestore (settings/theme_palette)');
+    scheduleCloudSyncPush();
   } catch (err) {
     if (err instanceof Error && err.message.includes('permission')) {
       handleFirestoreError(err, OperationType.WRITE, 'settings');
@@ -3076,6 +3099,7 @@ export async function savePaymentSettings(settings: PaymentSettingsConfig): Prom
   try {
     const docRef = doc(db, 'systemSettings', 'paymentSettings');
     await setDoc(docRef, sanitizeForFirestore(settings));
+    scheduleCloudSyncPush();
   } catch (e) {
     if (e instanceof Error && e.message.includes('permission')) {
       handleFirestoreError(e, OperationType.WRITE, 'systemSettings');

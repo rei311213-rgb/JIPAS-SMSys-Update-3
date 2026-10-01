@@ -39,6 +39,15 @@ import {
   saveStoredExpenses,
   getStoredUsers,
   saveStoredUsers,
+  getStoredSettings,
+  saveStoredSettings,
+  getStoredThemePalette,
+  saveStoredThemePalette,
+  getStoredPaymentSettings,
+  saveStoredPaymentSettings,
+  getStoredTariffCorrectionLogs,
+  saveStoredTariffCorrectionLogs,
+  applyThemePaletteToDom,
   isDemoDataCleared,
   setDemoDataCleared
 } from './storageService';
@@ -278,7 +287,11 @@ export async function pushToSupabaseCloud(): Promise<boolean> {
       classFeeTariffs: getStoredClassFeeTariffs(),
       classBroadcasts: getStoredClassBroadcasts(),
       expenses: getStoredExpenses(),
-      users: getStoredUsers()
+      users: getStoredUsers(),
+      settings: getStoredSettings(),
+      themePalette: getStoredThemePalette(),
+      paymentSettings: getStoredPaymentSettings(),
+      tariffCorrectionLogs: getStoredTariffCorrectionLogs()
     };
 
     const serialized = JSON.stringify(payload);
@@ -420,14 +433,23 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       return false;
     };
 
-    // --- Merge Bills ---
+    // --- Merge Bills (Timestamp-aware & Student-alive filtering) ---
     if (Array.isArray(remotePayload.bills)) {
       const localBills = getStoredBills().filter(b => isStudentAlive(b.studentId, b.admissionNo));
       const map = new Map<string, any>();
       localBills.forEach(b => { if (b.id) map.set(b.id, b); });
       remotePayload.bills.forEach((rb: any) => {
-        if (rb && rb.id && !map.has(rb.id) && isStudentAlive(rb.studentId, rb.admissionNo)) {
-          map.set(rb.id, rb);
+        if (rb && rb.id && isStudentAlive(rb.studentId, rb.admissionNo)) {
+          const local = map.get(rb.id);
+          if (!local) {
+            map.set(rb.id, rb);
+          } else {
+            const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+            const remoteTime = rb.updatedAt ? new Date(rb.updatedAt).getTime() : 0;
+            if (remoteTime > localTime) {
+              map.set(rb.id, { ...local, ...rb });
+            }
+          }
         }
       });
       saveStoredBills(Array.from(map.values()));
@@ -525,6 +547,35 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
     if (Array.isArray(remotePayload.expenses) && remotePayload.expenses.length > 0) {
       saveStoredExpenses(remotePayload.expenses);
     }
+
+    // --- Settings, Theme Palette, Payment Settings Synchronization with Staleness Protection ---
+    if (remotePayload.settings && typeof remotePayload.settings === 'object') {
+      const localSettings = getStoredSettings();
+      const remoteTime = remotePayload.settings.updatedAt ? new Date(remotePayload.settings.updatedAt).getTime() : 0;
+      const localTime = localSettings.updatedAt ? new Date(localSettings.updatedAt).getTime() : 0;
+      if (remoteTime >= localTime || !localSettings.updatedAt) {
+        saveStoredSettings(remotePayload.settings);
+      }
+    }
+
+    if (remotePayload.themePalette && typeof remotePayload.themePalette === 'object') {
+      const localPalette = getStoredThemePalette();
+      const remoteTime = remotePayload.themePalette.updatedAt ? new Date(remotePayload.themePalette.updatedAt).getTime() : 0;
+      const localTime = localPalette.updatedAt ? new Date(localPalette.updatedAt).getTime() : 0;
+      if (remoteTime >= localTime || !localPalette.updatedAt) {
+        saveStoredThemePalette(remotePayload.themePalette);
+        applyThemePaletteToDom(remotePayload.themePalette);
+      }
+    }
+
+    if (remotePayload.paymentSettings && typeof remotePayload.paymentSettings === 'object') {
+      const localPay = getStoredPaymentSettings();
+      const remoteTime = remotePayload.paymentSettings.updatedAt ? new Date(remotePayload.paymentSettings.updatedAt).getTime() : 0;
+      const localTime = localPay.updatedAt ? new Date(localPay.updatedAt).getTime() : 0;
+      if (remoteTime >= localTime || !localPay.updatedAt) {
+        saveStoredPaymentSettings(remotePayload.paymentSettings);
+      }
+    }
     if (Array.isArray(remotePayload.users) && remotePayload.users.length > 0) {
       const localUsers = getStoredUsers();
       const map = new Map<string, any>();
@@ -533,6 +584,16 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
         if (ru && ru.id && !map.has(ru.id)) map.set(ru.id, ru);
       });
       saveStoredUsers(Array.from(map.values()));
+    }
+
+    if (Array.isArray(remotePayload.tariffCorrectionLogs) && remotePayload.tariffCorrectionLogs.length > 0) {
+      const localLogs = getStoredTariffCorrectionLogs();
+      const map = new Map<string, any>();
+      localLogs.forEach(l => { if (l.id) map.set(l.id, l); });
+      remotePayload.tariffCorrectionLogs.forEach((rl: any) => {
+        if (rl && rl.id && !map.has(rl.id)) map.set(rl.id, rl);
+      });
+      saveStoredTariffCorrectionLogs(Array.from(map.values()));
     }
 
     if (typeof window !== 'undefined') {

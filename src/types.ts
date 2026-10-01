@@ -485,6 +485,7 @@ export interface StudentBill {
   status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid';
   dueDate?: string;
   dateIssued?: string;
+  updatedAt?: string;
   history?: Array<{
     type: string;
     amount?: number;
@@ -577,6 +578,30 @@ export interface SecurityAuditLog {
   severity?: 'INFO' | 'WARNING' | 'CRITICAL' | 'ALERT';
   ipAddress?: string;
   metadata?: Record<string, any>;
+}
+
+export interface TariffCorrectionLog {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  admissionNo?: string;
+  className?: string;
+  originalTariff: {
+    payable?: number;
+    subTotal?: number;
+    items?: Array<{ name: string; amount: number }>;
+    [key: string]: any;
+  } | number | string;
+  correctedTariff: {
+    payable?: number;
+    subTotal?: number;
+    items?: Array<{ name: string; amount: number }>;
+    [key: string]: any;
+  } | number | string;
+  accountantId: string;
+  accountantName?: string;
+  timestamp: string;
+  campus?: string;
 }
 
 export interface CalendarEvent {
@@ -1068,6 +1093,7 @@ export interface SchoolSettings {
   notifyParentsForMissingGrades?: boolean;
   missingGradeThreshold?: number;
   workingHours?: StaffWorkingHoursConfig;
+  updatedAt?: string;
 }
 
 export interface ThemePaletteConfig {
@@ -1365,6 +1391,7 @@ export interface PaymentSettingsConfig {
   requireProofReference: boolean;
   supportPhone: string;
   supportEmail: string;
+  updatedAt?: string;
 }
 
 export interface ThermalPrinterSettingsConfig {

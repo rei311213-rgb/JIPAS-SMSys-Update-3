@@ -1,6 +1,6 @@
-import { Student, StudentBill, ClassFeeTariffItem } from '../types';
-import { getStoredClassFeeTariffs, getStoredFeeOptions, getStoredStudents, getStoredBills, saveStoredBills } from './storageService';
-import { saveAllBills } from './dbService';
+import { Student, StudentBill, ClassFeeTariffItem, TariffCorrectionLog } from '../types';
+import { getStoredClassFeeTariffs, getStoredFeeOptions, getStoredStudents, getStoredBills, saveStoredBills, getStoredTariffCorrectionLogs } from './storageService';
+import { saveAllBills, saveTariffCorrectionLog } from './dbService';
 
 /**
  * Normalizes class names for robust matching (e.g. "JHS 1" -> "jhs 1", "JHS" -> "jhs").
@@ -228,4 +228,57 @@ export async function applyTariffMatrixToAllBills(
   }
 
   return { updatedCount: newBills.length, bills: finalBills };
+}
+
+export interface LogTariffCorrectionParams {
+  studentId: string;
+  originalTariff: {
+    payable?: number;
+    subTotal?: number;
+    items?: Array<{ name: string; amount: number }>;
+    [key: string]: any;
+  } | number | string;
+  correctedTariff: {
+    payable?: number;
+    subTotal?: number;
+    items?: Array<{ name: string; amount: number }>;
+    [key: string]: any;
+  } | number | string;
+  accountantId: string;
+  accountantName?: string;
+  studentName?: string;
+  admissionNo?: string;
+  className?: string;
+  campus?: string;
+}
+
+/**
+ * Lightweight logging mechanism in billingService to record 'tariff correction' events
+ * in a dedicated collection, capturing student ID, original tariff, corrected tariff,
+ * and the accountant's user ID for audit trails.
+ */
+export async function logTariffCorrection(params: LogTariffCorrectionParams): Promise<TariffCorrectionLog> {
+  const logEntry: TariffCorrectionLog = {
+    id: `TCL-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    studentId: params.studentId,
+    studentName: params.studentName,
+    admissionNo: params.admissionNo,
+    className: params.className,
+    originalTariff: params.originalTariff,
+    correctedTariff: params.correctedTariff,
+    accountantId: params.accountantId,
+    accountantName: params.accountantName,
+    timestamp: new Date().toISOString(),
+    campus: params.campus || 'JIPAS 1'
+  };
+
+  await saveTariffCorrectionLog(logEntry);
+  return logEntry;
+}
+
+/**
+ * Retrieves all recorded tariff correction audit log entries.
+ */
+export function getTariffCorrectionLogs(): TariffCorrectionLog[] {
+  return getStoredTariffCorrectionLogs();
 }

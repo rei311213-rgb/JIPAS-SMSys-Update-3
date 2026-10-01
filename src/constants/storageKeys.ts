@@ -40,5 +40,6 @@ export const STORAGE_KEYS = {
   DEMO_CLEARED: 'jipas_demo_data_cleared',
   THEME_PALETTE: 'jipas_global_theme_palette',
   THERMAL_PRINTER_SETTINGS: 'jipas_thermal_printer_settings_config',
-  GENERAL_SETTINGS: 'jipas_general_settings'
+  GENERAL_SETTINGS: 'jipas_general_settings',
+  TARIFF_CORRECTION_LOGS: 'jipas_tariff_correction_logs'
 } as const;
