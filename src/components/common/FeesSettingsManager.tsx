@@ -28,8 +28,9 @@ import {
   deleteClassFeeTariff,
   getStoredClassFeeTariffs
 } from '../../services/dbService';
-import { INITIAL_PAYMENT_SETTINGS, INITIAL_CLASS_FEE_TARIFFS } from '../../services/storageService';
+import { INITIAL_PAYMENT_SETTINGS, INITIAL_CLASS_FEE_TARIFFS, getStoredFeeOptions, saveStoredFeeOptions } from '../../services/storageService';
 import { addMoney } from '../../utils/financeUtils';
+import { applyTariffMatrixToAllBills } from '../../services/billingService';
 import { 
   Plus, 
   Edit3, 
@@ -122,7 +123,7 @@ export default function FeesSettingsManager({
       setActiveTab(initialTab);
     }
   }, [initialTab]);
-  const [feeOptions, setFeeOptions] = useState<FeeOptionItem[]>(initialFeeOptions || INITIAL_FEE_OPTIONS_DATA);
+  const [feeOptions, setFeeOptions] = useState<FeeOptionItem[]>(() => (initialFeeOptions && initialFeeOptions.length > 0) ? initialFeeOptions : getStoredFeeOptions());
   const [feeCategories, setFeeCategories] = useState<FeeDescriptionCategory[]>(initialFeeCategories || INITIAL_FEE_DESCRIPTION_CATEGORIES);
   const [feePolicy, setFeePolicy] = useState<FeePolicySettings>(initialFeePolicy || DEFAULT_FEE_POLICY);
 
@@ -199,9 +200,17 @@ export default function FeesSettingsManager({
     };
   }, []);
 
+  const activeStudentIds = useMemo(() => new Set((students || []).map(s => s.id)), [students]);
+  const activeAdmissionNos = useMemo(() => new Set((students || []).map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
+
+  const activeSubmissions = useMemo(() => {
+    if (!students || students.length === 0) return feeSubmissions;
+    return feeSubmissions.filter(s => activeStudentIds.has(s.studentId) || (s.admissionNo && activeAdmissionNos.has(s.admissionNo.toLowerCase().trim())));
+  }, [feeSubmissions, activeStudentIds, activeAdmissionNos]);
+
   const pendingCount = useMemo(() => {
-    return feeSubmissions.filter(s => s.status === 'Pending Verification').length;
-  }, [feeSubmissions]);
+    return activeSubmissions.filter(s => s.status === 'Pending Verification').length;
+  }, [activeSubmissions]);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -286,8 +295,10 @@ export default function FeesSettingsManager({
     const updated = await saveClassFeeTariff(tariffItem);
     setClassTariffs(updated);
     if (onUpdateClassTariffs) onUpdateClassTariffs(updated);
+    // Automatically apply and synchronize updated tariff schedule to all student bills
+    await applyTariffMatrixToAllBills(updated).catch(console.warn);
     setShowTariffModal(false);
-    showNotification(editingTariff ? `Class Tariff for "${tariffItem.classTitle}" updated successfully!` : `New Class Tariff for "${tariffItem.classTitle}" created successfully!`);
+    showNotification(editingTariff ? `Class Tariff for "${tariffItem.classTitle}" updated and synced to student bills!` : `New Class Tariff for "${tariffItem.classTitle}" created and applied to student bills!`);
   };
 
   const handleDeleteTariffHandler = async (tariff: ClassFeeTariffItem) => {
@@ -295,7 +306,8 @@ export default function FeesSettingsManager({
       const updatedList = await deleteClassFeeTariff(tariff.id);
       setClassTariffs(updatedList);
       if (onUpdateClassTariffs) onUpdateClassTariffs(updatedList);
-      showNotification(`Tariff schedule for ${tariff.classTitle} removed.`);
+      await applyTariffMatrixToAllBills(updatedList).catch(console.warn);
+      showNotification(`Tariff schedule for ${tariff.classTitle} removed and bills updated.`);
     }
   };
 
@@ -310,15 +322,18 @@ export default function FeesSettingsManager({
       const updatedList = await saveClassFeeTariff(updatedTariff);
       setClassTariffs(updatedList);
       if (onUpdateClassTariffs) onUpdateClassTariffs(updatedList);
+      await applyTariffMatrixToAllBills(updatedList).catch(console.warn);
     } catch (err) {
       console.error("Failed to update tariff inline:", err);
     }
   };
 
   // Sync state upward
-  const triggerUpdateFeeOptions = (updated: FeeOptionItem[]) => {
+  const triggerUpdateFeeOptions = async (updated: FeeOptionItem[]) => {
     setFeeOptions(updated);
+    saveStoredFeeOptions(updated);
     if (onUpdateFeeOptions) onUpdateFeeOptions(updated);
+    await applyTariffMatrixToAllBills().catch(console.warn);
   };
 
   const triggerUpdateCategories = (updated: FeeDescriptionCategory[]) => {
@@ -664,7 +679,7 @@ export default function FeesSettingsManager({
 
   // Filtered Fee Submissions
   const filteredSubmissions = useMemo(() => {
-    return feeSubmissions.filter(s => {
+    return activeSubmissions.filter(s => {
       const matchesSearch = s.studentName.toLowerCase().includes(queueSearch.toLowerCase()) ||
         s.admissionNo.toLowerCase().includes(queueSearch.toLowerCase()) ||
         s.transactionId.toLowerCase().includes(queueSearch.toLowerCase()) ||
@@ -673,7 +688,7 @@ export default function FeesSettingsManager({
       const matchesStatus = queueStatusFilter === 'All' || s.status === queueStatusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [feeSubmissions, queueSearch, queueStatusFilter]);
+  }, [activeSubmissions, queueSearch, queueStatusFilter]);
 
   return (
     <div className="space-y-6">
@@ -726,15 +741,21 @@ export default function FeesSettingsManager({
             <Percent className="w-3.5 h-3.5 text-cyan-400" /> Batch Adjust
           </button>
 
-          {onApplyToBills && (
-            <button
-              onClick={() => onApplyToBills(feeOptions)}
-              title="Recalculate and synchronize all student bills"
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Sync with Bills
-            </button>
-          )}
+          <button
+            onClick={async () => {
+              try {
+                await applyTariffMatrixToAllBills(classTariffs);
+                if (onApplyToBills) onApplyToBills(feeOptions);
+                showNotification('Fee matrix successfully synchronized to all student bills!');
+              } catch (e) {
+                console.error('Sync with bills error:', e);
+              }
+            }}
+            title="Recalculate and synchronize all student bills"
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Sync with Bills
+          </button>
         </div>
       </div>
 
@@ -1398,14 +1419,20 @@ export default function FeesSettingsManager({
                 <Plus className="w-4 h-4 text-emerald-400" /> Add New Class Tariff
               </button>
 
-              {onApplyToBills && (
-                <button
-                  onClick={() => onApplyToBills(feeOptions)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Apply Matrix to All Student Bills
-                </button>
-              )}
+              <button
+                onClick={async () => {
+                  try {
+                    await applyTariffMatrixToAllBills(classTariffs);
+                    if (onApplyToBills) onApplyToBills(feeOptions);
+                    showNotification('Fee matrix successfully applied to all student bills!');
+                  } catch (e) {
+                    console.error('Apply matrix error:', e);
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Apply Matrix to All Student Bills
+              </button>
             </div>
           </div>
 

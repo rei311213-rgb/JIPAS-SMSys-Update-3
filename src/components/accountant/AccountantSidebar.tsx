@@ -24,7 +24,8 @@ export type AccountantTabType =
   | 'staff-attendance'
   | 'dept-financial-summary' 
   | 'financial-reconciliation'
-  | 'audit-trail';
+  | 'audit-trail'
+  | 'fee-audit-report';
 
 interface AccountantSidebarProps {
   activeTab: AccountantTabType;
@@ -214,6 +215,14 @@ export default function AccountantSidebar({
       sublabel: 'Immutable log of adjustments',
       icon: ShieldCheck,
       badge: 'Governance',
+      badgeColor: 'bg-indigo-600 text-white'
+    },
+    {
+      id: 'fee-audit-report',
+      label: 'Fee Audit Report',
+      sublabel: 'Master tariff matrix sync',
+      icon: DollarSign,
+      badge: 'Matrix',
       badgeColor: 'bg-indigo-600 text-white'
     }
   ];

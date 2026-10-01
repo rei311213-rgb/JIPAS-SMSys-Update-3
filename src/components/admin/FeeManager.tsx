@@ -21,6 +21,7 @@ import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
 import { INITIAL_FEE_OPTIONS_DATA } from '../../data/feeDescriptions';
 import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses } from '../../services/storageService';
 import { subscribeRefunds, saveRefund, deleteRefund, savePayment, saveBill } from '../../services/dbService';
+import { applyTariffMatrixToAllBills, computeStudentBill } from '../../services/billingService';
 import { printContent } from '../../utils/printUtils';
 
 interface FeeManagerProps {
@@ -375,11 +376,13 @@ export default function FeeManager({
 
   const handleStudentSelect = (studentId: string) => {
     setCollectStudentId(studentId);
-    const bill = billsList.find(b => b.studentId === studentId || b.admissionNo === students.find(s => s.id === studentId)?.admissionNo);
+    const targetStudent = students.find(s => s.id === studentId);
+    const bill = billsList.find(b => b.studentId === studentId || b.admissionNo === targetStudent?.admissionNo);
     if (bill && bill.balance > 0) {
       setCollectAmount(bill.balance);
     } else {
-      setCollectAmount(715);
+      const computed = targetStudent ? computeStudentBill(targetStudent, classTariffs) : null;
+      setCollectAmount(computed?.balance ?? computed?.payable ?? 0);
     }
   };
 
@@ -542,10 +545,17 @@ export default function FeeManager({
     setTimeout(() => setCollectToast(false), 4000);
   };
 
-  // Generate All Bills
-  const handleGenerateBatchBills = () => {
-    setBillGenToast(true);
-    setTimeout(() => setBillGenToast(false), 4000);
+  // Generate All Bills based on Class-Wise Fee Tariff Matrix
+  const handleGenerateBatchBills = async () => {
+    try {
+      const res = await applyTariffMatrixToAllBills(classTariffs, selectedBillingClass);
+      setBillsList(res.bills);
+      if (onUpdateBills) onUpdateBills(res.bills);
+      setBillGenToast(true);
+      setTimeout(() => setBillGenToast(false), 4000);
+    } catch (err) {
+      console.error('handleGenerateBatchBills error:', err);
+    }
   };
 
   // Save Income / Expense
@@ -1036,7 +1046,8 @@ export default function FeeManager({
                   {filteredStudentsForPayment.map(st => {
                     const studentBill = billsList.find(b => b.studentId === st.id || b.admissionNo === st.admissionNo);
                     const isSelected = st.id === selectedStudent?.id;
-                    const balance = studentBill ? studentBill.balance : 715;
+                    const computed = studentBill || computeStudentBill(st, classTariffs);
+                    const balance = computed.balance;
                     const hasArrears = balance > 0;
 
                     return (

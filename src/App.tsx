@@ -129,6 +129,7 @@ import {
 } from './services/dbService';
 import { initLocalForageStore, idbClear } from './services/idbService';
 import { initBackgroundSync, subscribeSupabaseRealtime, pullFromSupabaseCloud, pushToSupabaseCloud } from './services/syncService';
+import { computeStudentBill, applyTariffMatrixToAllBills } from './services/billingService';
 
 export type AuthBootstrapState = 
   | 'AUTH_LOADING'
@@ -357,11 +358,12 @@ export default function App() {
               await forceSyncCollections(profile.role);
               setDbSynced(true);
               // Automatically purge any stale orphaned records from deleted students
-              purgeOrphanedStudentData().then(() => {
-                setBills(getStoredBills());
-                setReports(getStoredReports());
-                setPayments(getStoredPayments());
-              }).catch(console.warn);
+              await purgeOrphanedStudentData().catch(console.warn);
+              // Auto-recalculate active student bills to match configured class fee tariffs matrix
+              const tariffRes = await applyTariffMatrixToAllBills().catch(console.warn);
+              setBills(getStoredBills());
+              setReports(getStoredReports());
+              setPayments(getStoredPayments());
             } catch (syncErr) {
               console.warn('[App Bootstrap] Initial sync notice:', syncErr);
             }
@@ -673,31 +675,8 @@ export default function App() {
       // 1. Wait for Firestore persistence promise to resolve first (wait-for-completion)
       await saveStudent(formattedStudent);
 
-      const newBill: StudentBill = {
-        id: `bill-${Date.now()}`,
-        studentId: formattedStudent.id,
-        studentName: formattedStudent.fullName,
-        admissionNo: formattedStudent.admissionNo,
-        className: formattedStudent.className,
-        academicYear: formattedStudent.academicYear || '2025-2026',
-        term: formattedStudent.term || 'Third Term',
-        items: [
-          { name: 'Tuition Fee', amount: 350 },
-          { name: 'Classes Fee', amount: 50 },
-          { name: 'Bus-User Fee', amount: 200 },
-          { name: 'Printing Fee', amount: 20 },
-          { name: 'PTA Dues', amount: 50 },
-          { name: 'Sports Levy', amount: 25 },
-          { name: 'Clinic Levy', amount: 20 }
-        ],
-        subTotal: 715,
-        arrears: 0,
-        discount: 0,
-        payable: 715,
-        paid: 0,
-        balance: 715,
-        status: 'Unpaid'
-      };
+      // 2. Compute bill dynamically from the configured class-wise fee tariff matrix
+      const newBill = computeStudentBill(formattedStudent, getStoredClassFeeTariffs());
       await saveBill(newBill);
 
       const newReport: TermReport = {

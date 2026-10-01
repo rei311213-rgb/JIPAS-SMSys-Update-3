@@ -28,8 +28,10 @@ import {
   saveAllBills,
   getStoredBills,
   saveAllReports,
-  getStoredReports
+  getStoredReports,
+  getStoredClassFeeTariffs
 } from '../../services/dbService';
+import { computeStudentBill } from '../../services/billingService';
 
 interface BulkStudentUploadModalProps {
   isOpen: boolean;
@@ -362,32 +364,8 @@ export default function BulkStudentUploadModal({
             : 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=200&auto=format&fit=crop&q=80'
         };
 
-        // 1. Initial Student Bill
-        const initialBill: StudentBill = {
-          id: `bill-bulk-${Date.now()}-${i}`,
-          studentId: studentData.id,
-          studentName: studentData.fullName,
-          admissionNo: studentData.admissionNo,
-          className: studentData.className,
-          academicYear: studentData.academicYear || '2025-2026',
-          term: studentData.term || 'Third Term',
-          items: [
-            { name: 'Tuition Fee', amount: 350 },
-            { name: 'Classes Fee', amount: 50 },
-            { name: 'Bus-User Fee', amount: 200 },
-            { name: 'Printing Fee', amount: 20 },
-            { name: 'PTA Dues', amount: 50 },
-            { name: 'Sports Levy', amount: 25 },
-            { name: 'Clinic Levy', amount: 20 }
-          ],
-          subTotal: 715,
-          arrears: 0,
-          discount: 0,
-          payable: 715,
-          paid: 0,
-          balance: 715,
-          status: 'Unpaid'
-        };
+        // 1. Initial Student Bill (computed dynamically from configured fee tariffs)
+        const initialBill: StudentBill = computeStudentBill(studentData, getStoredClassFeeTariffs());
 
         // 2. Initial Terminal Report
         const initialReport: TermReport = {

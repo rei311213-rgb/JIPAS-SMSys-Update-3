@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   CALENDAR_EVENTS: 'jipas_calendar_events',
   NOTIFICATIONS: 'jipas_notifications_records',
   PAYMENT_SETTINGS: 'jipas_payment_settings_config',
+  FEE_OPTIONS: 'jipas_fee_options_tariffs',
   FEE_SUBMISSIONS: 'jipas_fee_submissions_queue',
   CLASS_FEE_TARIFFS: 'jipas_class_fee_tariffs_matrix',
   CLASS_BROADCASTS: 'jipas_class_report_broadcasts',

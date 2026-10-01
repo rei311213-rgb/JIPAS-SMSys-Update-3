@@ -40,8 +40,10 @@ import {
   TransportRouteItem,
   BoardingRoomItem,
   ThermalPrinterSettingsConfig,
-  SchoolSettings
+  SchoolSettings,
+  FeeOptionItem
 } from '../types';
+import { INITIAL_FEE_OPTIONS_DATA } from '../data/feeDescriptions';
 import { 
   INITIAL_STUDENTS, 
   INITIAL_TEACHERS, 
@@ -665,6 +667,19 @@ export function getStoredThermalPrinterSettings(): ThermalPrinterSettingsConfig 
 
 export function saveStoredThermalPrinterSettings(settings: ThermalPrinterSettingsConfig): void {
   writeStorage(STORAGE_KEYS.THERMAL_PRINTER_SETTINGS, settings);
+}
+
+export function getStoredFeeOptions(): FeeOptionItem[] {
+  const options = readStorage<FeeOptionItem[]>(STORAGE_KEYS.FEE_OPTIONS, INITIAL_FEE_OPTIONS_DATA);
+  if (!options || options.length === 0) {
+    saveStoredFeeOptions(INITIAL_FEE_OPTIONS_DATA);
+    return INITIAL_FEE_OPTIONS_DATA;
+  }
+  return options;
+}
+
+export function saveStoredFeeOptions(options: FeeOptionItem[]): void {
+  writeStorage(STORAGE_KEYS.FEE_OPTIONS, options);
 }
 
 export function getStoredFeeSubmissions(): FeeSubmissionItem[] {
