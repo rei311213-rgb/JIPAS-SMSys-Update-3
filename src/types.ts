@@ -1763,5 +1763,151 @@ export interface ProductionLaunchGateReport {
   concurrencyMetrics?: ConcurrencyTestMetrics[];
 }
 
+// =========================================================================
+// PHASE 43 CROSS-DEVICE SYNCHRONIZATION & RECONCILIATION TYPES
+// =========================================================================
+
+export type SyncSessionStatus =
+  | 'INITIALIZING'
+  | 'AUTHENTICATING'
+  | 'REMOTE_BASELINE_LOADING'
+  | 'REMOTE_BASELINE_ESTABLISHED'
+  | 'RECONCILING'
+  | 'READY'
+  | 'OFFLINE'
+  | 'CONFLICT'
+  | 'ERROR';
+
+export type SyncOperationOrigin =
+  | 'LOCAL_EDIT'
+  | 'REMOTE_HYDRATION'
+  | 'REMOTE_REALTIME'
+  | 'RECOVERY'
+  | 'IMPORT';
+
+export interface SyncClientIdentity {
+  deviceId: string;
+  sessionId: string;
+  createdAt: string;
+}
+
+export interface PendingMutation<T = any> {
+  mutationId: string;
+  deviceId: string;
+  sessionId: string;
+  entityType: string;
+  entityId: string;
+  operation: 'CREATE' | 'UPDATE' | 'DELETE';
+  payload: T;
+  baseRevision?: number;
+  baseUpdatedAt?: string;
+  createdAt: string;
+  status: 'PENDING' | 'PROCESSING' | 'SYNCED' | 'CONFLICT' | 'FAILED';
+  errorMessage?: string;
+}
+
+export interface SyncDiagnostics {
+  deviceId: string;
+  sessionId: string;
+  status: SyncSessionStatus;
+  lastRemoteRevision: number;
+  lastLocalMutationAt?: string;
+  pendingMutationsCount: number;
+  lastSuccessfulPullAt?: string;
+  lastSuccessfulPushAt?: string;
+  lastConflictAt?: string;
+  lastError?: string;
+  acknowledgedMutationsCount?: number;
+  rejectedMutationsCount?: number;
+  staleEventsCount?: number;
+  duplicateEventsCount?: number;
+}
+
+// =========================================================================
+// PHASE 44 MUTATION JOURNALING, CONFLICT RESOLUTION & CONVERGENCE TYPES
+// =========================================================================
+
+export type JournaledMutationStatus = 
+  | 'PENDING'
+  | 'IN_FLIGHT'
+  | 'ACKNOWLEDGED'
+  | 'CONFLICT'
+  | 'RETRY'
+  | 'FAILED';
+
+export type ConflictCategory =
+  | 'NO_CONFLICT'
+  | 'SAFE_TO_APPLY'
+  | 'STALE_LOCAL'
+  | 'STALE_REMOTE'
+  | 'CONCURRENT_UPDATE'
+  | 'DELETE_VS_UPDATE'
+  | 'UPDATE_VS_DELETE'
+  | 'DUPLICATE_MUTATION'
+  | 'ALREADY_RESOLVED';
+
+export interface FieldMutationMetadata {
+  field: string;
+  mutationId: string;
+  deviceId: string;
+  logicalRevision: number;
+  updatedAt: string;
+  value?: any;
+}
+
+export interface EntityRevisionMeta {
+  revision?: number;
+  logicalRevision?: number;
+  updatedAt?: string;
+  updatedByDeviceId?: string;
+  updatedBySessionId?: string;
+  lastMutationId?: string;
+  fieldMeta?: Record<string, FieldMutationMetadata>;
+}
+
+export interface JournaledMutation<T = any> {
+  mutationId: string;
+  deviceId: string;
+  sessionId: string;
+  campusId?: string;
+  entityType: string;
+  entityId: string;
+  operation: 'CREATE' | 'UPDATE' | 'DELETE';
+  payload: T;
+  baseRevision?: number;
+  baseUpdatedAt?: string;
+  createdAt: string;
+  logicalRevision: number;
+  status: JournaledMutationStatus;
+  attemptCount: number;
+  lastAttemptAt?: string;
+  acknowledgedAt?: string;
+  conflictState?: ConflictCategory;
+  errorMessage?: string;
+}
+
+export interface ConflictClassificationResult {
+  category: ConflictCategory;
+  winner: 'LOCAL' | 'REMOTE' | 'MERGE' | 'SUPPRESS' | 'NONE';
+  reason: string;
+  mergedPayload?: any;
+  conflictingFields?: string[];
+}
+
+export interface ConvergenceSimulationResult {
+  scenarioName: string;
+  totalClients: number;
+  totalOperations: number;
+  converged: boolean;
+  finalCanonicalRevision: number;
+  duplicateSuppressionCount: number;
+  outOfOrderResolutionCount: number;
+  clockSkewCompensationCount: number;
+  violationsCount: number;
+  details?: string;
+}
+
+
+
 
 

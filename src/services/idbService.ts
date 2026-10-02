@@ -16,7 +16,9 @@ localforage.config({
 export const IDB_STORE_KEYS = {
   ...STORAGE_KEYS,
   IDB_UNSYNCED_DRAFTS: 'jipas_idb_unsynced_drafts_queue',
-  IDB_LAST_SYNC_TIME: 'jipas_idb_last_sync_timestamp'
+  IDB_LAST_SYNC_TIME: 'jipas_idb_last_sync_timestamp',
+  IDB_MUTATION_JOURNAL: 'jipas_idb_mutation_journal',
+  IDB_APPLIED_MUTATION_IDS: 'jipas_idb_applied_mutation_ids'
 } as const;
 
 /**
