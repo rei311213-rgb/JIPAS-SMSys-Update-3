@@ -18,7 +18,7 @@ import SyncNowButton from './common/SyncNowButton';
 import { useStudentFormDraft } from '../hooks/useStudentFormDraft';
 import { StudentFormDraftData } from '../services/studentDraftService';
 import DraftStatusBanner from './common/DraftStatusBanner';
-import { saveStudent, saveReport, saveAllReports, subscribeSettings, saveNotification, subscribeTeacherAttendance, saveTeacherAttendanceRecord, subscribeStudentAttendance, saveStudentAttendanceRecord, getStoredUsers, getStoredStaffLoginUpdateRequests, subscribeStaffLoginUpdateRequests, submitStaffLoginUpdateRequest } from '../services/dbService';
+import { saveStudent, saveReport, saveAllReports, subscribeSettings, saveNotification, subscribeTeacherAttendance, saveTeacherAttendanceRecord, subscribeStudentAttendance, saveStudentAttendanceRecord, getStoredUsers, getStoredStaffLoginUpdateRequests, subscribeStaffLoginUpdateRequests, submitStaffLoginUpdateRequest, getActiveAcademicPeriod } from '../services/dbService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
@@ -586,8 +586,22 @@ export default function TeacherPortal({
 
   const [selectedSubject, setSelectedSubject] = useState<string>(defaultSubjects[0] || 'English Language');
 
-  const [academicYear] = useState('2025-2026');
-  const [academicTerm] = useState('Third Term');
+  const [academicYear, setAcademicYear] = useState(() => getActiveAcademicPeriod().academicYear);
+  const [academicTerm, setAcademicTerm] = useState(() => getActiveAcademicPeriod().academicTerm);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const current = getActiveAcademicPeriod();
+      setAcademicYear(current.academicYear);
+      setAcademicTerm(current.academicTerm);
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('jipas_cloud_synced', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('jipas_cloud_synced', handleUpdate);
+    };
+  }, []);
 
   // Loaded students state
   const [isStudentsLoaded, setIsStudentsLoaded] = useState(true);

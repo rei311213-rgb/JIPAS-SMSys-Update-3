@@ -283,6 +283,26 @@ export function getStoredTerms(): TermItem[] {
   return readStorage<TermItem[]>(STORAGE_KEYS.TERMS, INITIAL_TERMS);
 }
 
+export function getActiveAcademicPeriod(): { academicYear: string; academicTerm: string } {
+  const settings = getStoredSettings();
+  const years = getStoredAcademicYears();
+  const terms = getStoredTerms();
+
+  let academicYear = settings.activeAcademicYear;
+  if (!academicYear) {
+    const activeYearObj = years.find(y => y.status === 'Current' || y.status === 'Active');
+    academicYear = activeYearObj?.name || (years.length > 0 ? years[0].name : '2025-2026');
+  }
+
+  let academicTerm = settings.activeTerm;
+  if (!academicTerm) {
+    const activeTermObj = terms.find(t => t.status === 'Current');
+    academicTerm = activeTermObj?.name || (terms.length > 0 ? terms[0].name : 'Third Term');
+  }
+
+  return { academicYear, academicTerm };
+}
+
 export function getStoredDepartments(): DepartmentItem[] {
   const depts = readStorage<DepartmentItem[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
   if (!depts || !Array.isArray(depts) || depts.length === 0) {

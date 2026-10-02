@@ -1629,4 +1629,139 @@ export interface ExamScheduleItem {
   broadcastedBy?: string;
 }
 
+// =========================================================================
+// PHASE 40 OPERATIONAL HEALTH & MONITORING TYPES
+// =========================================================================
+
+export type OperationalHealthStatus = 'HEALTHY' | 'DEGRADED' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
+export type OperationalHealthSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface OperationalHealthCheck {
+  checkId: string;
+  name: string;
+  status: OperationalHealthStatus;
+  checkedAt: string;
+  message: string;
+  details?: string;
+  durationMs: number;
+  campusId?: string;
+  severity: OperationalHealthSeverity;
+  remediationHint?: string;
+}
+
+export interface OperationalReport {
+  overallStatus: OperationalHealthStatus;
+  generatedAt: string;
+  campusScope?: string;
+  checks: OperationalHealthCheck[];
+  database: {
+    status: 'CONNECTED' | 'UNAVAILABLE' | 'UNAUTHORIZED' | 'CONFIGURATION_ERROR' | 'UNKNOWN';
+    latencyMs?: number;
+    error?: string;
+  };
+  sync: {
+    status: OperationalHealthStatus;
+    lastPushAt?: string;
+    lastPullAt?: string;
+    pendingWrites: number;
+    lastError?: string;
+  };
+  backup: {
+    status: OperationalHealthStatus;
+    lastSnapshotAt?: string;
+    ageMinutes: number;
+    snapshotVersion?: number;
+    collectionsCount: number;
+  };
+  offlineQueue: {
+    status: OperationalHealthStatus;
+    queuedCount: number;
+    oldestTimestamp?: string;
+  };
+  errorMonitoring: {
+    status: OperationalHealthStatus;
+    totalErrors: number;
+    recentErrorsCount: number;
+    criticalErrorsCount: number;
+  };
+  auditLog: {
+    status: OperationalHealthStatus;
+    totalLogs: number;
+    lastEventTimestamp?: string;
+  };
+  configuration: {
+    status: OperationalHealthStatus;
+    driftDetected: boolean;
+    details: string[];
+  };
+  disasterRecovery: {
+    status: 'READY' | 'DEGRADED' | 'NOT_READY';
+    rpoMinutes: number;
+    rtoMinutes: number;
+  };
+}
+
+// =========================================================================
+// PHASE 41 & 42 PRODUCTION DEPLOYMENT & LAUNCH GATE TYPES
+// =========================================================================
+
+export type EnvironmentType = 'development' | 'staging' | 'production' | 'preview' | 'test' | 'unknown';
+
+export interface ProductionActionAuthorization {
+  authorized: boolean;
+  authorizedBy?: string;
+  authorizedAt?: string;
+  reason?: string;
+}
+
+export interface ConcurrencyTestMetrics {
+  scenarioName: string;
+  simulatedClients: number;
+  totalOperations: number;
+  successfulOperations: number;
+  failedOperations: number;
+  duplicateRejections: number;
+  avgLatencyMs: number;
+  p95LatencyMs: number;
+  maxLatencyMs: number;
+  integrityViolations: number;
+  details?: string;
+}
+
+export type LaunchGateStatus = 'AUTOMATED_VERIFIED' | 'HUMAN_VERIFICATION_REQUIRED' | 'FAILED' | 'NOT_APPLICABLE' | 'PASS' | 'BLOCKED';
+
+export interface LaunchGateItem {
+  id: string;
+  name: string;
+  category: 'SECURITY' | 'INFRASTRUCTURE' | 'DATA_INTEGRITY' | 'OPERATIONS' | 'GOVERNANCE';
+  status: LaunchGateStatus;
+  description: string;
+  verifiedDetails?: string;
+  humanVerificationNotes?: string;
+}
+
+export interface ProductionLaunchGateItem {
+  id: string;
+  name: string;
+  status: 'PASS' | 'FAIL' | 'BLOCKED' | 'HUMAN_VERIFICATION_REQUIRED';
+  evidence?: string;
+  checkedAt?: string;
+}
+
+export interface ProductionLaunchGateReport {
+  generatedAt: string;
+  commitSha?: string;
+  deploymentId?: string;
+  environment: EnvironmentType;
+  overallStatus?: 'READY_FOR_HUMAN_REVIEW' | 'BLOCKED' | 'FAILED' | 'READY' | 'LIVE_VERIFIED' | 'ROLLBACK_REQUIRED';
+  status?: 'READY' | 'BLOCKED' | 'LIVE_VERIFIED' | 'ROLLBACK_REQUIRED' | 'READY_FOR_HUMAN_REVIEW';
+  automatedChecksPassed?: number;
+  humanVerificationRequiredCount?: number;
+  failedCount?: number;
+  gates?: LaunchGateItem[];
+  items?: ProductionLaunchGateItem[];
+  concurrencyMetrics?: ConcurrencyTestMetrics[];
+}
+
+
 

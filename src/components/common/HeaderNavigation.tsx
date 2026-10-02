@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JIPASLogo from './JIPASLogo';
 import LanguageSwitcher from './LanguageSwitcher';
 import CampusSelector from './CampusSelector';
@@ -6,7 +6,9 @@ import SyncNowButton from './SyncNowButton';
 import { PWAInstallButton } from './PWAInstallButton';
 import SidebarToggleButton from './SidebarToggleButton';
 import { useI18n } from '../../i18n/I18nContext';
-import { User, ThemePaletteConfig } from '../../types';
+import { User, ThemePaletteConfig, SchoolSettings } from '../../types';
+import { getStoredSettings } from '../../services/storageService';
+import { subscribeSettings } from '../../services/dbService';
 import { 
   LogOut, 
   UserCheck, 
@@ -36,6 +38,16 @@ export default function HeaderNavigation({
 }: HeaderNavigationProps) {
   const { t } = useI18n();
   const [isMobileMenuOpen, setIsMobileOpenMenu] = useState(false);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => getStoredSettings());
+
+  useEffect(() => {
+    const unsub = subscribeSettings((newSettings) => {
+      setSchoolSettings(newSettings);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
 
   return (
     <header 
@@ -53,10 +65,10 @@ export default function HeaderNavigation({
           </div>
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base font-black tracking-tight text-white leading-tight truncate">
-              {t('app.name', 'JIPAS')}
+              {schoolSettings.schoolName || t('app.name', 'JIPAS')}
             </h1>
             <p className="text-[10px] sm:text-xs font-semibold text-indigo-400 truncate hidden xs:block">
-              {t('app.subtitle', 'Système de Gestion Scolaire • 1990')}
+              {schoolSettings.schoolMotto || t('app.subtitle', 'Système de Gestion Scolaire • 1990')}
             </p>
           </div>
         </div>

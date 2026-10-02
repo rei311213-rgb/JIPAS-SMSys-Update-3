@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Zap
 } from 'lucide-react';
-import { getStoredThermalPrinterSettings } from '../../services/storageService';
+import { getStoredThermalPrinterSettings, getStoredSettings } from '../../services/storageService';
 import { PaymentRecord, Student, StudentBill, ThermalPrinterSettingsConfig } from '../../types';
 import JIPASLogo from './JIPASLogo';
 import ReceiptQRCode from './ReceiptQRCode';
@@ -109,14 +109,20 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
   const [stampColor, setStampColor] = useState<'emerald' | 'blue' | 'none'>('emerald');
   const [isPrinting, setIsPrinting] = useState(false);
   const [thermalSettings, setThermalSettings] = useState<ThermalPrinterSettingsConfig>(getStoredThermalPrinterSettings());
+  const [schoolSettings, setSchoolSettings] = useState(() => getStoredSettings());
   const printableAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleStorage = () => {
       setThermalSettings(getStoredThermalPrinterSettings());
+      setSchoolSettings(getStoredSettings());
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('jipas_cloud_synced', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('jipas_cloud_synced', handleStorage);
+    };
   }, []);
 
   // Auto-print effect if specified by state/preferences
@@ -409,16 +415,16 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
                   <JIPASLogo size="sm" className="shrink-0" rounded={true} />
                   <div className="leading-none">
                     <h1 className="text-[11px] font-black uppercase tracking-tight text-slate-950">
-                      JOY INTERNATIONAL SCHOOL (JIPAS)
+                      {schoolSettings.schoolName || 'JOY INTERNATIONAL SCHOOL (JIPAS)'}
                     </h1>
                     <p className="text-[7px] text-slate-500 font-bold italic mt-0.5">
-                      "Education is Wealth • Knowledge, Discipline & Excellence"
+                      "{schoolSettings.schoolMotto || 'Education is Wealth • Knowledge, Discipline & Excellence'}"
                     </p>
                     <p className="text-[6px] text-slate-400 font-medium scale-95 origin-left">
                       GES Accredited • Reg: GES/GAR/ED/2018/042
                     </p>
                     <p className="text-[5.5px] text-slate-400 font-normal leading-tight mt-0.5">
-                      BP 2364 • Behind T-Oil, Lomé Togo • Tel: (00228) 22 60 21 38
+                      {schoolSettings.address ? `${schoolSettings.address} • Tel: ${schoolSettings.phone || '(00228) 22 60 21 38'}` : 'BP 2364 • Behind T-Oil, Lomé Togo • Tel: (00228) 22 60 21 38'}
                     </p>
                   </div>
                 </div>
@@ -606,16 +612,16 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
               <JIPASLogo size="sm" className="shrink-0" rounded={true} />
               <div className="leading-tight">
                 <h1 className="text-[10px] font-black uppercase tracking-tight text-black">
-                  JOY INTERNATIONAL SCHOOL (JIPAS)
+                  {schoolSettings.schoolName || 'JOY INTERNATIONAL SCHOOL (JIPAS)'}
                 </h1>
                 <p className="text-[6px] text-black font-bold italic">
-                  "Education is Wealth • Knowledge, Discipline & Excellence"
+                  "{schoolSettings.schoolMotto || 'Education is Wealth • Knowledge, Discipline & Excellence'}"
                 </p>
                 <p className="text-[5.5px] text-black font-medium">
                   GES Accredited • Reg: GES/GAR/ED/2018/042
                 </p>
                 <p className="text-[5px] text-black font-normal">
-                  BP 2364 • Behind T-Oil, Lomé Togo • Tel: (00228) 22 60 21 38
+                  {schoolSettings.address ? `${schoolSettings.address} • Tel: ${schoolSettings.phone || '(00228) 22 60 21 38'}` : 'BP 2364 • Behind T-Oil, Lomé Togo • Tel: (00228) 22 60 21 38'}
                 </p>
               </div>
             </div>

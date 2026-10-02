@@ -4,8 +4,9 @@ import {
   Database, HardDrive, Cloud, Download, Upload, RefreshCw, CheckCircle2, 
   AlertTriangle, Shield, Clock, FileJson, ArrowUpRight, Check, Trash2, 
   FileText, Lock, Sparkles, ExternalLink, Calendar, Users, Layers, AlertCircle, X,
-  Briefcase, Receipt, CreditCard, UserCheck, DollarSign, BookOpen
+  Briefcase, Receipt, CreditCard, UserCheck, DollarSign, BookOpen, Activity
 } from 'lucide-react';
+import OperationalHealthDashboard from './OperationalHealthDashboard';
 import { Student, Teacher, TermReport, StudentBill, PaymentRecord, CalendarEvent, NotificationItem } from '../../types';
 import { saveStudent, saveBill, saveReport, savePayment } from '../../services/dbService';
 import { 
@@ -100,7 +101,7 @@ export default function BackupRecoveryManager({
   notifications,
   onRestoreData
 }: BackupRecoveryManagerProps) {
-  const [activeTab, setActiveTab] = useState<'local' | 'gdrive'>('local');
+  const [activeTab, setActiveTab] = useState<'health' | 'local' | 'gdrive'>('health');
 
   // Local snapshot state
   const [snapshots, setSnapshots] = useState<LocalSnapshot[]>([]);
@@ -1017,6 +1018,21 @@ export default function BackupRecoveryManager({
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-200 mt-6 gap-6">
           <button
+            onClick={() => setActiveTab('health')}
+            className={`pb-3 text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer border-b-2 transition-all ${
+              activeTab === 'health'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>System Health & Operations</span>
+            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+              Phase 40
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('local')}
             className={`pb-3 text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer border-b-2 transition-all ${
               activeTab === 'local'
@@ -1072,6 +1088,11 @@ export default function BackupRecoveryManager({
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
         >
+          {/* ===================== TAB 0: SYSTEM HEALTH & OPERATIONS ===================== */}
+          {activeTab === 'health' && (
+            <OperationalHealthDashboard />
+          )}
+
           {/* ===================== TAB 1: LOCAL BACKUP & RECOVERY ===================== */}
           {activeTab === 'local' && (
         <div className="space-y-6">

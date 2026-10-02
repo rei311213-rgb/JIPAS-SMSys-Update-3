@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Student, TermReport, StudentBill, PaymentRecord } from '../types';
-import { getStoredReports } from './storageService';
+import { getStoredReports, getStoredSettings } from './storageService';
 
 // Extend jsPDF with autotable types
 declare module 'jspdf' {
@@ -26,6 +26,10 @@ export class PDFGeneratorService {
   private static readonly SCHOOL_COLOR: [number, number, number] = [79, 70, 229]; // Indigo-600
 
   private static addHeader(doc: jsPDF, title: string) {
+    const settings = getStoredSettings();
+    const schoolName = settings.schoolName || this.SCHOOL_NAME;
+    const schoolAddress = settings.address || this.SCHOOL_ADDRESS;
+
     // Background accent
     doc.setFillColor(249, 250, 251);
     doc.rect(0, 0, 210, 40, 'F');
@@ -34,12 +38,12 @@ export class PDFGeneratorService {
     doc.setTextColor(31, 41, 55);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(this.SCHOOL_NAME, 105, 15, { align: 'center' });
+    doc.text(schoolName, 105, 15, { align: 'center' });
 
     // Address
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(this.SCHOOL_ADDRESS, 105, 22, { align: 'center' });
+    doc.text(schoolAddress, 105, 22, { align: 'center' });
 
     // Document Title
     doc.setDrawColor(this.SCHOOL_COLOR[0], this.SCHOOL_COLOR[1], this.SCHOOL_COLOR[2]);

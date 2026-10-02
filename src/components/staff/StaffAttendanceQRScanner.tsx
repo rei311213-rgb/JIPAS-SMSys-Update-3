@@ -20,6 +20,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { StaffAttendanceService } from '../../services/supabase/staffAttendanceService';
+import { getActiveAcademicPeriod } from '../../services/storageService';
 
 interface StaffAttendanceQRScannerProps {
   onSuccess?: () => void;
@@ -105,6 +106,20 @@ export default function StaffAttendanceQRScanner({
   const [scanError, setScanError] = useState<string | null>(null);
   const [detectedDevicesCount, setDetectedDevicesCount] = useState<number>(0);
   const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
+  const [activePeriod, setActivePeriod] = useState(() => getActiveAcademicPeriod());
+
+  // Monitor active academic period changes
+  useEffect(() => {
+    const handleUpdate = () => {
+      setActivePeriod(getActiveAcademicPeriod());
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('jipas_cloud_synced', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('jipas_cloud_synced', handleUpdate);
+    };
+  }, []);
 
   // DOM & Lifecycle Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -681,7 +696,7 @@ export default function StaffAttendanceQRScanner({
           <span>SCAN SCHOOL ENTRANCE QR</span>
         </h2>
         <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
-          Current Academic Period: 2025–2026 • Third Term
+          Current Academic Period: {activePeriod.academicYear} • {activePeriod.academicTerm}
         </div>
       </div>
 

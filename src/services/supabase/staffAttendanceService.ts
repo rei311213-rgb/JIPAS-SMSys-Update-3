@@ -142,11 +142,12 @@ export const StaffAttendanceService = {
       .select('*')
       .eq('staff_id', profileId)
       .eq('attendance_date', todayStr)
+      .eq('campus_id', targetCampusId)
       .maybeSingle();
 
     if (error) {
       console.error('[StaffAttendanceService] Error checking existing attendance:', error.message);
-      throw new Error('Database server verification error.');
+      throw new Error(`Database server verification error: ${error.message} (Code: ${error.code})`);
     }
 
     const nowIso = new Date().toISOString();

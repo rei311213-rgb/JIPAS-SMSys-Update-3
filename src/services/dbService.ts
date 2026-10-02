@@ -288,6 +288,7 @@ import {
   DEFAULT_SUB_ACCOUNTANT_PRIVILEGES,
   getStoredSettings,
   saveStoredSettings,
+  getActiveAcademicPeriod,
   INITIAL_SCHOOL_SETTINGS
 } from './storageService';
 import {
@@ -301,7 +302,8 @@ export {
   DEFAULT_ACCOUNTANT_PRIVILEGES,
   DEFAULT_SUB_ACCOUNTANT_PRIVILEGES,
   getStoredSettings,
-  saveStoredSettings
+  saveStoredSettings,
+  getActiveAcademicPeriod
 };
 
 export {
