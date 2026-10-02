@@ -29,7 +29,7 @@ import {
 export type QueryConstraint = any;
 import { getActiveCampus, Campus, isAllCampus } from '../lib/campusUtils';
 import { idbClear } from './idbService';
-import { formatCurrency } from '../utils/financeUtils';
+import { formatCurrency, calculateBillBalance, addMoney, getPaymentStatus } from '../utils/financeUtils';
 // ... rest of imports
 
 /**
@@ -1597,6 +1597,54 @@ export async function savePayment(payment: PaymentRecord) {
   const idx = current.findIndex(p => p.id === payment.id);
   const updated = idx >= 0 ? current.map(p => p.id === payment.id ? payment : p) : [payment, ...current];
   saveStoredPayments(updated);
+
+  // Synchronize matching StudentBill with authoritative ledger calculation
+  try {
+    const studentKeyById = (payment.studentId || '').trim().toLowerCase();
+    const studentKeyByAdm = (payment.admissionNo || '').trim().toLowerCase();
+    const allBills = getStoredBills();
+    let billUpdated = false;
+
+    const updatedBills = allBills.map(bill => {
+      const bId = (bill.studentId || '').trim().toLowerCase();
+      const bAdm = (bill.admissionNo || '').trim().toLowerCase();
+      const match = (studentKeyById && bId === studentKeyById) ||
+                    (studentKeyByAdm && bAdm === studentKeyByAdm) ||
+                    (studentKeyById && bAdm === studentKeyById);
+      if (match) {
+        billUpdated = true;
+        const studentValidPayments = updated.filter(p => {
+          const isVoid = p.status === 'Voided' || (p as any).isVoided === true;
+          if (isVoid) return false;
+          const pId = (p.studentId || '').trim().toLowerCase();
+          const pAdm = (p.admissionNo || '').trim().toLowerCase();
+          return (studentKeyById && pId === studentKeyById) ||
+                 (studentKeyByAdm && pAdm === studentKeyByAdm) ||
+                 (studentKeyById && pAdm === studentKeyById);
+        });
+
+        const sumPaid = addMoney(...studentValidPayments.map(p => p.paid ?? p.amount ?? 0));
+        const payable = bill.payable ?? bill.subTotal ?? 0;
+        const balance = calculateBillBalance(payable, sumPaid, bill.discount, bill.arrears);
+        const status = getPaymentStatus(balance, sumPaid);
+
+        return {
+          ...bill,
+          paid: sumPaid,
+          paidAmount: sumPaid,
+          balance,
+          status
+        };
+      }
+      return bill;
+    });
+
+    if (billUpdated) {
+      saveStoredBills(updatedBills);
+    }
+  } catch (syncErr) {
+    console.warn('[dbService] Bill ledger synchronization notice:', syncErr);
+  }
 
   await executeCloudWrite(
     'payments',

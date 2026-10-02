@@ -679,37 +679,7 @@ export default function App() {
       const newBill = computeStudentBill(formattedStudent, getStoredClassFeeTariffs());
       await saveBill(newBill);
 
-      const newReport: TermReport = {
-        id: `rep-${Date.now()}`,
-        studentId: formattedStudent.id,
-        studentName: formattedStudent.fullName,
-        admissionNo: formattedStudent.admissionNo,
-        className: formattedStudent.className,
-        academicYear: formattedStudent.academicYear || '2025-2026',
-        term: formattedStudent.term || 'Third Term',
-        attendancePresent: 65,
-        attendanceTotal: 70,
-        conduct: 'Good & respectful',
-        attitude: 'Attentive and eager to learn',
-        interest: 'Reading, Science and Football',
-        teacherComment: 'A very promising student. Shows dedication to studies.',
-        headmasterComment: 'Good performance. Keep up the high standard.',
-        scores: [
-          { subject: 'Mathematics', classScore: 26, examScore: 58, total: 84, grade: '1', remark: 'Higher' },
-          { subject: 'English Language', classScore: 24, examScore: 54, total: 78, grade: '2', remark: 'Higher' },
-          { subject: 'Integrated Science', classScore: 28, examScore: 60, total: 88, grade: '1', remark: 'Higher' },
-          { subject: 'Computing', classScore: 25, examScore: 55, total: 80, grade: '1', remark: 'Higher' },
-          { subject: 'Creative Arts', classScore: 27, examScore: 56, total: 83, grade: '1', remark: 'Higher' },
-          { subject: 'Our World Our People', classScore: 25, examScore: 56, total: 81, grade: '1', remark: 'Higher' },
-          { subject: 'Religious & Moral Edu.', classScore: 26, examScore: 54, total: 80, grade: '1', remark: 'Higher' }
-        ],
-        totalScore: 574,
-        averageScore: 82.0,
-        position: '3rd'
-      };
-      await saveReport(newReport);
-
-      // 2. Force-sync UI state after confirmed persistence
+      // 3. Force-sync UI state after confirmed persistence
       setStudents(getStoredStudents());
       setBills(getStoredBills());
       setReports(getStoredReports());

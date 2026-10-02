@@ -34,6 +34,7 @@ import {
   subtractMoney, 
   calculateBillBalance, 
   formatCurrency, 
+  getPaymentStatus,
   CURRENCY 
 } from '../utils/financeUtils';
 import { 
@@ -54,6 +55,11 @@ import {
   Campus, 
   isAllCampus 
 } from '../lib/campusUtils';
+import { 
+  syncBillWithPayments, 
+  syncAllBillsWithPayments, 
+  getValidPayments 
+} from './financialLedgerCalculationService';
 
 export const RECONCILIATION_STORAGE_KEY = 'jipas_financial_reconciliation_reports';
 export const LAST_RECONCILIATION_REPORT_KEY = 'jipas_last_reconciliation_report';
@@ -373,20 +379,32 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
 
   // 7. Verify Student Fee Ledgers & Balances
   scopedBills.forEach(bill => {
+    const studentKeyById = (bill.studentId || '').trim().toUpperCase();
+    const studentKeyByAdm = (bill.admissionNo || '').trim().toUpperCase();
+    const studentPayments = (paymentsByStudentKey.get(studentKeyById) || [])
+      .concat(studentKeyByAdm && studentKeyByAdm !== studentKeyById ? (paymentsByStudentKey.get(studentKeyByAdm) || []) : []);
+    
+    // Filter payments for this academic period if bill specifies them
+    const matchingPayments = studentPayments.filter(p => {
+      const matchYear = !bill.academicYear || !p.academicYear || p.academicYear === bill.academicYear;
+      const matchTerm = !bill.term || !p.term || p.term === bill.term;
+      return matchYear && matchTerm;
+    });
+
+    const sumPostedPayments = addMoney(...matchingPayments.map(p => p.paid || p.amount || 0));
+    const effectivePaid = matchingPayments.length > 0 ? sumPostedPayments : (bill.paid ?? 0);
     const payable = bill.payable ?? bill.subTotal ?? 0;
-    const paid = bill.paid ?? 0;
     const discount = bill.discount ?? 0;
     const arrears = bill.arrears ?? 0;
-    const recordedBalance = bill.balance ?? 0;
+    const expectedBalance = calculateBillBalance(payable, effectivePaid, discount, arrears);
+    const recordedBalance = bill.balance !== undefined ? bill.balance : expectedBalance;
 
     totalPostedCharges = addMoney(totalPostedCharges, payable);
-    totalOutstandingBalances = addMoney(totalOutstandingBalances, Math.max(0, recordedBalance));
+    totalOutstandingBalances = addMoney(totalOutstandingBalances, Math.max(0, expectedBalance));
 
-    // A. Ledger Arithmetic: Authoritative balance check
-    const expectedBalance = calculateBillBalance(payable, paid, discount, arrears);
+    // A. Check if bill recorded balance diverges from authoritative formula
     const balanceVariance = subtractMoney(recordedBalance, expectedBalance);
-
-    if (Math.abs(balanceVariance) > 0.001) {
+    if (Math.abs(balanceVariance) > 0.01) {
       exceptions.push({
         id: `exc-bal-mismatch-${bill.id}`,
         studentRef: bill.studentName || bill.admissionNo,
@@ -410,47 +428,35 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
     }
 
     // B. Reconcile Bill Payments with Posted Payment Records
-    const studentKeyById = (bill.studentId || '').trim().toUpperCase();
-    const studentKeyByAdm = (bill.admissionNo || '').trim().toUpperCase();
-    const studentPayments = (paymentsByStudentKey.get(studentKeyById) || [])
-      .concat(studentKeyByAdm && studentKeyByAdm !== studentKeyById ? (paymentsByStudentKey.get(studentKeyByAdm) || []) : []);
-    
-    // Filter payments for this academic period if bill specifies them
-    const matchingPayments = studentPayments.filter(p => {
-      const matchYear = !bill.academicYear || !p.academicYear || p.academicYear === bill.academicYear;
-      const matchTerm = !bill.term || !p.term || p.term === bill.term;
-      return matchYear && matchTerm;
-    });
-
-    const sumPostedPayments = addMoney(...matchingPayments.map(p => p.paid || p.amount || 0));
-    const paymentAllocationVariance = subtractMoney(paid, sumPostedPayments);
-
-    if (Math.abs(paymentAllocationVariance) > 0.001 && matchingPayments.length > 0) {
-      exceptions.push({
-        id: `exc-allocation-mismatch-${bill.id}`,
-        studentRef: bill.studentName || bill.admissionNo,
-        studentName: bill.studentName,
-        admissionNo: bill.admissionNo,
-        campus: bill.campus || campus,
-        academicPeriod: `${bill.academicYear || academicYear} ${bill.term || term}`.trim(),
-        academicYear: bill.academicYear,
-        term: bill.term,
-        category: 'BALANCE_MISMATCH',
-        severity: 'HIGH',
-        expectedAmount: sumPostedPayments,
-        recordedAmount: paid,
-        variance: paymentAllocationVariance,
-        transactionRefs: matchingPayments.map(p => p.receiptNo || p.id).concat(bill.billNo || bill.id),
-        description: `Bill payment total (${formatCurrency(paid)}) diverges from sum of posted payment receipts (${formatCurrency(sumPostedPayments)}) by ${formatCurrency(paymentAllocationVariance)}.`,
-        verificationStatus: 'MATHEMATICAL_ERROR',
-        recommendedInvestigation: 'Audit individual transaction allocations and ensure unposted receipt records are captured in the ledger.',
-        detectedAt: detectedAtStr
-      });
+    if (matchingPayments.length > 0 && bill.paid !== undefined && bill.paid !== sumPostedPayments) {
+      const paymentAllocationVariance = subtractMoney(bill.paid, sumPostedPayments);
+      if (Math.abs(paymentAllocationVariance) > 0.01) {
+        exceptions.push({
+          id: `exc-allocation-mismatch-${bill.id}`,
+          studentRef: bill.studentName || bill.admissionNo,
+          studentName: bill.studentName,
+          admissionNo: bill.admissionNo,
+          campus: bill.campus || campus,
+          academicPeriod: `${bill.academicYear || academicYear} ${bill.term || term}`.trim(),
+          academicYear: bill.academicYear,
+          term: bill.term,
+          category: 'BALANCE_MISMATCH',
+          severity: 'HIGH',
+          expectedAmount: sumPostedPayments,
+          recordedAmount: bill.paid,
+          variance: paymentAllocationVariance,
+          transactionRefs: matchingPayments.map(p => p.receiptNo || p.id).concat(bill.billNo || bill.id),
+          description: `Bill payment total (${formatCurrency(bill.paid)}) diverges from sum of posted payment receipts (${formatCurrency(sumPostedPayments)}) by ${formatCurrency(paymentAllocationVariance)}.`,
+          verificationStatus: 'MATHEMATICAL_ERROR',
+          recommendedInvestigation: 'Audit individual transaction allocations and ensure unposted receipt records are captured in the ledger.',
+          detectedAt: detectedAtStr
+        });
+      }
     }
 
     // C. Detect Unexplained Credits (Overpayment without credit memo)
-    if (recordedBalance < 0 || paid > addMoney(payable, arrears)) {
-      const creditAmount = Math.abs(recordedBalance < 0 ? recordedBalance : subtractMoney(paid, addMoney(payable, arrears)));
+    if (expectedBalance < 0 || effectivePaid > addMoney(payable, arrears)) {
+      const creditAmount = Math.abs(expectedBalance < 0 ? expectedBalance : subtractMoney(effectivePaid, addMoney(payable, arrears)));
       unexplainedCreditsAmount = addMoney(unexplainedCreditsAmount, creditAmount);
       exceptions.push({
         id: `exc-credit-${bill.id}`,
@@ -464,7 +470,7 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
         category: 'UNEXPLAINED_CREDIT',
         severity: 'HIGH',
         expectedAmount: addMoney(payable, arrears),
-        recordedAmount: paid,
+        recordedAmount: effectivePaid,
         variance: creditAmount,
         transactionRefs: [bill.billNo || bill.id],
         description: `Student account ${bill.studentName} (${bill.admissionNo}) has an unexplained credit balance of ${formatCurrency(creditAmount)}.`,
@@ -586,9 +592,9 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
     }
   });
 
-  // 10B. Check for classes with active fee tariffs but zero student enrollments
-  if (Array.isArray(rawTariffs) && rawTariffs.length > 0) {
-    rawTariffs.forEach(tariff => {
+  // 10B. Check for classes with active fee tariffs but zero student enrollments (Only when tariffs are explicitly audited)
+  if (options.tariffs && Array.isArray(options.tariffs) && options.tariffs.length > 0) {
+    options.tariffs.forEach(tariff => {
       const tariffClass = tariff.classTitle;
       if (!tariffClass) return;
 
@@ -614,7 +620,7 @@ export function runFinancialReconciliationAudit(options: ReconciliationOptions =
             severity: 'LOW',
             expectedAmount: 0,
             recordedAmount: tariffTotal,
-            variance: tariffTotal,
+            variance: 0,
             transactionRefs: [tariff.id],
             description: `Active fee tariff schedule of ${formatCurrency(tariffTotal)} exists for class "${tariffClass}" but there are 0 students currently enrolled.`,
             verificationStatus: 'NOT VERIFIED',

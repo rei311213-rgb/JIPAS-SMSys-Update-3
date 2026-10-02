@@ -59,12 +59,10 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
       const attData = (attRecords || []).slice(0, 7).map(d => {
         const total = Object.keys(d.records || {}).length;
         const present = Object.values(d.records || {}).filter(s => s === 'Present').length;
-        return { value: total > 0 ? Math.round((present / total) * 100) : 100 };
+        return { value: total > 0 ? Math.round((present / total) * 100) : 0 };
       }).reverse();
 
-      setAttendanceTrends(attData.length > 0 ? attData : [
-        { value: 100 }
-      ]);
+      setAttendanceTrends(attData.length > 0 ? attData : []);
 
     } catch (err) {
       console.warn('CEO Dashboard data loaded with local fallback:', err);
@@ -84,9 +82,9 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
   }).length; 
   
   // Calculate average attendance from actual student attendance records
-  const avgAttendance = useMemo(() => {
+  const avgAttendance = useMemo<number | null>(() => {
     const attRecords: StudentAttendanceRecord[] = getStoredStudentAttendance();
-    if (!attRecords || attRecords.length === 0) return totalStudents > 0 ? 100 : 0;
+    if (!attRecords || attRecords.length === 0) return null;
     let presentCount = 0;
     let totalCount = 0;
     attRecords.forEach(rec => {
@@ -97,7 +95,7 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
         });
       }
     });
-    return totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 100;
+    return totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : null;
   }, [totalStudents]);
 
   // Admissions Trends derived from actual student roster
@@ -200,7 +198,7 @@ export default function ExecutiveDashboard({ students, teachers, reports, paymen
             { label: 'Teachers', value: totalTeachers, icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
             { label: 'Classes', value: totalClasses, icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-400/10' },
             { label: 'New Admissions', value: newAdmissions, icon: GraduationCap, color: 'text-rose-400', bg: 'bg-rose-400/10', trendData: admissionTrends },
-            { label: 'Avg Attendance', value: `${avgAttendance}%`, icon: Calendar, color: 'text-amber-400', bg: 'bg-amber-400/10', trendData: attendanceTrends },
+            { label: 'Avg Attendance', value: avgAttendance !== null ? `${avgAttendance}%` : 'N/A', icon: Calendar, color: 'text-amber-400', bg: 'bg-amber-400/10', trendData: attendanceTrends.length > 0 ? attendanceTrends : undefined },
             { label: 'Staff Count', value: totalTeachers + nonTeachingStaff, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
           ].map((stat, idx) => (
             <motion.div 

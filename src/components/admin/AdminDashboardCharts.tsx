@@ -7,7 +7,8 @@ import {
   TrendingUp, Users, DollarSign, Award, Calendar, BarChart3, 
   ArrowUpRight, ArrowDownRight, CheckCircle2, ShieldAlert, Sparkles, Filter
 } from 'lucide-react';
-import { Student, Teacher, TermReport, StudentBill, PaymentRecord } from '../../types';
+import { Student, Teacher, TermReport, StudentBill, PaymentRecord, StudentAttendanceRecord } from '../../types';
+import { getStoredStudentAttendance } from '../../services/storageService';
 
 interface AdminDashboardChartsProps {
   students: Student[];
@@ -42,28 +43,80 @@ export default function AdminDashboardCharts({
   const [activeTab, setActiveTab] = useState<'all' | 'attendance' | 'finance' | 'academics'>('all');
   const [timeRange, setTimeRange] = useState<'current_term' | 'term_2' | 'full_year'>('current_term');
 
-  // --- 1. ATTENDANCE TREND DATA ---
-  const weeklyAttendanceData = useMemo(() => {
-    if (!students || students.length === 0) {
-      return [
-        { day: 'Mon', present: 0, late: 0, absent: 0, totalStudents: 0 },
-        { day: 'Tue', present: 0, late: 0, absent: 0, totalStudents: 0 },
-        { day: 'Wed', present: 0, late: 0, absent: 0, totalStudents: 0 },
-        { day: 'Thu', present: 0, late: 0, absent: 0, totalStudents: 0 },
-        { day: 'Fri', present: 0, late: 0, absent: 0, totalStudents: 0 },
-      ];
+  // --- 1. ATTENDANCE METRICS & TREND DATA (Strictly derived from actual attendance records) ---
+  const attendanceStats = useMemo(() => {
+    const attRecords: StudentAttendanceRecord[] = getStoredStudentAttendance();
+    if (!attRecords || attRecords.length === 0) {
+      return {
+        hasRecords: false,
+        rate: 0,
+        presentCount: 0,
+        totalEvents: 0,
+        text: 'No attendance records',
+        weeklyData: [
+          { day: 'Mon', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Tue', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Wed', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Thu', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Fri', present: 0, late: 0, absent: 0, totalStudents: 0 },
+        ]
+      };
     }
-    return [
-      { day: 'Mon', present: 100, late: 0, absent: 0, totalStudents: students.length },
-      { day: 'Tue', present: 100, late: 0, absent: 0, totalStudents: students.length },
-      { day: 'Wed', present: 100, late: 0, absent: 0, totalStudents: students.length },
-      { day: 'Thu', present: 100, late: 0, absent: 0, totalStudents: students.length },
-      { day: 'Fri', present: 100, late: 0, absent: 0, totalStudents: students.length },
-    ];
+
+    let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+    let totalEvents = 0;
+
+    attRecords.forEach(rec => {
+      if (rec.records) {
+        Object.values(rec.records).forEach((status: any) => {
+          totalEvents++;
+          if (status === 'Present') presentCount++;
+          else if (status === 'Late') lateCount++;
+          else if (status === 'Absent') absentCount++;
+        });
+      }
+    });
+
+    if (totalEvents === 0) {
+      return {
+        hasRecords: false,
+        rate: 0,
+        presentCount: 0,
+        totalEvents: 0,
+        text: 'No attendance records',
+        weeklyData: [
+          { day: 'Mon', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Tue', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Wed', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Thu', present: 0, late: 0, absent: 0, totalStudents: 0 },
+          { day: 'Fri', present: 0, late: 0, absent: 0, totalStudents: 0 },
+        ]
+      };
+    }
+
+    const calculatedRate = Math.round((presentCount / totalEvents) * 100);
+    return {
+      hasRecords: true,
+      rate: calculatedRate,
+      presentCount,
+      totalEvents,
+      text: `${presentCount} of ${totalEvents} attendance events`,
+      weeklyData: [
+        { day: 'Mon', present: calculatedRate, late: 0, absent: 100 - calculatedRate, totalStudents: students.length },
+        { day: 'Tue', present: calculatedRate, late: 0, absent: 100 - calculatedRate, totalStudents: students.length },
+        { day: 'Wed', present: calculatedRate, late: 0, absent: 100 - calculatedRate, totalStudents: students.length },
+        { day: 'Thu', present: calculatedRate, late: 0, absent: 100 - calculatedRate, totalStudents: students.length },
+        { day: 'Fri', present: calculatedRate, late: 0, absent: 100 - calculatedRate, totalStudents: students.length },
+      ]
+    };
   }, [students]);
 
+  const weeklyAttendanceData = attendanceStats.weeklyData;
+
   const departmentAttendanceData = useMemo(() => {
-    if (!students || students.length === 0) {
+    if (!attendanceStats.hasRecords || !students || students.length === 0) {
       return [
         { department: 'Pre-School', presentRate: 0, students: 0, teachers: 0 },
         { department: 'Primary (B1-B3)', presentRate: 0, students: 0, teachers: 0 },
@@ -71,13 +124,14 @@ export default function AdminDashboardCharts({
         { department: 'JHS (JHS 1 - 3)', presentRate: 0, students: 0, teachers: 0 },
       ];
     }
+    const rate = attendanceStats.rate;
     return [
-      { department: 'Pre-School', presentRate: 100, students: students.filter(s => s.className?.toLowerCase().includes('nursery') || s.className?.toLowerCase().includes('kg')).length, teachers: teachers.length },
-      { department: 'Primary (B1-B3)', presentRate: 100, students: students.filter(s => ['basic 1', 'basic 2', 'basic 3'].includes(s.className?.toLowerCase())).length, teachers: teachers.length },
-      { department: 'Upper Primary (B4-B6)', presentRate: 100, students: students.filter(s => ['basic 4', 'basic 5', 'basic 6'].includes(s.className?.toLowerCase())).length, teachers: teachers.length },
-      { department: 'JHS (JHS 1 - 3)', presentRate: 100, students: students.filter(s => s.className?.toLowerCase().includes('jhs')).length, teachers: teachers.length },
+      { department: 'Pre-School', presentRate: rate, students: students.filter(s => s.className?.toLowerCase().includes('nursery') || s.className?.toLowerCase().includes('kg')).length, teachers: teachers.length },
+      { department: 'Primary (B1-B3)', presentRate: rate, students: students.filter(s => ['basic 1', 'basic 2', 'basic 3'].includes(s.className?.toLowerCase())).length, teachers: teachers.length },
+      { department: 'Upper Primary (B4-B6)', presentRate: rate, students: students.filter(s => ['basic 4', 'basic 5', 'basic 6'].includes(s.className?.toLowerCase())).length, teachers: teachers.length },
+      { department: 'JHS (JHS 1 - 3)', presentRate: rate, students: students.filter(s => s.className?.toLowerCase().includes('jhs')).length, teachers: teachers.length },
     ];
-  }, [students, teachers]);
+  }, [students, teachers, attendanceStats]);
 
   // --- 2. PAYMENT & REVENUE COLLECTION DATA ---
   const revenueCollectionData = useMemo(() => {
@@ -222,9 +276,17 @@ export default function AdminDashboardCharts({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Weekly Attendance Avg</p>
-              <h4 className="text-2xl font-black text-slate-900 mt-1">{students.length > 0 ? '100%' : '0.0%'}</h4>
-              <p className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-1">
-                <ArrowUpRight className="w-3.5 h-3.5" /> {students.length} Enrolled Learners
+              <h4 className="text-2xl font-black text-slate-900 mt-1">
+                {attendanceStats.hasRecords ? `${attendanceStats.rate}%` : 'N/A'}
+              </h4>
+              <p className={`text-xs font-bold flex items-center gap-1 mt-1 ${attendanceStats.hasRecords ? 'text-emerald-600' : 'text-slate-400'}`}>
+                {attendanceStats.hasRecords ? (
+                  <>
+                    <ArrowUpRight className="w-3.5 h-3.5" /> {attendanceStats.text}
+                  </>
+                ) : (
+                  'No attendance records'
+                )}
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
@@ -232,7 +294,10 @@ export default function AdminDashboardCharts({
             </div>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full" style={{ width: students.length > 0 ? '100%' : '0%' }}></div>
+            <div 
+              className="bg-emerald-500 h-full rounded-full transition-all" 
+              style={{ width: attendanceStats.hasRecords ? `${attendanceStats.rate}%` : '0%' }}
+            ></div>
           </div>
         </div>
 
@@ -250,7 +315,7 @@ export default function AdminDashboardCharts({
             </div>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${collectionEfficiency}%` }}></div>
+            <div className="bg-indigo-600 h-full rounded-full transition-all" style={{ width: `${collectionEfficiency}%` }}></div>
           </div>
         </div>
 
@@ -258,9 +323,17 @@ export default function AdminDashboardCharts({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Terminal Exam Mean</p>
-              <h4 className="text-2xl font-black text-slate-900 mt-1">{reports.length > 0 ? `${terminalExamMean}%` : '0.0%'}</h4>
-              <p className="text-xs text-purple-600 font-bold flex items-center gap-1 mt-1">
-                <Sparkles className="w-3.5 h-3.5" /> {reports.length} Reports Analyzed
+              <h4 className="text-2xl font-black text-slate-900 mt-1">
+                {reports.length > 0 ? `${terminalExamMean}%` : 'N/A'}
+              </h4>
+              <p className={`text-xs font-bold flex items-center gap-1 mt-1 ${reports.length > 0 ? 'text-purple-600' : 'text-slate-400'}`}>
+                {reports.length > 0 ? (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" /> {reports.length} Reports Analyzed
+                  </>
+                ) : (
+                  'No exam results recorded'
+                )}
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
@@ -268,7 +341,10 @@ export default function AdminDashboardCharts({
             </div>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-purple-600 h-full rounded-full" style={{ width: reports.length > 0 ? `${terminalExamMean}%` : '0%' }}></div>
+            <div 
+              className="bg-purple-600 h-full rounded-full transition-all" 
+              style={{ width: reports.length > 0 ? `${terminalExamMean}%` : '0%' }}
+            ></div>
           </div>
         </div>
 
@@ -276,9 +352,17 @@ export default function AdminDashboardCharts({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Overall Pass Rate</p>
-              <h4 className="text-2xl font-black text-slate-900 mt-1">{reports.length > 0 ? `${overallPassRate}%` : '0.0%'}</h4>
-              <p className="text-xs text-amber-600 font-bold flex items-center gap-1 mt-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Pass Threshold 50%
+              <h4 className="text-2xl font-black text-slate-900 mt-1">
+                {reports.length > 0 ? `${overallPassRate}%` : 'N/A'}
+              </h4>
+              <p className={`text-xs font-bold flex items-center gap-1 mt-1 ${reports.length > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                {reports.length > 0 ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Pass Threshold 50%
+                  </>
+                ) : (
+                  'No completed results available'
+                )}
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
@@ -286,7 +370,10 @@ export default function AdminDashboardCharts({
             </div>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-amber-500 h-full rounded-full" style={{ width: reports.length > 0 ? `${overallPassRate}%` : '0%' }}></div>
+            <div 
+              className="bg-amber-500 h-full rounded-full transition-all" 
+              style={{ width: reports.length > 0 ? `${overallPassRate}%` : '0%' }}
+            ></div>
           </div>
         </div>
       </div>
