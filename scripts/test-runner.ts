@@ -19,8 +19,8 @@ async function runCLI() {
     console.log('INDIVIDUAL TEST CASE RESULTS:');
     summary.results.forEach((res, idx) => {
       const icon = res.status === 'PASS' ? '✅' : '❌';
-      console.log(`${idx + 1}. [${res.category}] ${res.name} -> ${icon} ${res.status}`);
-      if (res.message) {
+      if (res.status === 'FAIL') {
+        console.log(`${idx + 1}. [${res.category}] ${res.name} -> ${icon} ${res.status}`);
         console.log(`   Error Details: ${res.message}`);
       }
     });
