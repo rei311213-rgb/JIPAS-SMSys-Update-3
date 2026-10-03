@@ -170,6 +170,9 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
     }
   };
 
+  const termDisplay = receipt.term || bill?.term || schoolSettings.activeTerm || 'First Term';
+  const yearDisplay = receipt.academicYear || bill?.academicYear || schoolSettings.currentAcademicYear || '2025-2026';
+
   const amountPaidVal = Number(receipt.amount || receipt.paid || 0);
   const arrearsVal = Number(receipt.arrears ?? bill?.arrears ?? 0);
   const payableVal = Number(receipt.payable ?? bill?.payable ?? (amountPaidVal + (receipt.balance ?? 0)));
@@ -242,6 +245,31 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto print:static print:bg-white print:p-0 print:m-0 print:block">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-a6-receipt, #printable-a6-receipt * {
+            visibility: visible !important;
+          }
+          #printable-a6-receipt {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100mm !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+        }
+      `}</style>
       
       {/* Settings Panel & Dialog Controls (Screen Only) */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full p-4 sm:p-6 flex flex-col md:flex-row gap-6 my-auto print:hidden print:border-none print:shadow-none print:p-0">
@@ -475,11 +503,11 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
                 <div className="space-y-0.5 border-l border-slate-200 pl-1.5">
                   <div className="flex justify-between">
                     <span className="text-slate-500">{dict.academicYear}:</span>
-                    <strong className="text-slate-950">{receipt.academicYear || '2025/2026'}</strong>
+                    <strong className="text-slate-950">{yearDisplay}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">{dict.term}:</span>
-                    <strong className="text-slate-950">{receipt.term || 'First Term'}</strong>
+                    <strong className="text-slate-950">{termDisplay}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">{dict.paymentMethod}:</span>

@@ -38,7 +38,8 @@ import {
   saveStoredExpenses,
   getStoredTeachers,
   getStoredClassFeeTariffs,
-  recordSecurityAuditLog
+  recordSecurityAuditLog,
+  getStoredSettings
 } from '../services/storageService';
 import { saveBill } from '../services/dbService';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
@@ -659,8 +660,8 @@ export default function AccountantPortal({
       status: newBal === 0 ? 'Fully Paid' : 'Partially Paid',
       collectedBy: collectorName,
       receivedBy: collectorName,
-      academicYear: selectedBill?.academicYear || '2025-2026',
-      term: selectedBill?.term || 'Third Term'
+      academicYear: selectedBill?.academicYear || getStoredSettings().activeAcademicYear || '2025-2026',
+      term: selectedBill?.term || getStoredSettings().activeTerm || 'First Term'
     };
 
     onAddPayment(newPayment);

@@ -1,5 +1,5 @@
 import { Student, StudentBill, ClassFeeTariffItem, TariffCorrectionLog } from '../types';
-import { getStoredClassFeeTariffs, getStoredFeeOptions, getStoredStudents, getStoredBills, saveStoredBills, getStoredTariffCorrectionLogs } from './storageService';
+import { getStoredClassFeeTariffs, getStoredFeeOptions, getStoredStudents, getStoredBills, saveStoredBills, getStoredTariffCorrectionLogs, getStoredSettings } from './storageService';
 import { saveAllBills, saveTariffCorrectionLog } from './dbService';
 
 /**
@@ -177,7 +177,7 @@ export function computeStudentBill(
     admissionNo: student.admissionNo,
     className: student.className,
     academicYear: student.academicYear || existingBill?.academicYear || '2025-2026',
-    term: student.term || existingBill?.term || 'Third Term',
+    term: student.term || existingBill?.term || getStoredSettings().activeTerm || 'First Term',
     items,
     subTotal,
     arrears,

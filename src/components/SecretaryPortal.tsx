@@ -415,7 +415,7 @@ export default function SecretaryPortal({
         admissionNo: newStudent.admissionNo,
         className: newStudent.className,
         academicYear: newStudent.academicYear || '2025/2026',
-        term: newStudent.term || 'Third Term',
+        term: newStudent.term || getStoredSettings().activeTerm || 'First Term',
         items: [
           { name: 'Tuition & Terminal Instruction Fee', amount: 1500 },
           { name: 'Admission Fee', amount: 250 },
@@ -874,8 +874,8 @@ export default function SecretaryPortal({
       collectorRole: 'secretary',
       status: 'Completed',
       notes: paymentNotes.trim() || 'Paid at Secretarial Front Desk',
-      academicYear: '2025-2026',
-      term: 'Third Term'
+      academicYear: getStoredSettings().activeAcademicYear || '2025-2026',
+      term: getStoredSettings().activeTerm || 'First Term'
     };
 
     onAddPayment(newPayment);
@@ -2965,7 +2965,7 @@ export default function SecretaryPortal({
                     <div className="flex justify-between">
                       <span className="text-slate-500 font-medium">Academic Session:</span>
                       <span className="font-semibold text-slate-800 text-right">
-                        {lastIssuedReceipt.academicYear || '2025/2026'} ({lastIssuedReceipt.term || 'Second Term'})
+                        {lastIssuedReceipt.academicYear || '2025/2026'} ({lastIssuedReceipt.term || getStoredSettings().activeTerm || 'First Term'})
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -3002,7 +3002,7 @@ export default function SecretaryPortal({
                           {lastIssuedReceipt.notes || lastIssuedReceipt.paidAs || 'Tuition & Terminal Instructional Fees'}
                         </td>
                         <td className="p-3 text-slate-600 font-mono text-[11px]">
-                          {lastIssuedReceipt.academicYear || '2025/2026'} - {lastIssuedReceipt.term || 'Second Term'}
+                          {lastIssuedReceipt.academicYear || '2025/2026'} - {lastIssuedReceipt.term || getStoredSettings().activeTerm || 'First Term'}
                         </td>
                         <td className="p-3 text-slate-700">
                           {lastIssuedReceipt.paymentMethod || lastIssuedReceipt.method || 'Cash'}

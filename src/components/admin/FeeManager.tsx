@@ -19,7 +19,7 @@ import FeesSettingsManager from '../common/FeesSettingsManager';
 import OverdueFeeAlertsManager from './OverdueFeeAlertsManager';
 import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
 import { INITIAL_FEE_OPTIONS_DATA } from '../../data/feeDescriptions';
-import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses } from '../../services/storageService';
+import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses, getStoredSettings } from '../../services/storageService';
 import { subscribeRefunds, saveRefund, deleteRefund, savePayment, saveBill } from '../../services/dbService';
 import { applyTariffMatrixToAllBills, computeStudentBill } from '../../services/billingService';
 import { printContent } from '../../utils/printUtils';
@@ -462,8 +462,8 @@ export default function FeeManager({
       amount: collectAmount,
       paid: collectAmount,
       date: new Date().toISOString().split('T')[0],
-      academicYear: '2025-2026',
-      term: 'Third Term',
+      academicYear: getStoredSettings().activeAcademicYear || '2025-2026',
+      term: getStoredSettings().activeTerm || 'First Term',
       method: collectMethod,
       receivedBy: 'Accountant (Grace Tetteh)',
       status: 'Verified',

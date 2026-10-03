@@ -96,15 +96,7 @@ export function setReleaseCandidate(candidate: ReleaseCandidate): void {
     const ev = evidenceStore[key];
     if (ev.releaseVersion !== candidate.version) {
       ev.status = 'EXPIRED';
-      recordChangeEvent({
-        actor: 'system',
-        role: 'SYSTEM',
-        action: 'PHASE_48_RELEASE_INVALIDATED',
-        entityType: 'LaunchGate',
-        entityId: ev.gateId,
-        details: `Approval expired due to release version change from ${ev.releaseVersion} to ${candidate.version}`,
-        timestamp: new Date().toISOString()
-      });
+      recordChangeEvent('GOVERNANCE_CHECK_EXECUTED', 'system', `Approval expired due to release version change from ${ev.releaseVersion} to ${candidate.version}`, 'WARNING');
     }
   });
 }
@@ -126,15 +118,12 @@ export function recordHumanVerificationEvidence(evidence: Omit<HumanVerification
 
   evidenceStore[evidence.gateId] = fullEvidence;
 
-  recordChangeEvent({
-    actor: evidence.verifiedBy,
-    role: evidence.verifierRole,
-    action: evidence.status === 'VERIFIED' ? 'PHASE_48_HUMAN_VERIFICATION_VERIFIED' : 'PHASE_48_HUMAN_VERIFICATION_CREATED',
-    entityType: 'HumanVerificationEvidence',
-    entityId: evidence.gateId,
-    details: `Gate ${evidence.gateId} marked as ${evidence.status} by ${evidence.verifiedBy} (${evidence.verifierRole})`,
-    timestamp: new Date().toISOString()
-  });
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED', 
+    evidence.verifiedBy, 
+    `Gate ${evidence.gateId} marked as ${evidence.status} by ${evidence.verifiedBy} (${evidence.verifierRole})`,
+    evidence.status === 'VERIFIED' ? 'SUCCESS' : 'WARNING'
+  );
 
   return fullEvidence;
 }
@@ -178,15 +167,7 @@ export function revokeAdministrativeSignoff(role: 'CEO' | 'Headmaster', revokerN
   if (evidenceStore[gateId]) {
     evidenceStore[gateId].status = 'FAILED';
     evidenceStore[gateId].notes = `Revoked by ${revokerName}: ${reason}`;
-    recordChangeEvent({
-      actor: revokerName,
-      role: role,
-      action: 'PHASE_48_APPROVAL_REVOKED',
-      entityType: 'HumanVerificationEvidence',
-      entityId: gateId,
-      details: `Sign-off revoked: ${reason}`,
-      timestamp: new Date().toISOString()
-    });
+    recordChangeEvent('GOVERNANCE_CHECK_EXECUTED', revokerName, `Sign-off revoked for ${role}: ${reason}`, 'FAILED');
   }
 }
 
