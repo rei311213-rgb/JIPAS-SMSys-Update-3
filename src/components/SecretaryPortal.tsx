@@ -25,6 +25,7 @@ import {
 import { saveStudent, saveBill, generateUniqueAdmissionNo } from '../services/dbService';
 import { PDFGeneratorService } from '../services/pdfService';
 import PrintableReceiptA6 from './common/PrintableReceiptA6';
+import ReceiptQRVerificationModal from './common/ReceiptQRVerificationModal';
 import { INITIAL_SHS_COURSES } from '../data/setupData';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import ExpenseManager from './common/ExpenseManager';
@@ -339,6 +340,7 @@ export default function SecretaryPortal({
   const [lastIssuedReceipt, setLastIssuedReceipt] = useState<PaymentRecord | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
+  const [isQRVerifierOpen, setIsQRVerifierOpen] = useState(false);
   const [autoPrintTriggered, setAutoPrintTriggered] = useState(false);
 
   // Automatically trigger browser print dialog when an Official Receipt is generated
@@ -2817,6 +2819,15 @@ export default function SecretaryPortal({
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     type="button"
+                    onClick={() => setIsQRVerifierOpen(true)}
+                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                    title="Scan QR Code to verify receipt authenticity"
+                  >
+                    <QrCode className="w-4 h-4 text-emerald-400" />
+                    <span>Verify QR</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       if (receiptStudent) {
                         PDFGeneratorService.generateFeeReceipt(lastIssuedReceipt, receiptStudent);
@@ -3149,6 +3160,12 @@ export default function SecretaryPortal({
           />
         );
       })()}
+
+      {/* QR Code Authenticity Verification Scanner Modal */}
+      <ReceiptQRVerificationModal
+        isOpen={isQRVerifierOpen}
+        onClose={() => setIsQRVerifierOpen(false)}
+      />
     </div>
   );
 }

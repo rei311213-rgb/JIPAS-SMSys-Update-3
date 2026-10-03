@@ -3,7 +3,7 @@ import {
   CreditCard, Plus, Pencil, Trash2, DollarSign, Receipt, Printer, 
   Download, Search, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, 
   FileText, ShieldCheck, Filter, TrendingUp, Wallet, Check, Send,
-  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw
+  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw, QrCode
 } from 'lucide-react';
 import FeeCorrectionModal from '../common/FeeCorrectionModal';
 import PaymentCorrectionModal from '../common/PaymentCorrectionModal';
@@ -18,6 +18,7 @@ import PrintableReceiptA6 from '../common/PrintableReceiptA6';
 import JIPASLogo from '../common/JIPASLogo';
 import PaidAsSelector from '../common/PaidAsSelector';
 import ReceiptPreviewModal from '../common/ReceiptPreviewModal';
+import ReceiptQRVerificationModal from '../common/ReceiptQRVerificationModal';
 import FeesSettingsManager from '../common/FeesSettingsManager';
 import OverdueFeeAlertsManager from './OverdueFeeAlertsManager';
 import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
@@ -96,6 +97,7 @@ export default function FeeManager({
   const [showA6Receipt, setShowA6Receipt] = useState(false);
   const [showCollectPreview, setShowCollectPreview] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<any>(null);
+  const [isQRVerifierOpen, setIsQRVerifierOpen] = useState(false);
 
   // Refund Management State
   const [refundsList, setRefundsList] = useState<FeeRefundRecord[]>(() => getStoredRefunds());
@@ -1837,6 +1839,14 @@ export default function FeeManager({
                 <Download className="w-3.5 h-3.5" /> Official PDF
               </button>
               <button
+                type="button"
+                onClick={() => setIsQRVerifierOpen(true)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="Scan QR Code to verify payment authenticity"
+              >
+                <QrCode className="w-3.5 h-3.5 text-indigo-400" /> Verify QR
+              </button>
+              <button
                 onClick={() => setShowA6Receipt(true)}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
@@ -1868,6 +1878,12 @@ export default function FeeManager({
           </div>
         </div>
       )}
+
+      {/* QR Code Authenticity Verification Scanner Modal */}
+      <ReceiptQRVerificationModal
+        isOpen={isQRVerifierOpen}
+        onClose={() => setIsQRVerifierOpen(false)}
+      />
 
       {/* ADD / EDIT FEE OPTION MODAL */}
       {(showAddFeeModal || editingFee) && (

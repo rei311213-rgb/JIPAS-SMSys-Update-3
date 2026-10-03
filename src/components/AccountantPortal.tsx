@@ -25,6 +25,7 @@ import RevenueTrendsModule from './accountant/RevenueTrendsModule';
 import AutomatedFeeReminderUtility from './accountant/AutomatedFeeReminderUtility';
 import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
+import ReceiptQRVerificationModal from './common/ReceiptQRVerificationModal';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
 import FeeCorrectionModal from './common/FeeCorrectionModal';
 import PaymentCorrectionModal from './common/PaymentCorrectionModal';
@@ -52,7 +53,7 @@ import {
   Calculator, CreditCard, DollarSign, Plus, FileText, 
   Search, Printer, Download, CheckCircle2, ArrowDownRight, ArrowLeft, Calendar, User, Check, Settings, AlertTriangle, Send,
   RotateCw, Filter, Phone, MessageSquare, Clock, Sparkles, Wallet, Receipt, Layers, ShieldCheck,
-  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale, Eye, X
+  Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale, Eye, X, QrCode
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { addMoney, subtractMoney, formatCurrency, calculateBillBalance, CURRENCY } from '../utils/financeUtils';
@@ -494,6 +495,7 @@ export default function AccountantPortal({
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
   const [reviewingStudent, setReviewingStudent] = useState<Student | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
+  const [isQRVerifierOpen, setIsQRVerifierOpen] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
 
   // Automated Daily Fee Audit states
@@ -2233,6 +2235,16 @@ export default function AccountantPortal({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
+                onClick={() => setIsQRVerifierOpen(true)}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
+                title="Scan QR code on a printed physical receipt to verify authenticity"
+              >
+                <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Verify Receipt QR</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleExportFilteredPaymentsCSV}
                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
                 title="Export current filtered payment records as CSV for external auditing"
@@ -3953,6 +3965,16 @@ export default function AccountantPortal({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => setIsQRVerifierOpen(true)}
+                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                    title="Scan QR Code from a physical receipt to verify authenticity"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Verify QR</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       if (student) {
                         PDFGeneratorService.generateFeeReceipt(activeReceipt, student);
@@ -4327,6 +4349,12 @@ export default function AccountantPortal({
           const updated = [...importedExpenses, ...existingExpenses];
           saveStoredExpenses(updated);
         }}
+      />
+
+      {/* QR Code Authenticity Verification Scanner Modal */}
+      <ReceiptQRVerificationModal
+        isOpen={isQRVerifierOpen}
+        onClose={() => setIsQRVerifierOpen(false)}
       />
       </div>
     </div>
