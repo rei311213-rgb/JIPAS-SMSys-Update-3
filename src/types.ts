@@ -61,6 +61,10 @@ export type AppPermission =
   | 'publish_reports'
   | 'collect_fees'
   | 'void_payments'
+  | 'correct_fees'
+  | 'void_fees'
+  | 'fees.correct'
+  | 'fees.void'
   | 'enter_expenses'
   | 'approve_expenses'
   | 'run_payroll'
@@ -482,7 +486,17 @@ export interface StudentBill {
   payable: number;
   paid: number;
   balance: number;
-  status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid';
+  status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid' | 'Voided' | 'Corrected' | 'VOIDED' | 'CORRECTED';
+  isVoided?: boolean;
+  isCorrected?: boolean;
+  voidedAt?: string;
+  voidedBy?: string;
+  voidReason?: string;
+  correctionId?: string;
+  correctionReference?: string;
+  originalBillId?: string;
+  originalStudentId?: string;
+  revision?: number;
   dueDate?: string;
   dateIssued?: string;
   updatedAt?: string;
@@ -504,6 +518,43 @@ export interface StudentBill {
   followUpNotes?: string;
   paidAmount?: number; // Added for backward compatibility with schema.sql
   totalAmount?: number; // Added for backward compatibility with schema.sql
+}
+
+export type CorrectionReasonCode =
+  | 'WRONG_AMOUNT'
+  | 'WRONG_STUDENT'
+  | 'DUPLICATE_FEE'
+  | 'WRONG_FEE_ITEM'
+  | 'WRONG_ACADEMIC_TERM'
+  | 'INCORRECT_TARIFF'
+  | 'DATA_ENTRY_ERROR'
+  | 'FEE_SHOULD_NOT_BE_CREATED'
+  | 'OTHER';
+
+export interface FeeCorrectionRecord {
+  id: string; // correctionId (e.g. CORR-2026-XXXXXX)
+  originalBillId: string;
+  replacementBillId?: string;
+  originalStudentId: string;
+  correctedStudentId?: string;
+  originalAmount: number;
+  correctedAmount?: number;
+  originalFeeItem?: string;
+  correctedFeeItem?: string;
+  originalTerm?: string;
+  correctedTerm?: string;
+  action: 'CORRECT_AMOUNT' | 'VOID' | 'CORRECT_STUDENT' | 'CORRECT_FEE_ITEM' | 'CORRECT_TERM' | 'CORRECT_DUPLICATE';
+  reasonCode: CorrectionReasonCode;
+  reasonText: string;
+  actorId: string;
+  actorRole: string;
+  campusId: string;
+  timestamp: string;
+  previousStatus: string;
+  newStatus: string;
+  idempotencyKey?: string;
+  baseRevision?: number;
+  baseUpdatedAt?: string;
 }
 
 export interface DailyFeeAuditSummary {

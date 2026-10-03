@@ -3,8 +3,9 @@ import {
   CreditCard, Plus, Pencil, Trash2, DollarSign, Receipt, Printer, 
   Download, Search, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, 
   FileText, ShieldCheck, Filter, TrendingUp, Wallet, Check, Send,
-  Users, Building2, BookOpen, User, X, AlertCircle
+  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw
 } from 'lucide-react';
+import FeeCorrectionModal from '../common/FeeCorrectionModal';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, 
   PieChart as RechartsPieChart, Pie, Cell, Legend 
@@ -278,6 +279,7 @@ export default function FeeManager({
   const [collectPaidAs, setCollectPaidAs] = useState('Tuition Fee (Full Term Payment)');
   const [collectRef, setCollectRef] = useState('');
   const [collectToast, setCollectToast] = useState(false);
+  const [correctingBill, setCorrectingBill] = useState<StudentBill | null>(null);
 
   // Hierarchical Filter States for Fee Payment
   const [paymentDept, setPaymentDept] = useState<string>('All');
@@ -794,12 +796,13 @@ export default function FeeManager({
                     <th className="p-3 text-right">Paid (CFA)</th>
                     <th className="p-3 text-right">Balance Due (CFA)</th>
                     <th className="p-3 text-center">Status</th>
+                    <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
                   {filteredBillsListForBilling.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-8 text-center text-slate-500 font-bold">
+                      <td colSpan={10} className="p-8 text-center text-slate-500 font-bold">
                         No billing sheet records found for {selectedBillingClass === 'All' ? 'the selected campus' : `Class ${selectedBillingClass}`}.
                       </td>
                     </tr>
@@ -816,11 +819,22 @@ export default function FeeManager({
                         <td className="p-3 text-right font-mono font-black text-rose-700">{(bill.balance ?? 0).toFixed(2)} CFA</td>
                         <td className="p-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            bill.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
-                            bill.status === 'Partial' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                            bill.isVoided || bill.status === 'Voided' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                            bill.status === 'Paid' || bill.status === 'Fully Paid' ? 'bg-emerald-100 text-emerald-800' :
+                            bill.status === 'Partial' || bill.status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                           }`}>
-                            {bill.status}
+                            {bill.isVoided ? 'VOIDED' : bill.status}
                           </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setCorrectingBill(bill)}
+                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200 cursor-pointer flex items-center gap-1 mx-auto"
+                            title="Open Fee Correction & Void Center"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Correct
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -828,6 +842,21 @@ export default function FeeManager({
                 </tbody>
               </table>
             </div>
+
+            {correctingBill && (
+              <FeeCorrectionModal
+                bill={correctingBill}
+                actor="Accountant (Grace Tetteh)"
+                role="accountant"
+                campusId="JIPAS 1"
+                onClose={() => setCorrectingBill(null)}
+                onSuccess={() => {
+                  const refreshedBills = getStoredBills();
+                  setBillsList(refreshedBills);
+                  if (onUpdateBills) onUpdateBills(refreshedBills);
+                }}
+              />
+            )}
           </div>
         );
       })()}
@@ -1167,7 +1196,7 @@ export default function FeeManager({
                         <div className="flex justify-between items-center text-xs">
                           <div>
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Billing Term</span>
-                            <span className="font-bold text-slate-800">{selectedBill.className} • 2025-2026 Third Term</span>
+                            <span className="font-bold text-slate-800">{selectedBill.className} • {selectedBill.academicYear || getStoredSettings().activeAcademicYear || '2025-2026'} ({selectedBill.term || getStoredSettings().activeTerm || 'First Term'})</span>
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>

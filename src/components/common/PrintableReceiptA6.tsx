@@ -171,7 +171,7 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
   };
 
   const termDisplay = receipt.term || bill?.term || schoolSettings.activeTerm || 'First Term';
-  const yearDisplay = receipt.academicYear || bill?.academicYear || schoolSettings.currentAcademicYear || '2025-2026';
+  const yearDisplay = receipt.academicYear || bill?.academicYear || schoolSettings.activeAcademicYear || '2025-2026';
 
   const amountPaidVal = Number(receipt.amount || receipt.paid || 0);
   const arrearsVal = Number(receipt.arrears ?? bill?.arrears ?? 0);

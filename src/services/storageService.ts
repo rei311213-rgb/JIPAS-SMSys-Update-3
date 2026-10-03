@@ -36,6 +36,7 @@ import {
   GraduatedStudentItem,
   PastEmployeeRecord,
   FeeRefundRecord,
+  FeeCorrectionRecord,
   StudentTransferRecord,
   ScoreApprovalRecord,
   TransportRouteItem,
@@ -510,7 +511,17 @@ export function saveStoredBills(bills: StudentBill[]): void {
 }
 
 export function saveStoredPayments(payments: PaymentRecord[]): void {
-  writeStorage(STORAGE_KEYS.PAYMENTS, payments);
+  const seen = new Set<string>();
+  const deduplicated: PaymentRecord[] = [];
+  (payments || []).forEach(p => {
+    if (!p) return;
+    if (p.id) {
+      if (seen.has(p.id)) return;
+      seen.add(p.id);
+    }
+    deduplicated.push(p);
+  });
+  writeStorage(STORAGE_KEYS.PAYMENTS, deduplicated);
 }
 
 export function saveStoredReports(reports: TermReport[]): void {
@@ -1106,6 +1117,16 @@ export function getStoredTariffCorrectionLogs(): TariffCorrectionLog[] {
 
 export function saveStoredTariffCorrectionLogs(logs: TariffCorrectionLog[]): void {
   writeStorage(STORAGE_KEYS.TARIFF_CORRECTION_LOGS, logs);
+}
+
+export const INITIAL_FEE_CORRECTIONS: FeeCorrectionRecord[] = [];
+
+export function getStoredFeeCorrections(): FeeCorrectionRecord[] {
+  return readStorage<FeeCorrectionRecord[]>(STORAGE_KEYS.FEE_CORRECTIONS, INITIAL_FEE_CORRECTIONS);
+}
+
+export function saveStoredFeeCorrections(corrections: FeeCorrectionRecord[]): void {
+  writeStorage(STORAGE_KEYS.FEE_CORRECTIONS, corrections);
 }
 
 export const INITIAL_GRADUATED_BATCHES: GraduatedBatch[] = [

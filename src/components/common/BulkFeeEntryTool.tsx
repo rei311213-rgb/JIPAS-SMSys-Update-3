@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Student, StudentBill, PaymentRecord, User } from '../../types';
 import { saveBill, savePayment } from '../../services/dbService';
+import { getStoredSettings } from '../../services/storageService';
 
 interface BulkFeeEntryToolProps {
   students: Student[];
@@ -295,8 +296,8 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
             studentName: student.fullName,
             admissionNo: student.admissionNo,
             className: student.className,
-            academicYear: student.academicYear || '2025/2026',
-            term: student.term || 'First Term',
+            academicYear: student.academicYear || getStoredSettings().activeAcademicYear || '2025-2026',
+            term: student.term || getStoredSettings().activeTerm || 'First Term',
             items: [{ name: particular, amount: amt }],
             subTotal: amt,
             arrears: 0,
@@ -328,8 +329,8 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
             collectedBy: currentUser.name || 'Bursar Desk',
             notes: entry.notes || 'Bulk parsed collection',
             paidAs: particular,
-            academicYear: student.academicYear || '2025/2026',
-            term: student.term || 'First Term'
+            academicYear: student.academicYear || getStoredSettings().activeAcademicYear || '2025-2026',
+            term: student.term || getStoredSettings().activeTerm || 'First Term'
           };
 
           await savePayment(newPayment);

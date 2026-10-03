@@ -26,6 +26,7 @@ import AutomatedFeeReminderUtility from './accountant/AutomatedFeeReminderUtilit
 import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
+import FeeCorrectionModal from './common/FeeCorrectionModal';
 import { printContent } from '../utils/printUtils';
 import { computeStudentBill, logTariffCorrection } from '../services/billingService';
 import { runDailyFeeAudit, isDailyAuditDueToday, getStoredAuditSummary, getFormattedTimestamp } from '../services/feeAuditService';
@@ -39,7 +40,8 @@ import {
   getStoredTeachers,
   getStoredClassFeeTariffs,
   recordSecurityAuditLog,
-  getStoredSettings
+  getStoredSettings,
+  getStoredBills
 } from '../services/storageService';
 import { saveBill } from '../services/dbService';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
@@ -483,6 +485,7 @@ export default function AccountantPortal({
   const [isImporterOpen, setIsImporterOpen] = useState(false);
   const [billsFilter, setBillsFilter] = useState<'all' | 'action-required' | 'unpaid' | 'paid'>('all');
   const [billsSearchQuery, setBillsSearchQuery] = useState('');
+  const [correctingBill, setCorrectingBill] = useState<StudentBill | null>(null);
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
@@ -660,8 +663,8 @@ export default function AccountantPortal({
       status: newBal === 0 ? 'Fully Paid' : 'Partially Paid',
       collectedBy: collectorName,
       receivedBy: collectorName,
-      academicYear: selectedBill?.academicYear || getStoredSettings().activeAcademicYear || '2025-2026',
-      term: selectedBill?.term || getStoredSettings().activeTerm || 'First Term'
+      academicYear: getStoredSettings().activeAcademicYear || selectedBill?.academicYear || '2025-2026',
+      term: getStoredSettings().activeTerm || selectedBill?.term || 'First Term'
     };
 
     onAddPayment(newPayment);
@@ -3085,6 +3088,15 @@ export default function AccountantPortal({
                                 Collect
                               </button>
 
+                              <button
+                                onClick={() => setCorrectingBill(b)}
+                                className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200 cursor-pointer flex items-center gap-1 transition-colors"
+                                title="Open Fee Correction & Void Center"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                                Correct
+                              </button>
+
                               {b.balance > 0 && (
                                 <>
                                   {/* Send Automated Templated Alert Modal Trigger */}
@@ -3462,7 +3474,7 @@ export default function AccountantPortal({
                         <div className="flex justify-between items-center text-xs">
                           <div>
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Billing Term</span>
-                            <span className="font-bold text-slate-800">{selectedBill.className} • 2025-2026 Third Term</span>
+                            <span className="font-bold text-slate-800">{selectedBill.className} • {selectedBill.academicYear || getStoredSettings().activeAcademicYear || '2025-2026'} ({selectedBill.term || getStoredSettings().activeTerm || 'First Term'})</span>
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>
@@ -4071,6 +4083,21 @@ export default function AccountantPortal({
                 type: 'fee_alert'
               });
             }
+          }}
+        />
+      )}
+
+      {/* Fee Correction & Void Center Modal */}
+      {correctingBill && (
+        <FeeCorrectionModal
+          bill={correctingBill}
+          actor={currentUser?.name || 'Accountant'}
+          role={currentUser?.role || 'accountant'}
+          campusId={selectedCampus || 'JIPAS 1'}
+          onClose={() => setCorrectingBill(null)}
+          onSuccess={() => {
+            const refreshed = getStoredBills();
+            if (onUpdateBills) onUpdateBills(refreshed);
           }}
         />
       )}

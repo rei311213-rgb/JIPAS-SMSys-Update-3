@@ -74,6 +74,24 @@ export function getValidPayments(payments: PaymentRecord[] = []): PaymentRecord[
 }
 
 /**
+ * Helper to check if a bill is active and valid (not voided).
+ */
+export function isBillValid(bill: StudentBill): boolean {
+  if (!bill) return false;
+  if (bill.isVoided === true) return false;
+  const st = (bill.status || '').toUpperCase();
+  if (st === 'VOIDED') return false;
+  return true;
+}
+
+/**
+ * Filters active valid non-voided bills.
+ */
+export function getValidBills(bills: StudentBill[] = []): StudentBill[] {
+  return (bills || []).filter(isBillValid);
+}
+
+/**
  * Calculates the authoritative financial ledger summary for a single student.
  */
 export function calculateStudentLedger(
@@ -84,8 +102,8 @@ export function calculateStudentLedger(
 ): StudentLedgerSummary {
   const key = (studentIdOrAdm || '').trim().toLowerCase();
 
-  // 1. Locate student's bill(s)
-  const studentBills = bills.filter(b => 
+  // 1. Locate student's valid active bill(s)
+  const studentBills = getValidBills(bills).filter(b => 
     (b.studentId && b.studentId.trim().toLowerCase() === key) ||
     (b.admissionNo && b.admissionNo.trim().toLowerCase() === key)
   );
@@ -202,7 +220,7 @@ export function calculateCampusFinancialSummary(options: {
   const academicYear = options.academicYear || 'All';
   const term = options.term || 'All';
 
-  let filteredBills = options.bills || [];
+  let filteredBills = getValidBills(options.bills || []);
   let filteredPayments = options.payments || [];
   let filteredRefunds = options.refunds || [];
 

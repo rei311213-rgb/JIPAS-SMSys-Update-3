@@ -24,7 +24,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'view_students', 'edit_students', 'delete_students',
       'view_teachers', 'edit_teachers',
       'manage_classes', 'enter_grades', 'publish_reports',
-      'collect_fees', 'void_payments', 'enter_expenses', 'approve_expenses',
+      'collect_fees', 'void_payments', 'correct_fees', 'void_fees', 'fees.correct', 'fees.void', 'enter_expenses', 'approve_expenses',
       'run_payroll', 'view_payroll', 'manage_bank_deposits',
       'view_audit_logs', 'manage_users', 'manage_settings'
     ],
@@ -43,7 +43,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'view_students', 'edit_students', 'delete_students',
       'view_teachers', 'edit_teachers',
       'manage_classes', 'enter_grades', 'publish_reports',
-      'collect_fees', 'void_payments', 'enter_expenses', 'approve_expenses',
+      'collect_fees', 'void_payments', 'correct_fees', 'void_fees', 'fees.correct', 'fees.void', 'enter_expenses', 'approve_expenses',
       'run_payroll', 'view_payroll', 'manage_bank_deposits',
       'view_audit_logs', 'manage_users', 'manage_settings'
     ],
@@ -81,7 +81,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'view_students', 'edit_students',
       'view_teachers', 'edit_teachers',
       'manage_classes', 'enter_grades', 'publish_reports',
-      'collect_fees', 'enter_expenses', 'approve_expenses',
+      'collect_fees', 'correct_fees', 'void_fees', 'fees.correct', 'fees.void', 'enter_expenses', 'approve_expenses',
       'view_payroll', 'manage_bank_deposits',
       'view_audit_logs', 'manage_users', 'manage_settings'
     ],
@@ -127,7 +127,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     description: 'Primary financial officer in charge of fees, disbursements, bank deposits, and payroll.',
     permissions: [
       'view_students',
-      'collect_fees', 'void_payments', 'enter_expenses', 'approve_expenses',
+      'collect_fees', 'void_payments', 'correct_fees', 'void_fees', 'fees.correct', 'fees.void', 'enter_expenses', 'approve_expenses',
       'run_payroll', 'view_payroll', 'manage_bank_deposits'
     ],
     modules: [
