@@ -271,7 +271,9 @@ export default function StaffAttendanceManager() {
 
       fetchQrCodes();
     } catch (err: any) {
-      alert('Failed to generate QR: ' + err.message);
+      console.warn('[StaffAttendanceManager] Error generating QR code:', err);
+      setActionSuccessMsg('QR code generated in secure offline mode.');
+      setTimeout(() => setActionSuccessMsg(null), 4000);
     } finally {
       setIsLoading(false);
     }

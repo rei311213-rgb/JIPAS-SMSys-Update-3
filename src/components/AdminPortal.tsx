@@ -70,7 +70,7 @@ import {
   INITIAL_CLASSES, INITIAL_HOUSES, INITIAL_SUBJECTS 
 } from '../data/setupData';
 import { checkHasDemoData, clearDemoData, getStoredReports } from '../services/dbService';
-import { getStoredExpenses } from '../services/storageService';
+import { getStoredExpenses, getStoredSettings, getActiveAcademicPeriod } from '../services/storageService';
 import { 
   LayoutDashboard, Users, UserCheck, CreditCard, Award, Calendar, Bell, 
   FileText, Shield, Plus, Search, CheckCircle, AlertCircle, ArrowUpRight, DollarSign, BookOpen,
@@ -470,6 +470,7 @@ export default function AdminPortal({
   });
 
   const [rawExpenses] = useState(() => getStoredExpenses());
+  const activePeriod = getActiveAcademicPeriod();
 
   // Campus Multi-Campus State and shadow filters
   const [selectedCampus, setSelectedCampus] = useState<'General' | 'JIPAS 1' | 'JIPAS 2'>(() => {
@@ -1159,7 +1160,7 @@ export default function AdminPortal({
                     JIPAS
                   </span>
                   <span className="bg-emerald-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                    Active Term: Third Term 2025/2026
+                    Active Term: {activePeriod.academicTerm} {activePeriod.academicYear}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight drop-shadow-sm">
@@ -2017,7 +2018,7 @@ export default function AdminPortal({
                       Terminal Reports Class Broadcast Console
                     </h3>
                     <span className="bg-blue-950 text-blue-300 border border-blue-800/80 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      Third Term 2025/2026
+                      {activePeriod.academicTerm} {activePeriod.academicYear}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">

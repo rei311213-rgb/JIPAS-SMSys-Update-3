@@ -285,21 +285,18 @@ export function getStoredTerms(): TermItem[] {
 }
 
 export function getActiveAcademicPeriod(): { academicYear: string; academicTerm: string } {
-  const settings = getStoredSettings();
   const years = getStoredAcademicYears();
   const terms = getStoredTerms();
+  const settings = readStorage<SchoolSettings>(STORAGE_KEYS.GENERAL_SETTINGS, INITIAL_SCHOOL_SETTINGS);
 
-  let academicYear = settings.activeAcademicYear;
-  if (!academicYear) {
-    const activeYearObj = years.find(y => y.status === 'Current' || y.status === 'Active');
-    academicYear = activeYearObj?.name || (years.length > 0 ? years[0].name : '2025-2026');
-  }
+  // 1. Prioritize academic year marked 'Current' or 'Active' in Academic Years Management
+  const currentYearObj = years.find(y => y.status === 'Current' || y.status === 'Active');
+  const academicYear = currentYearObj?.name || (settings && settings.activeAcademicYear ? settings.activeAcademicYear : (years.length > 0 ? years[0].name : '2026-2027'));
 
-  let academicTerm = settings.activeTerm;
-  if (!academicTerm) {
-    const activeTermObj = terms.find(t => t.status === 'Current');
-    academicTerm = activeTermObj?.name || (terms.length > 0 ? terms[0].name : 'Third Term');
-  }
+  // 2. Prioritize term marked 'Current' belonging to that active academic year
+  const yearTerms = terms.filter(t => t.academicYear === academicYear);
+  const currentTermObj = yearTerms.find(t => t.status === 'Current') || terms.find(t => t.status === 'Current');
+  const academicTerm = currentTermObj?.name || (yearTerms.length > 0 ? yearTerms[0].name : (settings && settings.activeTerm ? settings.activeTerm : 'First Term'));
 
   return { academicYear, academicTerm };
 }
@@ -656,8 +653,8 @@ export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
   email: 'joyjipas2002@gmail.com',
   address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
   website: 'www.jipas.edu.gh',
-  activeAcademicYear: '2025-2026',
-  activeTerm: 'Third Term',
+  activeAcademicYear: '2026-2027',
+  activeTerm: 'First Term',
   enableIncompleteReminders: true,
   reminderFrequency: 'Weekly',
   notifyParentsForMissingGrades: true,
@@ -673,9 +670,12 @@ export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
 
 export function getStoredSettings(): SchoolSettings {
   const settings = readStorage<SchoolSettings>(STORAGE_KEYS.GENERAL_SETTINGS, INITIAL_SCHOOL_SETTINGS);
+  const activePeriod = getActiveAcademicPeriod();
   return {
     ...INITIAL_SCHOOL_SETTINGS,
-    ...(settings || {})
+    ...(settings || {}),
+    activeAcademicYear: activePeriod.academicYear,
+    activeTerm: activePeriod.academicTerm
   };
 }
 

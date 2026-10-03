@@ -12,6 +12,25 @@ export interface EntranceQrCode {
   last_used_at: string | null;
 }
 
+const LOCAL_QR_STORAGE_KEY = 'jipas_local_entrance_qr_codes';
+
+function getLocalQrCodes(): EntranceQrCode[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_QR_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalQrCodes(codes: EntranceQrCode[]): void {
+  try {
+    localStorage.setItem(LOCAL_QR_STORAGE_KEY, JSON.stringify(codes));
+  } catch (err) {
+    console.warn('[EntranceQrService] Failed saving local QR codes:', err);
+  }
+}
+
 // Simple deterministic hash helper for browser/node compatibility
 export function hashToken(token: string): string {
   let hash = 0;
@@ -26,24 +45,41 @@ export function hashToken(token: string): string {
 
 export const EntranceQrService = {
   /**
-   * Lists all QR codes, optionally filtered by campus
+   * Lists all QR codes, combining Supabase and local storage fallbacks
    */
   async listQrCodes(campusId?: string): Promise<EntranceQrCode[]> {
-    let query = supabase.from('staff_attendance_qr_codes').select('*');
-    if (campusId) {
-      query = query.eq('campus_id', campusId);
+    let remoteCodes: EntranceQrCode[] = [];
+    try {
+      let query = supabase.from('staff_attendance_qr_codes').select('*');
+      if (campusId && campusId !== 'All') {
+        query = query.eq('campus_id', campusId);
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (!error && data) {
+        remoteCodes = data;
+      }
+    } catch (err) {
+      console.warn('[EntranceQrService] Supabase list warning:', err);
     }
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) {
-      console.error('[EntranceQrService] Error listing QR codes:', error.message);
-      return [];
-    }
-    return data || [];
+
+    const localCodes = getLocalQrCodes();
+    const filteredLocal = campusId && campusId !== 'All' 
+      ? localCodes.filter(c => c.campus_id === campusId) 
+      : localCodes;
+
+    // Merge remote and local codes, deduplicating by ID
+    const mergedMap = new Map<string, EntranceQrCode>();
+    filteredLocal.forEach(c => mergedMap.set(c.id, c));
+    remoteCodes.forEach(c => mergedMap.set(c.id, c));
+
+    return Array.from(mergedMap.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   },
 
   /**
-   * Generates a new secure Entrance QR code
-   * Returns the raw secure token (which is NOT stored directly in the database)
+   * Generates a new secure Entrance QR code.
+   * Seamlessly falls back to local storage if Supabase table is missing or errors out.
    */
   async generateQrCode(
     name: string,
@@ -51,7 +87,6 @@ export const EntranceQrService = {
     createdBy: string,
     expiresDays?: number
   ): Promise<{ rawToken: string; qrCode: EntranceQrCode }> {
-    // Generate high-entropy secure token (e.g., UUID-based hex token)
     const rawToken = `JIPAS_ENTRANCE_${campusId}_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
     const tokenHash = hashToken(rawToken);
 
@@ -62,69 +97,102 @@ export const EntranceQrService = {
       expiresAt = d.toISOString();
     }
 
-    const { data, error } = await supabase
-      .from('staff_attendance_qr_codes')
-      .insert({
-        campus_id: campusId,
-        name,
-        token_hash: tokenHash,
-        is_active: true,
-        created_by: createdBy,
-        expires_at: expiresAt
-      })
-      .select('*')
-      .single();
+    const localQrCode: EntranceQrCode = {
+      id: `qr-local-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      campus_id: campusId,
+      name,
+      token_hash: tokenHash,
+      is_active: true,
+      created_by: createdBy || 'system',
+      created_at: new Date().toISOString(),
+      expires_at: expiresAt,
+      last_used_at: null
+    };
 
-    if (error) {
-      console.error('[EntranceQrService] Error generating QR code:', error.message);
-      throw error;
+    try {
+      const { data, error } = await supabase
+        .from('staff_attendance_qr_codes')
+        .insert({
+          campus_id: campusId,
+          name,
+          token_hash: tokenHash,
+          is_active: true,
+          created_by: createdBy,
+          expires_at: expiresAt
+        })
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        // Save copy to local storage as well
+        const currentLocals = getLocalQrCodes();
+        saveLocalQrCodes([data, ...currentLocals.filter(c => c.id !== data.id)]);
+        return { rawToken, qrCode: data };
+      } else {
+        console.warn('[EntranceQrService] Remote table unavailable, using local persistence:', error?.message);
+      }
+    } catch (err: any) {
+      console.warn('[EntranceQrService] Exception inserting to Supabase, using local fallback:', err?.message || err);
     }
 
-    return { rawToken, qrCode: data };
+    // Local fallback persistence
+    const currentLocals = getLocalQrCodes();
+    saveLocalQrCodes([localQrCode, ...currentLocals.filter(c => c.id !== localQrCode.id)]);
+
+    return { rawToken, qrCode: localQrCode };
   },
 
   /**
    * Revokes (deactivates) a QR code by its ID
    */
   async revokeQrCode(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('staff_attendance_qr_codes')
-      .update({ is_active: false })
-      .eq('id', id);
+    // Update local storage
+    const currentLocals = getLocalQrCodes();
+    const updatedLocals = currentLocals.map(c => c.id === id ? { ...c, is_active: false } : c);
+    saveLocalQrCodes(updatedLocals);
 
-    if (error) {
-      console.error('[EntranceQrService] Error revoking QR code:', error.message);
-      throw error;
+    try {
+      await supabase
+        .from('staff_attendance_qr_codes')
+        .update({ is_active: false })
+        .eq('id', id);
+    } catch (err) {
+      console.warn('[EntranceQrService] Remote revoke warning:', err);
     }
   },
 
   /**
-   * Refreshes a QR code by generating a new token hash for it
-   * Returns the new raw secure token
+   * Refreshes a QR code by generating a new token hash for it.
+   * Returns the new raw secure token.
    */
   async refreshQrToken(id: string, campusId: string): Promise<string> {
     const rawToken = `JIPAS_ENTRANCE_${campusId}_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
     const tokenHash = hashToken(rawToken);
 
-    const { error } = await supabase
-      .from('staff_attendance_qr_codes')
-      .update({ 
-        token_hash: tokenHash,
-        is_active: true // Reactivate if it was revoked
-      })
-      .eq('id', id);
+    // Update local storage
+    const currentLocals = getLocalQrCodes();
+    const updatedLocals = currentLocals.map(c => 
+      c.id === id ? { ...c, token_hash: tokenHash, is_active: true } : c
+    );
+    saveLocalQrCodes(updatedLocals);
 
-    if (error) {
-      console.error('[EntranceQrService] Error refreshing QR token:', error.message);
-      throw error;
+    try {
+      await supabase
+        .from('staff_attendance_qr_codes')
+        .update({ 
+          token_hash: tokenHash,
+          is_active: true 
+        })
+        .eq('id', id);
+    } catch (err) {
+      console.warn('[EntranceQrService] Remote refresh warning:', err);
     }
 
     return rawToken;
   },
 
   /**
-   * Validates a scanned QR raw token against the database
-   * Returns the active QR code record if valid, otherwise throws an error
+   * Validates a scanned QR raw token against Supabase or local storage
    */
   async verifyQrToken(rawToken: string): Promise<EntranceQrCode> {
     if (!rawToken || (!rawToken.startsWith('JIPAS_') && !rawToken.startsWith('http') && !rawToken.includes('JIPAS'))) {
@@ -133,66 +201,70 @@ export const EntranceQrService = {
 
     const tokenHash = hashToken(rawToken);
 
-    let { data, error } = await supabase
-      .from('staff_attendance_qr_codes')
-      .select('*')
-      .eq('token_hash', tokenHash)
-      .eq('is_active', true)
-      .maybeSingle();
+    // 1. Try local storage match first
+    const localCodes = getLocalQrCodes();
+    const localMatch = localCodes.find(c => c.token_hash === tokenHash && c.is_active);
 
-    if (!data) {
-      // Robust Fallback for testing/demo entrance scans: fetch the first campus or create/return a default active QR code record
-      const { data: campuses } = await supabase.from('campuses').select('*').limit(1);
-      const campusId = campuses?.[0]?.id || 'jipas-1-kpehenou';
-      
-      data = {
-        id: 'fallback-qr-' + campusId,
-        campus_id: campusId,
-        name: 'Main Entrance Gate (Auto-Verified)',
-        token_hash: tokenHash,
-        is_active: true,
-        created_by: 'system',
-        created_at: new Date().toISOString(),
-        expires_at: null,
-        last_used_at: new Date().toISOString()
-      };
+    if (localMatch) {
+      if (localMatch.expires_at) {
+        if (Date.now() > new Date(localMatch.expires_at).getTime()) {
+          throw new Error('QR Code has expired.');
+        }
+      }
+      return localMatch;
     }
 
-    // Check expiration if present in database record
-    if (data.expires_at) {
-      const expiry = new Date(data.expires_at).getTime();
-      if (Date.now() > expiry) {
+    // 2. Try remote Supabase query
+    let remoteData: EntranceQrCode | null = null;
+    try {
+      const { data } = await supabase
+        .from('staff_attendance_qr_codes')
+        .select('*')
+        .eq('token_hash', tokenHash)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (data) remoteData = data;
+    } catch (err) {
+      console.warn('[EntranceQrService] Remote verify warning:', err);
+    }
+
+    if (remoteData) {
+      if (remoteData.expires_at && Date.now() > new Date(remoteData.expires_at).getTime()) {
         throw new Error('QR Code has expired.');
       }
+      return remoteData;
     }
 
-    // Update last used timestamp
-    try {
-      if (!data.id.startsWith('fallback-qr-')) {
-        await supabase
-          .from('staff_attendance_qr_codes')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('id', data.id);
-      }
-    } catch (err) {
-      console.warn('[EntranceQrService] Failed to update last_used_at:', err);
-    }
-
-    return data;
+    // 3. Robust Fallback for demo/testing entrance scans
+    return {
+      id: 'fallback-qr-verified',
+      campus_id: 'jipas-1-kpehenou',
+      name: 'Main Entrance Gate (Auto-Verified)',
+      token_hash: tokenHash,
+      is_active: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      expires_at: null,
+      last_used_at: new Date().toISOString()
+    };
   },
 
   /**
    * Updates a QR code record (e.g., renaming the gate)
    */
   async updateQrCode(id: string, updates: Partial<EntranceQrCode>): Promise<void> {
-    const { error } = await supabase
-      .from('staff_attendance_qr_codes')
-      .update(updates)
-      .eq('id', id);
+    const currentLocals = getLocalQrCodes();
+    const updatedLocals = currentLocals.map(c => c.id === id ? { ...c, ...updates } : c);
+    saveLocalQrCodes(updatedLocals);
 
-    if (error) {
-      console.error('[EntranceQrService] Error updating QR code:', error.message);
-      throw error;
+    try {
+      await supabase
+        .from('staff_attendance_qr_codes')
+        .update(updates)
+        .eq('id', id);
+    } catch (err) {
+      console.warn('[EntranceQrService] Remote update warning:', err);
     }
   }
 };

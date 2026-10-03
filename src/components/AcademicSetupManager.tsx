@@ -21,7 +21,8 @@ import {
 } from '../services/dbService';
 import { 
   getStoredAcademicYears, getStoredTerms, verifyAcademicYearsPersistence,
-  getStoredCalendarEvents, getStoredGraduatedBatches, saveStoredStudents, saveStoredUsers, getStoredUsers
+  getStoredCalendarEvents, getStoredGraduatedBatches, saveStoredStudents, saveStoredUsers, getStoredUsers,
+  getStoredSettings, saveStoredSettings
 } from '../services/storageService';
 import { 
   INITIAL_SHS_COURSES, INITIAL_DEPARTMENTS, INITIAL_CLASSES, INITIAL_SUBJECTS, INITIAL_ACADEMIC_YEARS, INITIAL_TERMS, INITIAL_HOUSES, validateMasterStructure 
@@ -520,6 +521,21 @@ export default function AcademicSetupManager({
     });
     setAcademicYearsList(updated);
     onUpdateAcademicYears(updated);
+
+    const targetAy = updated.find(a => a.id === id);
+    if (targetAy) {
+      const yearTerms = terms.filter(t => t.academicYear === targetAy.name);
+      const activeTermObj = yearTerms.find(t => t.status === 'Current') || yearTerms[0];
+      const newActiveTerm = activeTermObj ? activeTermObj.name : 'First Term';
+
+      const currentSettings = getStoredSettings();
+      saveStoredSettings({
+        ...currentSettings,
+        activeAcademicYear: targetAy.name,
+        activeTerm: newActiveTerm
+      });
+    }
+
     showToast('Current Academic Year updated.');
 
     // State check: validate persistence into IndexedDB and localStorage
