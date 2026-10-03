@@ -6,6 +6,7 @@ import {
   Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw
 } from 'lucide-react';
 import FeeCorrectionModal from '../common/FeeCorrectionModal';
+import PaymentCorrectionModal from '../common/PaymentCorrectionModal';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, 
   PieChart as RechartsPieChart, Pie, Cell, Legend 
@@ -90,6 +91,7 @@ export default function FeeManager({
   const [editingTxn, setEditingTxn] = useState<IncomeExpenseItem | null>(null);
 
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
+  const [correctingPayment, setCorrectingPayment] = useState<PaymentRecord | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
 
   // Refund Management State
@@ -850,6 +852,21 @@ export default function FeeManager({
                 role="accountant"
                 campusId="JIPAS 1"
                 onClose={() => setCorrectingBill(null)}
+                onSuccess={() => {
+                  const refreshedBills = getStoredBills();
+                  setBillsList(refreshedBills);
+                  if (onUpdateBills) onUpdateBills(refreshedBills);
+                }}
+              />
+            )}
+
+            {correctingPayment && (
+              <PaymentCorrectionModal
+                payment={correctingPayment}
+                actor="Accountant (Grace Tetteh)"
+                role="accountant"
+                campusId="JIPAS 1"
+                onClose={() => setCorrectingPayment(null)}
                 onSuccess={() => {
                   const refreshedBills = getStoredBills();
                   setBillsList(refreshedBills);
@@ -1772,6 +1789,16 @@ export default function FeeManager({
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" /> Print Receipt
+              </button>
+              <button
+                onClick={() => {
+                  setCorrectingPayment(activeReceipt);
+                  setActiveReceipt(null);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="Open Controlled Payment Correction Modal"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Correct Payment
               </button>
               <button
                 onClick={() => setActiveReceipt(null)}

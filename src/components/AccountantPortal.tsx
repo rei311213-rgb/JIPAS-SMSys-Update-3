@@ -27,6 +27,7 @@ import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
 import FeeCorrectionModal from './common/FeeCorrectionModal';
+import PaymentCorrectionModal from './common/PaymentCorrectionModal';
 import { printContent } from '../utils/printUtils';
 import { computeStudentBill, logTariffCorrection } from '../services/billingService';
 import { runDailyFeeAudit, isDailyAuditDueToday, getStoredAuditSummary, getFormattedTimestamp } from '../services/feeAuditService';
@@ -486,6 +487,7 @@ export default function AccountantPortal({
   const [billsFilter, setBillsFilter] = useState<'all' | 'action-required' | 'unpaid' | 'paid'>('all');
   const [billsSearchQuery, setBillsSearchQuery] = useState('');
   const [correctingBill, setCorrectingBill] = useState<StudentBill | null>(null);
+  const [correctingPayment, setCorrectingPayment] = useState<PaymentRecord | null>(null);
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
@@ -3833,6 +3835,18 @@ export default function AccountantPortal({
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      setCorrectingPayment(activeReceipt);
+                      setActiveReceipt(null);
+                    }}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                    title="Open Controlled Payment Correction Modal"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Correct Payment</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveReceipt(null)}
                     className="text-slate-400 hover:text-slate-600 font-bold text-sm w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer transition-all"
                     title="Close"
@@ -4098,6 +4112,21 @@ export default function AccountantPortal({
           onSuccess={() => {
             const refreshed = getStoredBills();
             if (onUpdateBills) onUpdateBills(refreshed);
+          }}
+        />
+      )}
+
+      {/* Payment Correction Modal */}
+      {correctingPayment && (
+        <PaymentCorrectionModal
+          payment={correctingPayment}
+          actor={currentUser?.name || 'Accountant'}
+          role={currentUser?.role || 'accountant'}
+          campusId={selectedCampus || 'JIPAS 1'}
+          onClose={() => setCorrectingPayment(null)}
+          onSuccess={() => {
+            const refreshedBills = getStoredBills();
+            if (onUpdateBills) onUpdateBills(refreshedBills);
           }}
         />
       )}
