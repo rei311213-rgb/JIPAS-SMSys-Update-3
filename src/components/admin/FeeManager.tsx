@@ -17,6 +17,7 @@ import { PDFGeneratorService } from '../../services/pdfService';
 import PrintableReceiptA6 from '../common/PrintableReceiptA6';
 import JIPASLogo from '../common/JIPASLogo';
 import PaidAsSelector from '../common/PaidAsSelector';
+import ReceiptPreviewModal from '../common/ReceiptPreviewModal';
 import FeesSettingsManager from '../common/FeesSettingsManager';
 import OverdueFeeAlertsManager from './OverdueFeeAlertsManager';
 import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
@@ -93,6 +94,8 @@ export default function FeeManager({
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
   const [correctingPayment, setCorrectingPayment] = useState<PaymentRecord | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
+  const [showCollectPreview, setShowCollectPreview] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<any>(null);
 
   // Refund Management State
   const [refundsList, setRefundsList] = useState<FeeRefundRecord[]>(() => getStoredRefunds());
@@ -448,11 +451,41 @@ export default function FeeManager({
     }
   };
 
-  // Execute Fee Collection
+  // Execute Fee Collection - Step 1: Open verification preview modal
   const handleCollectFee = (e: React.FormEvent) => {
     e.preventDefault();
     const student = students.find(s => s.id === collectStudentId) || students[0];
     if (!student || collectAmount <= 0) return;
+
+    const b = (getStoredBills().length > 0 ? getStoredBills() : billsList).find(bill => {
+      const matchById = student.id && bill.studentId && bill.studentId === student.id;
+      const matchByAdm = student.admissionNo && bill.admissionNo && bill.admissionNo.trim().toUpperCase() === student.admissionNo.trim().toUpperCase();
+      return matchById || matchByAdm;
+    });
+
+    const currentPayable = b ? (b.payable ?? b.totalAmount ?? 715) : 715;
+    const currentPaidBefore = b ? (b.paid ?? b.paidAmount ?? 0) : 0;
+
+    setPendingPayment({
+      student,
+      studentName: student.fullName,
+      admissionNo: student.admissionNo,
+      className: student.className,
+      amount: collectAmount,
+      method: collectMethod,
+      paidAs: collectPaidAs,
+      academicYear: getStoredSettings().activeAcademicYear || '2026-2027',
+      term: getStoredSettings().activeTerm || 'First Term',
+      currentPayable,
+      currentPaidBefore
+    });
+    setShowCollectPreview(true);
+  };
+
+  // Step 2: Confirm and process payment in database
+  const handleConfirmCollectFee = () => {
+    if (!pendingPayment) return;
+    const { student, amount, method, paidAs, academicYear, term } = pendingPayment;
 
     const receiptNo = `REC/2026/${Math.floor(100000 + Math.random() * 900000)}`;
     const newPayment: PaymentRecord = {
@@ -462,16 +495,16 @@ export default function FeeManager({
       admissionNo: student.admissionNo,
       studentName: student.fullName,
       className: student.className,
-      paidAs: collectPaidAs,
-      amount: collectAmount,
-      paid: collectAmount,
+      paidAs: paidAs,
+      amount: amount,
+      paid: amount,
       date: new Date().toISOString().split('T')[0],
-      academicYear: getStoredSettings().activeAcademicYear || '2025-2026',
-      term: getStoredSettings().activeTerm || 'First Term',
-      method: collectMethod,
+      academicYear,
+      term,
+      method: method,
       receivedBy: 'Accountant (Grace Tetteh)',
       status: 'Verified',
-      description: collectPaidAs
+      description: paidAs
     };
 
     setPaymentsList(prev => [newPayment, ...prev]);
@@ -479,9 +512,6 @@ export default function FeeManager({
     // Save payment to DB and local storage
     savePayment(newPayment).catch(err => console.warn('savePayment notice in FeeManager:', err));
     onAddPayment(newPayment);
-
-    // Show Official Receipt Preview in App
-    setActiveReceipt(newPayment);
 
     // Update bills list & persist
     let targetBill: StudentBill | null = null;
@@ -492,7 +522,7 @@ export default function FeeManager({
       if (matchById || matchByAdm) {
         const currentPaid = b.paid ?? b.paidAmount ?? 0;
         const currentPayable = b.payable ?? b.totalAmount ?? 0;
-        const newPaid = currentPaid + collectAmount;
+        const newPaid = currentPaid + amount;
         const newBal = calculateBillBalance(currentPayable, newPaid, b.discount, b.arrears);
         const updatedB = {
           ...b,
@@ -526,7 +556,7 @@ export default function FeeManager({
       date: new Date().toISOString().split('T')[0],
       type: 'Income',
       category: 'Tuition Fees',
-      amount: collectAmount,
+      amount: amount,
       description: `Fee Payment from ${student.fullName} (${receiptNo})`,
       referenceNo: collectRef || receiptNo,
       recordedBy: 'Accountant'
@@ -540,13 +570,19 @@ export default function FeeManager({
       action: 'Fee Payment Received',
       user: 'Accountant (Grace Tetteh)',
       studentAdmNo: student.admissionNo,
-      amount: collectAmount,
-      details: `Collected ${(collectAmount ?? 0).toFixed(2)} CFA via ${collectMethod} for ${student.fullName}`
+      amount: amount,
+      details: `Collected ${(amount ?? 0).toFixed(2)} CFA via ${method} for ${student.fullName}`
     };
     setAuditLogs(prev => [newAudit, ...prev]);
 
+    // Final Receipt Pop-up launches instantly
+    setActiveReceipt(newPayment);
     setCollectToast(true);
     setTimeout(() => setCollectToast(false), 4000);
+
+    // Close preview modal and clear state
+    setPendingPayment(null);
+    setShowCollectPreview(false);
   };
 
   // Generate All Bills based on Class-Wise Fee Tariff Matrix
@@ -1717,6 +1753,28 @@ export default function FeeManager({
             </table>
           </div>
         </div>
+      )}
+
+      {/* Intermediary Receipt Preview Modal for Review Payment step */}
+      {showCollectPreview && pendingPayment && (
+        <ReceiptPreviewModal
+          isOpen={showCollectPreview}
+          onClose={() => setShowCollectPreview(false)}
+          onConfirm={handleConfirmCollectFee}
+          student={pendingPayment.student}
+          payment={{
+            studentName: pendingPayment.studentName,
+            admissionNo: pendingPayment.admissionNo,
+            className: pendingPayment.className,
+            paid: pendingPayment.amount,
+            amount: pendingPayment.amount,
+            method: pendingPayment.method,
+            paidAs: pendingPayment.paidAs,
+            academicYear: pendingPayment.academicYear,
+            term: pendingPayment.term,
+            payable: pendingPayment.currentPayable
+          }}
+        />
       )}
 
       {/* RECEIPT PREVIEW MODAL */}

@@ -492,6 +492,7 @@ export default function AccountantPortal({
   const [correctingBill, setCorrectingBill] = useState<StudentBill | null>(null);
   const [correctingPayment, setCorrectingPayment] = useState<PaymentRecord | null>(null);
   const [activeReceipt, setActiveReceipt] = useState<PaymentRecord | null>(null);
+  const [reviewingStudent, setReviewingStudent] = useState<Student | null>(null);
   const [showA6Receipt, setShowA6Receipt] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
 
@@ -704,7 +705,6 @@ export default function AccountantPortal({
     setActiveReceipt(newPayment);
     setSuccessToast(true);
     setTimeout(() => setSuccessToast(false), 4000);
-    setActiveTab('collections');
   };
 
   // Available unique departments & classes for collections filter
@@ -3363,7 +3363,7 @@ export default function AccountantPortal({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
+                <div className="space-y-3.5 max-h-[580px] overflow-y-auto pr-1">
                   {filteredStudentsForPayment.map(st => {
                     const studentBill = bills.find(b => b.studentId === st.id || b.admissionNo === st.admissionNo);
                     const isSelected = st.id === selectedStudent?.id;
@@ -3373,60 +3373,80 @@ export default function AccountantPortal({
                     return (
                       <div
                         key={st.id}
-                        onClick={() => handleStudentSelect(st.id)}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 ${
                           isSelected
-                            ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
-                            : 'bg-white hover:bg-slate-50 border-slate-200'
+                            ? 'bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/10 shadow-xs'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {st.fullName.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h5 className="text-xs font-extrabold text-slate-900 truncate">
-                                {st.fullName}
-                              </h5>
-                              {isSelected && (
-                                <span className="text-[9px] bg-emerald-600 text-white font-black px-1.5 py-0.2 rounded-sm uppercase">
-                                  Selected
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {st.fullName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h5 className="text-xs font-extrabold text-slate-900 truncate">
+                                  {st.fullName}
+                                </h5>
+                                {isSelected && (
+                                  <span className="text-[9px] bg-emerald-600 text-white font-black px-1.5 py-0.2 rounded-sm uppercase">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                                <span className="font-mono text-slate-600 font-bold">{st.admissionNo}</span>
+                                <span>•</span>
+                                <span className="bg-slate-100 text-slate-700 font-bold px-1.5 py-0.2 rounded">
+                                  {st.className}
                                 </span>
-                              )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                              <span className="font-mono text-slate-600 font-bold">{st.admissionNo}</span>
-                              <span>•</span>
-                              <span className="bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.2 rounded">
-                                {st.className}
+                          </div>
+
+                          {/* Balance Due Status Column */}
+                          <div className="text-right shrink-0">
+                            {hasArrears ? (
+                              <span className="text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg block">
+                                {(balance ?? 0).toFixed(2)} CFA
                               </span>
-                              {st.department && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-slate-400 truncate max-w-[100px]">{st.department}</span>
-                                </>
-                              )}
-                            </div>
+                            ) : (
+                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg block">
+                                Fully Paid
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        {/* Balance Badge */}
-                        <div className="text-right shrink-0">
-                          {hasArrears ? (
-                            <span className="text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg block">
-                              {(balance ?? 0).toFixed(2)} CFA
-                              <span className="block text-[9px] font-medium text-rose-500 uppercase">Balance Due</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg block">
-                              ✓ Fully Paid
-                            </span>
-                          )}
+                        {/* Separate Action Columns (Review & Make Payment) */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => setReviewingStudent(st)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-extrabold text-[10.5px] rounded-xl flex items-center justify-center gap-1 shadow-2xs border border-slate-200/80 cursor-pointer transition-all"
+                            title="Review chronological fee ledger and balance summary"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Review Ledger</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStudentSelect(st.id)}
+                            className={`px-3 py-1.5 font-extrabold text-[10.5px] rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow-2xs ${
+                              isSelected 
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                                : 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            }`}
+                            title="Load student to payment panel"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" />
+                            <span>Make Payment</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -3780,6 +3800,135 @@ export default function AccountantPortal({
           expenses={expenses}
         />
       )}
+
+      {/* Student Financial Ledger & Balance Review Modal */}
+      {reviewingStudent && (() => {
+        const studentBill = bills.find(b => b.studentId === reviewingStudent.id || b.admissionNo === reviewingStudent.admissionNo);
+        const studentPayments = payments.filter(p => 
+          p.studentId === reviewingStudent.id || 
+          (p.admissionNo && p.admissionNo.toLowerCase().trim() === reviewingStudent.admissionNo.toLowerCase().trim())
+        );
+        const balance = studentBill ? studentBill.balance : 715;
+        const payable = studentBill ? studentBill.payable : 715;
+        const paid = studentBill ? studentBill.paid : 0;
+        const discount = studentBill ? studentBill.discount : 0;
+        const arrears = studentBill ? studentBill.arrears : 0;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 space-y-5 relative">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Financial Ledger Review
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-500">{reviewingStudent.admissionNo}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviewingStudent(null)}
+                  className="text-slate-400 hover:text-slate-600 font-bold text-sm w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Student Info Card */}
+              <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] uppercase text-emerald-400 font-bold">Student Account</span>
+                  <h4 className="text-base font-black">{reviewingStudent.fullName}</h4>
+                  <p className="text-xs text-slate-300 mt-0.5">{reviewingStudent.className} • {reviewingStudent.department || 'General Department'}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] uppercase text-slate-400 block font-medium">Balance Status</span>
+                  {balance > 0 ? (
+                    <span className="text-xs font-black text-rose-400 font-mono bg-rose-950/80 px-2.5 py-1 rounded-lg inline-block border border-rose-900">
+                      {balance.toFixed(2)} CFA Due
+                    </span>
+                  ) : (
+                    <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg inline-block border border-emerald-900">
+                      ✓ Fully Paid
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Balance Breakdown Grid */}
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <span className="text-[9px] text-slate-400 uppercase block font-bold">Total Bill</span>
+                  <span className="font-mono font-black text-slate-800 text-xs">{payable.toFixed(2)} CFA</span>
+                </div>
+                <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100">
+                  <span className="text-[9px] text-emerald-700 uppercase block font-bold">Total Paid</span>
+                  <span className="font-mono font-black text-emerald-800 text-xs">{paid.toFixed(2)} CFA</span>
+                </div>
+                <div className="bg-rose-50/60 p-2.5 rounded-xl border border-rose-100">
+                  <span className="text-[9px] text-rose-700 uppercase block font-bold">Balance Due</span>
+                  <span className="font-mono font-black text-rose-800 text-xs">{balance.toFixed(2)} CFA</span>
+                </div>
+              </div>
+
+              {/* Additional parameters info */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div>Discount Applied: <strong className="font-mono text-slate-800">{discount.toFixed(2)} CFA</strong></div>
+                <div>Previous Arrears: <strong className="font-mono text-slate-800">{arrears.toFixed(2)} CFA</strong></div>
+              </div>
+
+              {/* Chronological Payment History List */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Payment Receipts History ({studentPayments.length})</span>
+                </h5>
+
+                {studentPayments.length === 0 ? (
+                  <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-[11px]">
+                    No prior payments recorded for this active student.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                    {studentPayments.map(p => (
+                      <div key={p.id} className="p-2.5 bg-white border border-slate-100 rounded-xl flex items-center justify-between text-[11px] hover:bg-slate-50">
+                        <div>
+                          <p className="font-bold text-slate-800">{p.paidAs || 'Tuition Fee'}</p>
+                          <p className="text-slate-400 text-[10px] mt-0.5">{p.date} • {p.method} • <span className="font-mono">{p.receiptNo}</span></p>
+                        </div>
+                        <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                          +{p.paid.toFixed(2)} CFA
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setReviewingStudent(null)}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-extrabold text-xs rounded-xl cursor-pointer transition-all"
+                >
+                  Close Review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStudentSelect(reviewingStudent.id);
+                    setReviewingStudent(null);
+                  }}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Proceed to Payment</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Official Printable Receipt & Parent Invoice Modal */}
       {activeReceipt && (() => {

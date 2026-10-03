@@ -199,10 +199,17 @@ export async function applyTariffMatrixToAllBills(
 ): Promise<{ updatedCount: number; bills: StudentBill[] }> {
   const students = getStoredStudents();
   const existingBills = getStoredBills();
+  const settings = getStoredSettings();
+  const activeYear = settings.activeAcademicYear;
+  const activeTerm = settings.activeTerm;
+
   const existingBillsMap = new Map<string, StudentBill>();
   existingBills.forEach(b => {
-    if (b.studentId) existingBillsMap.set(b.studentId, b);
-    if (b.admissionNo) existingBillsMap.set((b.admissionNo || '').toLowerCase().trim(), b);
+    // Explicitly scope lookup map only to bills matching the current active academic period
+    if (b.academicYear === activeYear && b.term === activeTerm) {
+      if (b.studentId) existingBillsMap.set(b.studentId, b);
+      if (b.admissionNo) existingBillsMap.set((b.admissionNo || '').toLowerCase().trim(), b);
+    }
   });
 
   const targetStudents = classFilter && classFilter !== 'All'
@@ -214,10 +221,19 @@ export async function applyTariffMatrixToAllBills(
     return computeStudentBill(student, tariffs, existingBill);
   });
 
-  // Preserve non-targeted bills if filtering by class
-  const unaffectedBills = classFilter && classFilter !== 'All'
-    ? existingBills.filter(b => !targetStudents.some(s => s.id === b.studentId || (s.admissionNo && s.admissionNo === b.admissionNo)))
-    : [];
+  // Explicitly preserve bills from other academic years or terms
+  const unaffectedBills = existingBills.filter(b => {
+    const isTargetedClass = classFilter && classFilter !== 'All' 
+      ? b.className?.toLowerCase() === classFilter.toLowerCase() 
+      : true;
+    const isCurrentPeriod = b.academicYear === activeYear && b.term === activeTerm;
+    
+    // Keep it if it is NOT the current targeted student bill in current period
+    if (isCurrentPeriod && isTargetedClass) {
+      return !targetStudents.some(s => s.id === b.studentId || (s.admissionNo && s.admissionNo === b.admissionNo));
+    }
+    return true;
+  });
 
   const finalBills = [...unaffectedBills, ...newBills];
   saveStoredBills(finalBills);
