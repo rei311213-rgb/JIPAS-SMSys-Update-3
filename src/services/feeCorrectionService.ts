@@ -17,6 +17,7 @@ import {
   saveStoredBills, 
   getStoredStudents, 
   getStoredPayments, 
+  saveStoredPayments,
   getStoredFeeCorrections, 
   saveStoredFeeCorrections 
 } from './storageService';
@@ -748,4 +749,420 @@ export function correctDuplicateFee(options: CorrectDuplicateOptions): {
   );
 
   return { validBill, voidedBill: voidedDuplicate, correction: correctionRecord };
+}
+
+// =========================================================================
+// PAYMENT TRANSACTION CORRECTION WORKFLOWS (PHASE 52)
+// =========================================================================
+
+export interface CorrectPaymentStudentOptions extends CorrectionRequestOptions {
+  paymentId: string;
+  destinationStudentId: string;
+}
+
+export interface CorrectPaymentAmountOptions extends CorrectionRequestOptions {
+  paymentId: string;
+  newAmount: number;
+}
+
+export interface CorrectPaymentCategoryOptions extends CorrectionRequestOptions {
+  paymentId: string;
+  newPaidAs: string;
+}
+
+export interface CorrectPaymentPeriodOptions extends CorrectionRequestOptions {
+  paymentId: string;
+  newAcademicYear?: string;
+  newTerm?: string;
+}
+
+export interface VoidPaymentOptions extends CorrectionRequestOptions {
+  paymentId: string;
+}
+
+/**
+ * 7. VOID PAYMENT RECORD
+ */
+export function voidPaymentRecord(options: VoidPaymentOptions): {
+  payment: PaymentRecord;
+  correction: FeeCorrectionRecord;
+} {
+  const payments = getStoredPayments();
+  const paymentIndex = payments.findIndex(p => p.id === options.paymentId);
+
+  if (paymentIndex === -1) {
+    throw new Error(`PAYMENT_NOT_FOUND: Payment ID '${options.paymentId}' does not exist.`);
+  }
+
+  const payment = payments[paymentIndex];
+  validateCorrectionRequest(options, (payment as any).campus);
+
+  const originalAmount = payment.paid ?? payment.amount ?? 0;
+  const correctionId = `CORR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  const voidedPayment: PaymentRecord = {
+    ...payment,
+    status: 'Voided',
+    isVoided: true,
+    voidedAt: timestamp,
+    voidedBy: options.actor,
+    voidReason: options.reasonText || options.reasonCode
+  } as any;
+
+  payments[paymentIndex] = voidedPayment;
+  saveStoredPayments(payments);
+
+  // Recalculate student bills
+  const bills = getStoredBills();
+  const updatedBills = bills.map(b => syncBillWithPayments(b, payments));
+  saveStoredBills(updatedBills);
+
+  const correctionRecord: FeeCorrectionRecord = {
+    id: correctionId,
+    originalBillId: payment.studentId,
+    originalStudentId: payment.studentId,
+    originalAmount,
+    correctedAmount: 0,
+    action: 'VOID_PAYMENT',
+    reasonCode: options.reasonCode,
+    reasonText: options.reasonText || `Voided payment transaction ${payment.receiptNo}`,
+    actorId: options.actor,
+    actorRole: options.role,
+    campusId: (payment as any).campus || options.campusId || 'JIPAS 1',
+    timestamp,
+    previousStatus: payment.status,
+    newStatus: 'Voided',
+    idempotencyKey: options.idempotencyKey
+  };
+
+  const logs = getStoredFeeCorrections();
+  saveStoredFeeCorrections([correctionRecord, ...logs]);
+
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED',
+    options.actor,
+    `Payment #${payment.receiptNo} (${payment.studentName}) voided: ${originalAmount} CFA. Reason: ${options.reasonText || options.reasonCode}`,
+    'SUCCESS'
+  );
+
+  return { payment: voidedPayment, correction: correctionRecord };
+}
+
+/**
+ * 8. CORRECT WRONG-STUDENT PAYMENT
+ */
+export function correctPaymentStudent(options: CorrectPaymentStudentOptions): {
+  originalPayment: PaymentRecord;
+  replacementPayment: PaymentRecord;
+  correction: FeeCorrectionRecord;
+} {
+  const payments = getStoredPayments();
+  const pIndex = payments.findIndex(p => p.id === options.paymentId);
+
+  if (pIndex === -1) {
+    throw new Error(`PAYMENT_NOT_FOUND: Payment ID '${options.paymentId}' does not exist.`);
+  }
+
+  const originalPayment = payments[pIndex];
+  validateCorrectionRequest(options, (originalPayment as any).campus);
+
+  const students = getStoredStudents();
+  const destStudent = students.find(s => s.id === options.destinationStudentId || s.admissionNo === options.destinationStudentId);
+
+  if (!destStudent) {
+    throw new Error(`DESTINATION_STUDENT_NOT_FOUND: Destination student ID '${options.destinationStudentId}' does not exist.`);
+  }
+
+  if (destStudent.id === originalPayment.studentId) {
+    throw new Error(`INVALID_DESTINATION: Destination student is identical to current student.`);
+  }
+
+  const originalAmount = originalPayment.paid ?? originalPayment.amount ?? 0;
+  const correctionId = `CORR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  // 1. Mark original payment voided
+  const voidedOriginal: PaymentRecord = {
+    ...originalPayment,
+    status: 'Voided',
+    isVoided: true,
+    voidedAt: timestamp,
+    voidedBy: options.actor,
+    voidReason: `Reassigned to ${destStudent.fullName} (${destStudent.admissionNo}): ${options.reasonText || options.reasonCode}`
+  } as any;
+
+  // 2. Create replacement payment for destination student
+  const replacementReceiptNo = `REC/CORR/${Date.now().toString().slice(-6)}`;
+  const replacementPayment: PaymentRecord = {
+    id: `pay-corr-${destStudent.id}-${Date.now()}`,
+    receiptNo: replacementReceiptNo,
+    studentId: destStudent.id,
+    studentName: destStudent.fullName,
+    admissionNo: destStudent.admissionNo,
+    className: destStudent.className,
+    amount: originalAmount,
+    paid: originalAmount,
+    date: timestamp.split('T')[0],
+    academicYear: originalPayment.academicYear,
+    term: originalPayment.term,
+    paidAs: originalPayment.paidAs || 'School Fees',
+    method: originalPayment.method || 'Cash',
+    collectedBy: options.actor,
+    receivedBy: options.actor,
+    status: 'Verified',
+    description: originalPayment.description || originalPayment.paidAs || 'School Fees',
+    notes: `Reassigned from ${originalPayment.studentName} (${originalPayment.admissionNo}). Reason: ${options.reasonText || options.reasonCode}`
+  };
+
+  payments[pIndex] = voidedOriginal;
+  payments.unshift(replacementPayment);
+  saveStoredPayments(payments);
+
+  // Recalculate bills for both students
+  const bills = getStoredBills();
+  const updatedBills = bills.map(b => syncBillWithPayments(b, payments));
+  saveStoredBills(updatedBills);
+
+  const correctionRecord: FeeCorrectionRecord = {
+    id: correctionId,
+    originalBillId: originalPayment.studentId,
+    replacementBillId: replacementPayment.id,
+    originalStudentId: originalPayment.studentId,
+    correctedStudentId: destStudent.id,
+    originalAmount,
+    correctedAmount: originalAmount,
+    action: 'CORRECT_PAYMENT_STUDENT',
+    reasonCode: options.reasonCode,
+    reasonText: options.reasonText || `Reassigned payment #${originalPayment.receiptNo} from ${originalPayment.studentName} to ${destStudent.fullName}`,
+    actorId: options.actor,
+    actorRole: options.role,
+    campusId: (originalPayment as any).campus || options.campusId || 'JIPAS 1',
+    timestamp,
+    previousStatus: originalPayment.status,
+    newStatus: 'Voided',
+    idempotencyKey: options.idempotencyKey
+  };
+
+  const logs = getStoredFeeCorrections();
+  saveStoredFeeCorrections([correctionRecord, ...logs]);
+
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED',
+    options.actor,
+    `Payment Reassigned from ${originalPayment.studentName} to ${destStudent.fullName}: ${originalAmount} CFA. Reason: ${options.reasonText || options.reasonCode}`,
+    'SUCCESS'
+  );
+
+  return { originalPayment: voidedOriginal, replacementPayment, correction: correctionRecord };
+}
+
+/**
+ * 9. CORRECT WRONG-AMOUNT PAYMENT
+ */
+export function correctPaymentAmount(options: CorrectPaymentAmountOptions): {
+  payment: PaymentRecord;
+  correction: FeeCorrectionRecord;
+} {
+  const payments = getStoredPayments();
+  const pIndex = payments.findIndex(p => p.id === options.paymentId);
+
+  if (pIndex === -1) {
+    throw new Error(`PAYMENT_NOT_FOUND: Payment ID '${options.paymentId}' does not exist.`);
+  }
+
+  const payment = payments[pIndex];
+  validateCorrectionRequest(options, (payment as any).campus);
+
+  if (options.newAmount < 0) {
+    throw new Error(`INVALID_AMOUNT: Payment amount cannot be negative.`);
+  }
+
+  const originalAmount = payment.paid ?? payment.amount ?? 0;
+  const correctionId = `CORR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  const correctedPayment: PaymentRecord = {
+    ...payment,
+    amount: options.newAmount,
+    paid: options.newAmount,
+    status: 'Verified',
+    notes: `${payment.notes || ''} [Amount corrected from ${originalAmount} to ${options.newAmount} CFA on ${timestamp.split('T')[0]} by ${options.actor}]`.trim()
+  };
+
+  payments[pIndex] = correctedPayment;
+  saveStoredPayments(payments);
+
+  // Recalculate bills
+  const bills = getStoredBills();
+  const updatedBills = bills.map(b => syncBillWithPayments(b, payments));
+  saveStoredBills(updatedBills);
+
+  const correctionRecord: FeeCorrectionRecord = {
+    id: correctionId,
+    originalBillId: payment.studentId,
+    originalStudentId: payment.studentId,
+    originalAmount,
+    correctedAmount: options.newAmount,
+    action: 'CORRECT_PAYMENT_AMOUNT',
+    reasonCode: options.reasonCode,
+    reasonText: options.reasonText || `Corrected payment amount from ${originalAmount} to ${options.newAmount} CFA`,
+    actorId: options.actor,
+    actorRole: options.role,
+    campusId: (payment as any).campus || options.campusId || 'JIPAS 1',
+    timestamp,
+    previousStatus: payment.status,
+    newStatus: 'Verified',
+    idempotencyKey: options.idempotencyKey
+  };
+
+  const logs = getStoredFeeCorrections();
+  saveStoredFeeCorrections([correctionRecord, ...logs]);
+
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED',
+    options.actor,
+    `Payment Amount Corrected for #${payment.receiptNo} (${payment.studentName}): ${originalAmount} -> ${options.newAmount} CFA. Reason: ${options.reasonText || options.reasonCode}`,
+    'SUCCESS'
+  );
+
+  return { payment: correctedPayment, correction: correctionRecord };
+}
+
+/**
+ * 10. CORRECT WRONG FEE CATEGORY / PAID-AS PAYMENT
+ */
+export function correctPaymentCategory(options: CorrectPaymentCategoryOptions): {
+  payment: PaymentRecord;
+  correction: FeeCorrectionRecord;
+} {
+  const payments = getStoredPayments();
+  const pIndex = payments.findIndex(p => p.id === options.paymentId);
+
+  if (pIndex === -1) {
+    throw new Error(`PAYMENT_NOT_FOUND: Payment ID '${options.paymentId}' does not exist.`);
+  }
+
+  const payment = payments[pIndex];
+  validateCorrectionRequest(options, (payment as any).campus);
+
+  const originalPaidAs = payment.paidAs || payment.description || 'School Fees';
+  const originalAmount = payment.paid ?? payment.amount ?? 0;
+  const correctionId = `CORR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  const correctedPayment: PaymentRecord = {
+    ...payment,
+    paidAs: options.newPaidAs,
+    description: options.newPaidAs,
+    notes: `${payment.notes || ''} [Category corrected from '${originalPaidAs}' to '${options.newPaidAs}' by ${options.actor}]`.trim()
+  };
+
+  payments[pIndex] = correctedPayment;
+  saveStoredPayments(payments);
+
+  const correctionRecord: FeeCorrectionRecord = {
+    id: correctionId,
+    originalBillId: payment.studentId,
+    originalStudentId: payment.studentId,
+    originalAmount,
+    correctedAmount: originalAmount,
+    originalFeeItem: originalPaidAs,
+    correctedFeeItem: options.newPaidAs,
+    action: 'CORRECT_PAYMENT_CATEGORY',
+    reasonCode: options.reasonCode,
+    reasonText: options.reasonText || `Corrected payment category from '${originalPaidAs}' to '${options.newPaidAs}'`,
+    actorId: options.actor,
+    actorRole: options.role,
+    campusId: (payment as any).campus || options.campusId || 'JIPAS 1',
+    timestamp,
+    previousStatus: payment.status,
+    newStatus: payment.status,
+    idempotencyKey: options.idempotencyKey
+  };
+
+  const logs = getStoredFeeCorrections();
+  saveStoredFeeCorrections([correctionRecord, ...logs]);
+
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED',
+    options.actor,
+    `Payment Category Corrected for #${payment.receiptNo} (${payment.studentName}): '${originalPaidAs}' -> '${options.newPaidAs}'. Reason: ${options.reasonText || options.reasonCode}`,
+    'SUCCESS'
+  );
+
+  return { payment: correctedPayment, correction: correctionRecord };
+}
+
+/**
+ * 11. CORRECT WRONG ACADEMIC PERIOD (YEAR / TERM) PAYMENT
+ */
+export function correctPaymentAcademicPeriod(options: CorrectPaymentPeriodOptions): {
+  payment: PaymentRecord;
+  correction: FeeCorrectionRecord;
+} {
+  const payments = getStoredPayments();
+  const pIndex = payments.findIndex(p => p.id === options.paymentId);
+
+  if (pIndex === -1) {
+    throw new Error(`PAYMENT_NOT_FOUND: Payment ID '${options.paymentId}' does not exist.`);
+  }
+
+  const payment = payments[pIndex];
+  validateCorrectionRequest(options, (payment as any).campus);
+
+  const originalYear = payment.academicYear || '2025-2026';
+  const originalTerm = payment.term || 'First Term';
+  const newYear = options.newAcademicYear || originalYear;
+  const newTerm = options.newTerm || originalTerm;
+  const originalAmount = payment.paid ?? payment.amount ?? 0;
+  const correctionId = `CORR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  const correctedPayment: PaymentRecord = {
+    ...payment,
+    academicYear: newYear,
+    term: newTerm,
+    notes: `${payment.notes || ''} [Period corrected from '${originalYear} ${originalTerm}' to '${newYear} ${newTerm}' by ${options.actor}]`.trim()
+  };
+
+  payments[pIndex] = correctedPayment;
+  saveStoredPayments(payments);
+
+  // Sync bills
+  const bills = getStoredBills();
+  const updatedBills = bills.map(b => syncBillWithPayments(b, payments));
+  saveStoredBills(updatedBills);
+
+  const correctionRecord: FeeCorrectionRecord = {
+    id: correctionId,
+    originalBillId: payment.studentId,
+    originalStudentId: payment.studentId,
+    originalAmount,
+    correctedAmount: originalAmount,
+    originalTerm: originalTerm,
+    correctedTerm: newTerm,
+    action: 'CORRECT_PAYMENT_PERIOD',
+    reasonCode: options.reasonCode,
+    reasonText: options.reasonText || `Corrected payment period from '${originalYear} ${originalTerm}' to '${newYear} ${newTerm}'`,
+    actorId: options.actor,
+    actorRole: options.role,
+    campusId: (payment as any).campus || options.campusId || 'JIPAS 1',
+    timestamp,
+    previousStatus: payment.status,
+    newStatus: payment.status,
+    idempotencyKey: options.idempotencyKey
+  };
+
+  const logs = getStoredFeeCorrections();
+  saveStoredFeeCorrections([correctionRecord, ...logs]);
+
+  recordChangeEvent(
+    'GOVERNANCE_CHECK_EXECUTED',
+    options.actor,
+    `Payment Period Corrected for #${payment.receiptNo} (${payment.studentName}): '${originalYear} ${originalTerm}' -> '${newYear} ${newTerm}'. Reason: ${options.reasonText || options.reasonCode}`,
+    'SUCCESS'
+  );
+
+  return { payment: correctedPayment, correction: correctionRecord };
 }

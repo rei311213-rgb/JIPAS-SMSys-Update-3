@@ -523,9 +523,13 @@ export interface StudentBill {
 export type CorrectionReasonCode =
   | 'WRONG_AMOUNT'
   | 'WRONG_STUDENT'
+  | 'WRONG_STUDENT_SELECTED'
+  | 'AMOUNT_TYPO'
   | 'DUPLICATE_FEE'
   | 'WRONG_FEE_ITEM'
   | 'WRONG_ACADEMIC_TERM'
+  | 'WRONG_TERM_ASSIGNED'
+  | 'WRONG_ACADEMIC_YEAR'
   | 'INCORRECT_TARIFF'
   | 'DATA_ENTRY_ERROR'
   | 'FEE_SHOULD_NOT_BE_CREATED'
@@ -543,7 +547,7 @@ export interface FeeCorrectionRecord {
   correctedFeeItem?: string;
   originalTerm?: string;
   correctedTerm?: string;
-  action: 'CORRECT_AMOUNT' | 'VOID' | 'CORRECT_STUDENT' | 'CORRECT_FEE_ITEM' | 'CORRECT_TERM' | 'CORRECT_DUPLICATE';
+  action: 'CORRECT_AMOUNT' | 'VOID' | 'CORRECT_STUDENT' | 'CORRECT_FEE_ITEM' | 'CORRECT_TERM' | 'CORRECT_DUPLICATE' | 'CORRECT_PAYMENT_STUDENT' | 'CORRECT_PAYMENT_AMOUNT' | 'CORRECT_PAYMENT_CATEGORY' | 'CORRECT_PAYMENT_PERIOD' | 'VOID_PAYMENT';
   reasonCode: CorrectionReasonCode;
   reasonText: string;
   actorId: string;

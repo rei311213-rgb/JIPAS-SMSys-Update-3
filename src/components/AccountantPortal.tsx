@@ -3474,7 +3474,7 @@ export default function AccountantPortal({
                         <div className="flex justify-between items-center text-xs">
                           <div>
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Billing Term</span>
-                            <span className="font-bold text-slate-800">{selectedBill.className} • {selectedBill.academicYear || getStoredSettings().activeAcademicYear || '2025-2026'} ({selectedBill.term || getStoredSettings().activeTerm || 'First Term'})</span>
+                            <span className="font-bold text-slate-800">{selectedBill.className} • {getStoredSettings().activeAcademicYear || selectedBill.academicYear || '2026-2027'} ({getStoredSettings().activeTerm || selectedBill.term || 'First Term'})</span>
                           </div>
                           <div className="text-right">
                             <span className="text-slate-500 block text-[10px] uppercase font-bold">Remaining Arrears</span>
