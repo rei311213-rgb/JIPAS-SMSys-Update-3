@@ -30,6 +30,7 @@ import FeeCorrectionModal from './common/FeeCorrectionModal';
 import PaymentCorrectionModal from './common/PaymentCorrectionModal';
 import { printContent } from '../utils/printUtils';
 import { computeStudentBill, logTariffCorrection } from '../services/billingService';
+import { getValidPayments, getValidBills, syncAllBillsWithPayments } from '../services/financialLedgerCalculationService';
 import { runDailyFeeAudit, isDailyAuditDueToday, getStoredAuditSummary, getFormattedTimestamp } from '../services/feeAuditService';
 import { 
   getStoredSecretarySummaries, 
@@ -42,7 +43,8 @@ import {
   getStoredClassFeeTariffs,
   recordSecurityAuditLog,
   getStoredSettings,
-  getStoredBills
+  getStoredBills,
+  getActiveAcademicPeriod
 } from '../services/storageService';
 import { saveBill } from '../services/dbService';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
@@ -53,7 +55,7 @@ import {
   Users, BookOpen, ChevronRight, CheckCircle, RefreshCw, Building2, UserCheck, Building, BellRing, BarChart3, Scale, Eye, X
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { addMoney, formatCurrency, calculateBillBalance, CURRENCY } from '../utils/financeUtils';
+import { addMoney, subtractMoney, formatCurrency, calculateBillBalance, CURRENCY } from '../utils/financeUtils';
 
 interface AccountantPortalProps {
   bills: StudentBill[];
@@ -144,6 +146,7 @@ export default function AccountantPortal({
 }: AccountantPortalProps) {
   const [activeTab, setActiveTab] = useState<AccountantTab>(() => getInitialAccountantTab());
   const [rawExpenses] = useState(() => getStoredExpenses());
+  const activePeriod = getActiveAcademicPeriod();
   const [rawTeachers, setRawTeachers] = useState<Teacher[]>(() => getStoredTeachers());
 
   const handleAddTeacher = (newTeacher: Teacher) => {
@@ -518,26 +521,34 @@ export default function AccountantPortal({
   const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
   const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
 
-  const activeBills = useMemo(() => {
-    return bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
-  }, [bills, activeStudentIds, activeAdmissionNos]);
-
-  const activePayments = useMemo(() => {
-    return payments.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+  const validActivePayments = useMemo(() => {
+    const filtered = payments.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
+    return getValidPayments(filtered);
   }, [payments, activeStudentIds, activeAdmissionNos]);
 
-  const totalCollected = useMemo(() => addMoney(...activePayments.map(p => p.paid)), [activePayments]);
-  const totalOutstanding = useMemo(() => addMoney(...activeBills.map(b => b.balance)), [activeBills]);
-  const totalBilled = useMemo(() => addMoney(...activeBills.map(b => b.payable)), [activeBills]);
+  const validActiveBills = useMemo(() => {
+    const filtered = bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+    return getValidBills(filtered);
+  }, [bills, activeStudentIds, activeAdmissionNos]);
+
+  const syncedActiveBills = useMemo(() => {
+    return syncAllBillsWithPayments(validActiveBills, validActivePayments);
+  }, [validActiveBills, validActivePayments]);
+
+  const activeBills = syncedActiveBills;
+
+  const totalCollected = useMemo(() => addMoney(...validActivePayments.map(p => p.paid ?? p.amount ?? 0)), [validActivePayments]);
+  const totalBilled = useMemo(() => addMoney(...syncedActiveBills.map(b => b.payable ?? b.subTotal ?? 0)), [syncedActiveBills]);
+  const totalOutstanding = useMemo(() => Math.max(0, subtractMoney(totalBilled, totalCollected)), [totalBilled, totalCollected]);
 
   // Unpaid & Partially Paid breakdown
-  const unpaidBills = activeBills.filter(b => b.balance > 0 && b.paid === 0);
-  const partiallyPaidBills = activeBills.filter(b => b.balance > 0 && b.paid > 0);
-  const overdueBillsList = activeBills.filter(b => b.balance > 0);
+  const unpaidBills = syncedActiveBills.filter(b => (b.balance ?? 0) > 0 && (b.paid ?? 0) === 0);
+  const partiallyPaidBills = syncedActiveBills.filter(b => (b.balance ?? 0) > 0 && (b.paid ?? 0) > 0);
+  const overdueBillsList = syncedActiveBills.filter(b => (b.balance ?? 0) > 0);
 
   // Action Required overdue fee accounts
-  const actionRequiredBills = activeBills.filter(b => b.actionRequired || b.balance > 0);
-  const totalActionRequiredBalance = useMemo(() => addMoney(...actionRequiredBills.map(b => b.balance)), [actionRequiredBills]);
+  const actionRequiredBills = syncedActiveBills.filter(b => b.actionRequired || (b.balance ?? 0) > 0);
+  const totalActionRequiredBalance = useMemo(() => addMoney(...actionRequiredBills.map(b => b.balance ?? 0)), [actionRequiredBills]);
 
   const criticalCount = actionRequiredBills.filter(
     b => b.actionSeverity === 'Critical' || b.balance >= 300 || (b.arrears && b.arrears > 0)
@@ -722,7 +733,7 @@ export default function AccountantPortal({
   }, [students, payments]);
 
   // Financial Dashboard Totals
-  const totalCollections = useMemo(() => addMoney(...bills.map(b => b.paid || 0)), [bills]);
+  const totalCollections = totalCollected;
 
   // Group bills by class for the dashboard bar chart
   const barDataByClass = useMemo(() => {
@@ -1106,7 +1117,7 @@ export default function AccountantPortal({
             {Math.round((totalCollected / (totalBilled || 1)) * 100)}%
           </span>
           <p className="text-[10px] sm:text-xs uppercase font-bold text-slate-400 mt-1">Collection Rate</p>
-          <span className="text-[10px] text-slate-500">Academic Year 2025-2026</span>
+          <span className="text-[10px] text-slate-500">Academic Year {activePeriod.academicYear}</span>
         </div>
       </div>
 

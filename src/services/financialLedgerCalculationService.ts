@@ -167,6 +167,10 @@ export function syncBillWithPayments(
   const studentKeyById = (bill.studentId || '').trim().toLowerCase();
   const studentKeyByAdm = (bill.admissionNo || '').trim().toLowerCase();
 
+  const norm = (str?: string) => (str || '').replace(/[\/\s]/g, '-').trim().toLowerCase();
+  const billYr = norm(bill.academicYear);
+  const billTm = norm(bill.term);
+
   const matchingPayments = getValidPayments(payments).filter(p => {
     const pId = (p.studentId || '').trim().toLowerCase();
     const pAdm = (p.admissionNo || '').trim().toLowerCase();
@@ -175,9 +179,19 @@ export function syncBillWithPayments(
                          (studentKeyById && pAdm === studentKeyById);
     if (!matchStudent) return false;
 
-    // Period match if both specify
-    if (bill.academicYear && p.academicYear && bill.academicYear !== p.academicYear) return false;
-    if (bill.term && p.term && bill.term !== p.term) return false;
+    const pYr = norm(p.academicYear);
+    const pTm = norm(p.term);
+
+    // Period match if both specify different academic years
+    if (billYr && pYr && billYr !== pYr) {
+      // If student has multiple bills across different years, restrict by year
+      return false;
+    }
+
+    if (billTm && pTm && billTm !== pTm) {
+      // If term differs explicitly, check if both belong to same academic session
+      if (billYr && pYr && billYr !== pYr) return false;
+    }
 
     return true;
   });
