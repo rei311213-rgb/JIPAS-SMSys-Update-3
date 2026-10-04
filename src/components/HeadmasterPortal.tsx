@@ -45,7 +45,7 @@ export default function HeadmasterPortal({
   notifications,
   broadcasts
 }: HeadmasterPortalProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'reports' | 'performance' | 'attendance' | 'transcripts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'reports' | 'performance' | 'attendance'>('dashboard');
   const [selectedClass, setSelectedClass] = useState<string>('All');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -319,8 +319,7 @@ export default function HeadmasterPortal({
           { id: 'approvals', label: `Score Approvals (${analytics.pendingApprovalsCount})`, icon: CheckCircle2 },
           { id: 'reports', label: 'Terminal Reports & Endorsements', icon: FileText },
           { id: 'performance', label: 'Subject & Class Rankings', icon: TrendingUp },
-          { id: 'attendance', label: 'Attendance Oversight', icon: ClipboardList },
-          { id: 'transcripts', label: 'Official Transcripts', icon: Award }
+          { id: 'attendance', label: 'Attendance Oversight', icon: ClipboardList }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -391,7 +390,7 @@ export default function HeadmasterPortal({
           </div>
 
           {/* Quick Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -425,24 +424,6 @@ export default function HeadmasterPortal({
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs"
               >
                 Endorse Reports <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-              <div className="space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Award className="w-5 h-5" />
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm">Generate Official Transcripts</h4>
-                <p className="text-xs text-slate-500">
-                  Generate signed academic transcripts, BECE/WASSCE readiness records, and cumulative grade summaries.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveTab('transcripts')}
-                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs"
-              >
-                View Transcripts <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -762,74 +743,6 @@ export default function HeadmasterPortal({
             </div>
           </div>
         </div>
-        </div>
-      )}
-
-      {/* 6. TRANSCRIPTS */}
-      {activeTab === 'transcripts' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-600">Official Records</span>
-              <h3 className="text-lg font-black text-slate-900">Student Transcripts & Certificates</h3>
-              <p className="text-xs text-slate-500">Official composite records for graduation, transfers, and placement</p>
-            </div>
-
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by student or admission no..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500">
-                  <th className="p-3">Admission No.</th>
-                  <th className="p-3">Student Name</th>
-                  <th className="p-3">Class</th>
-                  <th className="p-3 text-center">Composite Average</th>
-                  <th className="p-3 text-center">Status</th>
-                  <th className="p-3 text-right">Transcript</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {deptReports
-                  .filter(r => 
-                    !searchQuery || 
-                    r.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    r.admissionNo.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map(rep => (
-                    <tr key={rep.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3 font-mono font-bold text-slate-700">{rep.admissionNo}</td>
-                      <td className="p-3 font-bold text-slate-900">{rep.studentName}</td>
-                      <td className="p-3 text-slate-600">{rep.className}</td>
-                      <td className="p-3 text-center font-bold font-mono text-purple-700">{(rep.averageScore ?? 0).toFixed(1)}%</td>
-                      <td className="p-3 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          {rep.promotionStatus || 'Active'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <button
-                          onClick={() => handlePrintTranscriptSummary(rep)}
-                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ml-auto cursor-pointer"
-                        >
-                          <Printer className="w-3.5 h-3.5" /> Print Transcript
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 

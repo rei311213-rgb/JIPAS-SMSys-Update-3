@@ -298,8 +298,10 @@ export default function StudentPortal({
   };
 
   // Filter submissions for this student
-  const studentFeeSubmissions = feeSubmissions.filter(
-    s => s.studentId === student.id || s.admissionNo === student.admissionNo || s.studentName.toLowerCase() === student.fullName.toLowerCase()
+  const studentFeeSubmissions = (feeSubmissions || []).filter(
+    s => (s.studentId && student?.id && s.studentId === student.id) || 
+         (s.admissionNo && student?.admissionNo && s.admissionNo === student.admissionNo) || 
+         (s.studentName && student?.fullName && s.studentName.toLowerCase() === student.fullName.toLowerCase())
   );
 
   // Filter notifications relevant to student
@@ -334,12 +336,12 @@ export default function StudentPortal({
 
     return data.sort((a, b) => a.name.localeCompare(b.name));
   }, [reports, student]);
-  const studentReport = studentReportsList.find(r => r.term?.toLowerCase() === selectedTerm?.toLowerCase()) || studentReportsList[0] || reports[0];
+  const studentReport = studentReportsList.find(r => (r.term || '').toLowerCase() === (selectedTerm || '').toLowerCase()) || studentReportsList[0] || reports[0];
   
   // Find active broadcast record for student's class and selected term
   const activeClassBroadcast = (broadcastsList || []).find(b => 
-    b.className?.trim().toLowerCase() === student?.className?.trim().toLowerCase() && 
-    b.term?.trim().toLowerCase() === selectedTerm?.trim().toLowerCase()
+    (b.className || '').trim().toLowerCase() === (student?.className || '').trim().toLowerCase() && 
+    (b.term || '').trim().toLowerCase() === (selectedTerm || '').toLowerCase()
   );
 
   // Broadcast Gate Check: A student only sees their report if the Admin has broadcasted it for their class & term

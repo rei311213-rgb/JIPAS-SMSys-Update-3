@@ -36,7 +36,8 @@
     "react-dom": "^18.3.1",
     "react-draggable": "^4.4.6",
     "recharts": "^2.13.3",
-    "vite-plugin-pwa": "^0.20.5"
+    "vite-plugin-pwa": "^0.20.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0-alpha.33",

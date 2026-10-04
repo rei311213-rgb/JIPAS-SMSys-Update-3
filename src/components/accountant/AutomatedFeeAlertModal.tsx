@@ -145,11 +145,11 @@ export default function AutomatedFeeAlertModal({
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const match = item.studentName.toLowerCase().includes(q) ||
-          item.admissionNo.toLowerCase().includes(q) ||
-          item.parentName.toLowerCase().includes(q) ||
-          item.parentPhone.toLowerCase().includes(q) ||
-          item.className.toLowerCase().includes(q);
+        const match = (item.studentName || '').toLowerCase().includes(q) ||
+          (item.admissionNo || '').toLowerCase().includes(q) ||
+          (item.parentName || '').toLowerCase().includes(q) ||
+          (item.parentPhone || '').toLowerCase().includes(q) ||
+          (item.className || '').toLowerCase().includes(q);
         if (!match) return false;
       }
       return true;

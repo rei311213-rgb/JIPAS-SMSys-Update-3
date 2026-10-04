@@ -3,8 +3,9 @@ import {
   CreditCard, Plus, Pencil, Trash2, DollarSign, Receipt, Printer, 
   Download, Search, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, 
   FileText, ShieldCheck, Filter, TrendingUp, Wallet, Check, Send,
-  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw, QrCode, Layers
+  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw, QrCode, Layers, FileSpreadsheet
 } from 'lucide-react';
+import { exportPaymentsToExcel } from '../../services/excelExportService';
 import FeeCorrectionModal from '../common/FeeCorrectionModal';
 import PaymentCorrectionModal from '../common/PaymentCorrectionModal';
 import { 
@@ -1421,12 +1422,21 @@ export default function FeeManager({
                 Full chronological ledger of payments, official receipt numbers, and operator details.
               </p>
             </div>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <Printer className="w-4 h-4" /> Export Payment Log
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => exportPaymentsToExcel(filteredPayments)}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors border border-emerald-600"
+                title="Download payment ledger as Microsoft Excel spreadsheet (.xlsx)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-200" /> Export to Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Print Payment Log
+              </button>
+            </div>
           </div>
 
           {/* Search */}

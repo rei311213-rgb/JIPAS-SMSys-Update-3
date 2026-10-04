@@ -777,9 +777,9 @@ export default function AccountantPortal({
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const matchSearch = 
-        p.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.admissionNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.receiptNo.toLowerCase().includes(searchQuery.toLowerCase());
+        (p.studentName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (p.admissionNo || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.receiptNo || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchMethod = filterMethod === 'All' || p.method === filterMethod;
 

@@ -4,8 +4,9 @@ import {
   UserCheck, Users, Plus, Pencil, Trash2, Calendar, CheckCircle2, 
   XCircle, Clock, Search, BookOpen, GraduationCap, Phone, Mail, 
   AlertTriangle, Save, Download, FileText, Check, Award, Layers,
-  Sparkles, Filter, X, CreditCard, Camera, QrCode, AlertCircle, Send, Upload, Zap
+  Sparkles, Filter, X, CreditCard, Camera, QrCode, AlertCircle, Send, Upload, Zap, FileSpreadsheet
 } from 'lucide-react';
+import { exportStaffToExcel } from '../../services/excelExportService';
 import { Teacher, TeacherAssignmentItem, TeacherAttendanceRecord, NotificationItem, Department, UserAccountItem, UserRole } from '../../types';
 import PhotoUploader from '../common/PhotoUploader';
 import TeacherIdCardGenerator from './TeacherIdCardGenerator';
@@ -656,6 +657,13 @@ export default function TeacherManager({
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => exportStaffToExcel(teachersList)}
+                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors border border-emerald-600"
+                title="Download full faculty & staff directory as Microsoft Excel spreadsheet (.xlsx)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-200" /> Export to Excel (.xlsx)
+              </button>
               <button
                 onClick={() => onNavigate?.('teacher_id_cards')}
                 className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"

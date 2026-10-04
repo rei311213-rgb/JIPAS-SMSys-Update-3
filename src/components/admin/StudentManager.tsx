@@ -25,6 +25,7 @@ import IDCardToolModal from './IDCardToolModal';
 import StudentTransferManager from './StudentTransferManager';
 import StudentDocumentVerificationModal from './StudentDocumentVerificationModal';
 import AdmissionLetterModal from './AdmissionLetterModal';
+import { exportStudentsToExcel } from '../../services/excelExportService';
 
 interface StudentManagerProps {
   activeModule: string;
@@ -1913,6 +1914,17 @@ export default function StudentManager({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                id="btn-export-students-excel"
+                onClick={() => exportStudentsToExcel(studentsList)}
+                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors border border-emerald-600"
+                title="Download full student directory as Microsoft Excel spreadsheet (.xlsx)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
+                <span>Export to Excel (.xlsx)</span>
+              </button>
+
               <button
                 type="button"
                 id="btn-export-students-pdf"

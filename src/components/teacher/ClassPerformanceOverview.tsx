@@ -365,7 +365,7 @@ export default function ClassPerformanceOverview({
     }).filter(s => {
       if (!searchStudent.trim()) return true;
       const q = searchStudent.toLowerCase();
-      return s.name.toLowerCase().includes(q) || s.admissionNo.toLowerCase().includes(q);
+      return (s.name || '').toLowerCase().includes(q) || (s.admissionNo || '').toLowerCase().includes(q);
     });
   }, [classStudents, classReports, classAttendanceRecords, searchStudent]);
 

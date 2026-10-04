@@ -50,11 +50,11 @@ export default function AutomatedFeeReminderUtility({
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match = 
-          r.studentName.toLowerCase().includes(q) ||
-          r.admissionNo.toLowerCase().includes(q) ||
-          r.className.toLowerCase().includes(q) ||
-          r.parentName.toLowerCase().includes(q) ||
-          r.parentPhone.toLowerCase().includes(q);
+          (r.studentName || '').toLowerCase().includes(q) ||
+          (r.admissionNo || '').toLowerCase().includes(q) ||
+          (r.className || '').toLowerCase().includes(q) ||
+          (r.parentName || '').toLowerCase().includes(q) ||
+          (r.parentPhone || '').toLowerCase().includes(q);
         if (!match) return false;
       }
 
