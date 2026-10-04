@@ -294,19 +294,27 @@ export default function TeacherIdCardGenerator({
                         </div>
                       </div>
 
-                      {/* Key Faculty Attributes */}
-                      <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 space-y-1.5 text-[10px]">
+                      {/* Key Faculty Attributes & Biodata */}
+                      <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2 space-y-1 text-[9.5px]">
+                        <div className="flex justify-between">
+                          <span className="text-slate-300">Sex / Gender:</span>
+                          <span className="font-bold text-white">{t.gender || 'Male'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-300">Qualification:</span>
+                          <span className="font-bold text-white truncate max-w-[140px]">{t.academicQualification || 'B.Ed. Education'}</span>
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-slate-300">GES / NTC Rank:</span>
-                          <span className="font-bold text-white">{t.rank || 'Senior Supt. I'}</span>
+                          <span className="font-bold text-white truncate max-w-[140px]">{t.rank || 'Senior Supt. I'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-300">NTC License No:</span>
-                          <span className="font-mono font-bold text-amber-300">{t.ntcLicenseNo || 'NTC/TR/2022/49821'}</span>
+                          <span className="font-mono font-bold text-amber-300">{t.ntcLicenseNo || 'NTC/TR/2026/001'}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-300">Classes Taught:</span>
-                          <span className="font-bold text-white truncate max-w-[150px]">{t.classesTaught?.join(', ') || 'Primary'}</span>
+                          <span className="text-slate-300">Staff Phone:</span>
+                          <span className="font-mono font-bold text-cyan-300">{t.phone || '0249755593'}</span>
                         </div>
                       </div>
 

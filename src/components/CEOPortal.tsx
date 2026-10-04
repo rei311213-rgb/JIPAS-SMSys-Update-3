@@ -499,17 +499,17 @@ export default function CEOPortal({
 
   const renderThumbnailNavGrid = () => (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-[#0A1226] via-[#0F172A] to-[#0A1226] p-6 rounded-3xl border border-blue-900/40 shadow-2xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-blue-400 font-black text-xs uppercase tracking-widest mb-1">
-            <Grid className="w-4 h-4 text-blue-400" />
+          <div className="flex items-center gap-2 text-indigo-600 font-black text-xs uppercase tracking-widest mb-1">
+            <Grid className="w-4 h-4 text-indigo-600" />
             Executive Command Hub & Thumbnail Navigation
           </div>
-          <h2 className="text-xl font-black text-white">CEO Thumbnail Modules</h2>
-          <p className="text-xs text-slate-400 mt-1">Tap any thumbnail card to jump directly into the requested module view</p>
+          <h2 className="text-xl font-black text-slate-900">CEO Thumbnail Modules</h2>
+          <p className="text-xs text-slate-500 mt-1">Tap any thumbnail card to jump directly into the requested module view</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+          <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
             {ceoThumbnailGroups.reduce((acc, g) => acc + g.items.length, 0)} Total Modules
           </span>
         </div>
@@ -586,18 +586,18 @@ export default function CEOPortal({
   );
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Top CEO Executive Header Bar */}
-      <header className="sticky top-0 z-30 bg-[#070D1E]/95 backdrop-blur-md border border-blue-950/80 px-4 py-3.5 sm:px-6 rounded-2xl shadow-2xl overflow-x-clip">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border border-slate-200 px-4 py-3.5 sm:px-6 rounded-2xl shadow-sm overflow-x-clip">
         <div className="flex flex-wrap items-center justify-between gap-4 min-w-0 w-full">
           <div className="flex items-center gap-3 min-w-0 shrink">
             <JIPASLogo size="sm" />
             <div className="min-w-0 shrink">
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-sm font-black text-white tracking-wide truncate">
+                <h1 className="text-sm font-black text-slate-900 tracking-wide truncate">
                   {currentUser?.role === 'director' ? 'DIRECTOR PORTAL' : 'CEO PORTAL'}
                 </h1>
-                <span className="px-2 py-0.5 bg-blue-600 text-white rounded text-[9px] font-black uppercase tracking-wider shrink-0">
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-black uppercase tracking-wider shrink-0">
                   EXEC
                 </span>
               </div>
@@ -870,8 +870,8 @@ export default function CEOPortal({
                 <div className="bg-[#0F172A] p-8 rounded-3xl border border-slate-800 shadow-xl">
                   <h2 className="text-xl font-black text-white mb-6">Institutional Structural Overview</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
-                        <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-4">Departmental Breakdown</h4>
+                     <div className="p-6 bg-white rounded-2xl border border-slate-200">
+                        <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Departmental Breakdown</h4>
                         <div className="space-y-3">
                            {departments.map(d => (
                              <div key={d.id} className="flex justify-between items-center text-sm">

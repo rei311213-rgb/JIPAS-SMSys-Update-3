@@ -45,6 +45,12 @@ export default function IDCardToolModal({
   const studentNationality = record.nationality || 'Ghanaian';
   const studentCampus = record.campus || 'JIPAS 1';
   
+  // Comprehensive Staff Member Biodata
+  const staffGender = record.gender || 'N/A';
+  const staffQuals = record.academicQualification || 'B.Ed. Education';
+  const staffNtc = record.ntcLicenseNo || 'NTC/TR/2026/001';
+  const staffPhone = record.phone || 'N/A';
+  
   const photoUrl = record.photo || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80';
   const emergencyPhone = isStudent ? (record.parentPhone || record.emergencyContactPhone || '0249755593') : (record.phone || '0249755593');
   const emergencyEmail = isStudent ? 'info@jipas.com' : (record.email || 'info@jipas.com');
@@ -119,7 +125,13 @@ export default function IDCardToolModal({
                     <span>Sex: <strong>${studentGender}</strong></span>
                     <span>Nat: <strong>${studentNationality}</strong></span>
                   </div>
-                ` : ''}
+                ` : `
+                  <div class="biodata-grid" style="display: flex; gap: 6px; font-size: 7px; color: #94a3b8; margin-top: 2px;">
+                    <span>Sex: <strong>${staffGender}</strong></span>
+                    <span>Qual: <strong>${staffQuals}</strong></span>
+                    <span>NTC: <strong>${staffNtc}</strong></span>
+                  </div>
+                `}
               </div>
             </div>
             <div class="footer">
@@ -148,7 +160,12 @@ export default function IDCardToolModal({
                     DOB: <strong>${studentDob}</strong> | Sex: <strong>${studentGender}</strong><br/>
                     Nat: <strong>${studentNationality}</strong>
                   </div>
-                ` : ''}
+                ` : `
+                  <div style="font-size: 6.5px; color: #94a3b8; margin-top: 3px; line-height: 1.2;">
+                    Sex: <strong>${staffGender}</strong> | Qual: <strong>${staffQuals}</strong><br/>
+                    NTC No: <strong>${staffNtc}</strong>
+                  </div>
+                `}
               </div>
             </div>
             <div class="footer">
@@ -496,11 +513,18 @@ export default function IDCardToolModal({
                     <p className={`text-[10px] font-mono font-bold leading-none ${theme.textAccent}`}>{idNumber}</p>
                     <p className="text-[9px] text-slate-300">Class/Dept: <strong>{classOrDept}</strong></p>
                     <p className="text-[9px] text-slate-400">{extraInfo}</p>
-                    {isStudent && (
+                    {isStudent ? (
                       <div className="pt-1 flex flex-wrap gap-1 text-[7.5px] text-slate-300 font-medium">
                         <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">DOB: {studentDob}</span>
                         <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Sex: {studentGender}</span>
                         <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Nat: {studentNationality}</span>
+                      </div>
+                    ) : (
+                      <div className="pt-1 flex flex-wrap gap-1 text-[7.5px] text-slate-300 font-medium">
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Sex: {staffGender}</span>
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Qual: {staffQuals}</span>
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">NTC: {staffNtc}</span>
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Tel: {staffPhone}</span>
                       </div>
                     )}
                   </div>

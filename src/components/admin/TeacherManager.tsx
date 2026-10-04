@@ -15,6 +15,7 @@ import TeacherAttendanceStats from './TeacherAttendanceStats';
 import BulkTeacherUploadModal from './BulkTeacherUploadModal';
 import IDCardToolModal from './IDCardToolModal';
 import StaffLetterGeneratorModal, { StaffLetterType } from '../common/StaffLetterGeneratorModal';
+import { INITIAL_SHS_COURSES } from '../../data/setupData';
 import { 
   saveTeacher, 
   deleteTeacher, 
@@ -214,11 +215,27 @@ export default function TeacherManager({
     setFormSubjects(updated.join(', '));
   };
 
-  // Assignment Form State (Multiple Subjects Selection)
+  // Assignment Form State (Multiple Classes & Subjects Selection)
   const [assignTeacherId, setAssignTeacherId] = useState('');
   const [assignClass, setAssignClass] = useState('Basic 1');
+  const [assignClasses, setAssignClasses] = useState<string[]>(['Basic 1']);
+  const [assignClassDeptFilter, setAssignClassDeptFilter] = useState<'All' | 'Pre-School & Primary' | 'Junior High (JHS)' | 'Senior High (SHS)'>('All');
+  const [selectedShsCourse, setSelectedShsCourse] = useState<string>('General Science');
   const [assignSubjects, setAssignSubjects] = useState<string[]>(['Mathematics']);
   const [assignRoleType, setAssignRoleType] = useState<'Class Teacher' | 'Subject Teacher' | 'Assistant'>('Class Teacher');
+  
+  // Class Selection Helpers
+  const toggleClassSelection = (cls: string) => {
+    setAssignClasses(prev => 
+      prev.includes(cls)
+        ? prev.filter(c => c !== cls)
+        : [...prev, cls]
+    );
+  };
+
+  const handleClearAllClasses = () => {
+    setAssignClasses([]);
+  };
   
   // Multiple Subject Picker Interactive State
   const [subjectCategoryFilter, setSubjectCategoryFilter] = useState('All');
@@ -474,6 +491,9 @@ export default function TeacherManager({
     setEditingAssign(null);
     setAssignTeacherId(teachersList[0]?.id || '');
     setAssignClass('Basic 1');
+    setAssignClasses(['Basic 1']);
+    setAssignClassDeptFilter('All');
+    setSelectedShsCourse('General Science');
     setAssignSubjects(['Mathematics']);
     setAssignRoleType('Subject Teacher');
     setSubjectCategoryFilter('All');
@@ -487,6 +507,9 @@ export default function TeacherManager({
     setEditingAssign(assign);
     setAssignTeacherId(assign.teacherId);
     setAssignClass(assign.className);
+    setAssignClasses([assign.className]);
+    setAssignClassDeptFilter('All');
+    setSelectedShsCourse('General Science');
     const existing = assign.subjectName.includes(',')
       ? assign.subjectName.split(',').map(s => s.trim()).filter(Boolean)
       : [assign.subjectName];
@@ -498,11 +521,16 @@ export default function TeacherManager({
     setShowAddAssignModal(true);
   };
 
-  // Save Assignment (Handles Multiple Subjects Selection)
+  // Save Assignment (Handles Multiple Classes & Multiple Subjects Selection)
   const handleSaveAssignment = (e: React.FormEvent) => {
     e.preventDefault();
     const matchedTeacher = teachersList.find(t => t.id === assignTeacherId) || teachersList[0];
     if (!matchedTeacher) return;
+
+    if (assignClasses.length === 0) {
+      alert('Please select at least one class / form to assign to this teacher.');
+      return;
+    }
 
     if (assignSubjects.length === 0) {
       alert('Please select at least one subject to assign to this teacher.');
@@ -510,37 +538,51 @@ export default function TeacherManager({
     }
 
     if (editingAssign) {
-      // Update existing allocation or replace with selected subjects
+      // Update existing allocation or replace with selected classes & subjects
       setAssignments(prev => {
         const withoutCurrent = prev.filter(a => a.id !== editingAssign.id);
-        const updatedItems: TeacherAssignmentItem[] = assignSubjects.map((sub, idx) => ({
-          id: idx === 0 ? editingAssign.id : `ta-${Date.now()}-${idx}`,
-          teacherId: matchedTeacher.id,
-          teacherName: matchedTeacher.name,
-          className: assignClass,
-          subjectName: sub,
-          academicYear: '2025-2026',
-          term: 'Third Term',
-          roleType: assignRoleType
-        }));
+        const updatedItems: TeacherAssignmentItem[] = [];
+        let count = 0;
+        assignClasses.forEach((cls) => {
+          assignSubjects.forEach((sub) => {
+            updatedItems.push({
+              id: count === 0 ? editingAssign.id : `ta-${Date.now()}-${count}`,
+              teacherId: matchedTeacher.id,
+              teacherName: matchedTeacher.name,
+              className: cls,
+              subjectName: sub,
+              academicYear: '2025-2026',
+              term: 'Third Term',
+              roleType: assignRoleType
+            });
+            count++;
+          });
+        });
         return [...updatedItems, ...withoutCurrent];
       });
-      setAssignSuccessToast(`Updated assignment for ${matchedTeacher.name} across ${assignSubjects.length} subject(s)!`);
+      setAssignSuccessToast(`Updated assignment for ${matchedTeacher.name} across ${assignClasses.length} class(es) and ${assignSubjects.length} subject(s)!`);
       setEditingAssign(null);
     } else {
-      // Create new allocations for each selected subject
-      const newItems: TeacherAssignmentItem[] = assignSubjects.map((sub, idx) => ({
-        id: `ta-${Date.now()}-${idx}`,
-        teacherId: matchedTeacher.id,
-        teacherName: matchedTeacher.name,
-        className: assignClass,
-        subjectName: sub,
-        academicYear: '2025-2026',
-        term: 'Third Term',
-        roleType: assignRoleType
-      }));
+      // Create new allocations for each selected class and each selected subject
+      const newItems: TeacherAssignmentItem[] = [];
+      let count = 0;
+      assignClasses.forEach((cls) => {
+        assignSubjects.forEach((sub) => {
+          newItems.push({
+            id: `ta-${Date.now()}-${count}`,
+            teacherId: matchedTeacher.id,
+            teacherName: matchedTeacher.name,
+            className: cls,
+            subjectName: sub,
+            academicYear: '2025-2026',
+            term: 'Third Term',
+            roleType: assignRoleType
+          });
+          count++;
+        });
+      });
       setAssignments(prev => [...newItems, ...prev]);
-      setAssignSuccessToast(`Assigned ${matchedTeacher.name} to ${assignClass} for ${assignSubjects.length} subject(s)!`);
+      setAssignSuccessToast(`Assigned ${matchedTeacher.name} to ${assignClasses.join(', ')} for ${assignSubjects.length} subject(s)!`);
       setShowAddAssignModal(false);
     }
 
@@ -550,7 +592,7 @@ export default function TeacherManager({
         const existingSubjs = t.subjectsTaught || [];
         const mergedSubjs = Array.from(new Set([...existingSubjs, ...assignSubjects]));
         const existingClasses = t.classesTaught || [];
-        const mergedClasses = Array.from(new Set([...existingClasses, assignClass]));
+        const mergedClasses = Array.from(new Set([...existingClasses, ...assignClasses]));
         const updatedT: Teacher = {
           ...t,
           subjectsTaught: mergedSubjs,
@@ -2044,16 +2086,187 @@ export default function TeacherManager({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Class / Form Allocated *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Teaching Role Type *</label>
                   <select
-                    value={assignClass}
-                    onChange={(e) => setAssignClass(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white text-slate-900 shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    value={assignRoleType}
+                    onChange={(e) => setAssignRoleType(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white text-slate-900 shadow-2xs"
                   >
-                    {AVAILABLE_CLASSES_LIST.map(cls => (
-                      <option key={cls} value={cls}>{cls}</option>
-                    ))}
+                    <option value="Subject Teacher">Subject Teacher (Specialist)</option>
+                    <option value="Class Teacher">Class Teacher / Form Master</option>
+                    <option value="Assistant">Assistant Teacher</option>
                   </select>
+                </div>
+              </div>
+
+              {/* MULTIPLE CLASS / FORM SELECTION SECTION */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div>
+                    <label className="block font-black text-slate-900 text-sm">
+                      Class / Form Allocated (Multiple Selection) *
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Select one or multiple classes/forms this teacher will instruct.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 bg-purple-600 text-white rounded-full text-xs font-mono font-bold shadow-2xs">
+                      {assignClasses.length} Selected
+                    </span>
+                    {assignClasses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllClasses}
+                        className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selected Classes Badges Preview */}
+                {assignClasses.length > 0 ? (
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                    {assignClasses.map((cls, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-800 border border-purple-200 text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                      >
+                        <Check className="w-3 h-3 text-purple-600" />
+                        {cls}
+                        <button
+                          type="button"
+                          onClick={() => toggleClassSelection(cls)}
+                          className="text-purple-400 hover:text-rose-600 font-bold ml-0.5 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    No classes selected. Please check at least one class or form below.
+                  </div>
+                )}
+
+                {/* Department Filter Pills */}
+                <div className="flex flex-wrap gap-1.5 border-b border-slate-200 pb-2.5 pt-1">
+                  {[
+                    { id: 'All', label: 'All Classes' },
+                    { id: 'Pre-School & Primary', label: 'Basic 1 - 6 / Pre-School' },
+                    { id: 'Junior High (JHS)', label: 'Junior High (JHS 1 - 3)' },
+                    { id: 'Senior High (SHS)', label: 'Senior High School (SHS)' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setAssignClassDeptFilter(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        assignClassDeptFilter === tab.id
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* IF SHS DEPARTMENT IS SELECTED: SHOW SHS COURSE / PROGRAMME SELECTOR */}
+                {(assignClassDeptFilter === 'Senior High (SHS)' || assignClassDeptFilter === 'All') && (
+                  <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                        <GraduationCap className="w-4 h-4 text-indigo-600" />
+                        SHS Course / Programme Selector
+                      </label>
+                      <span className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider">
+                        Choose Programme Streams
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      {INITIAL_SHS_COURSES.map(course => {
+                        const isSelected = selectedShsCourse === course.name;
+                        return (
+                          <button
+                            key={course.id}
+                            type="button"
+                            onClick={() => setSelectedShsCourse(course.name)}
+                            className={`p-2 rounded-xl text-left border text-xs transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-700 font-bold shadow-xs'
+                                : 'bg-white text-slate-800 border-indigo-200 hover:bg-indigo-100/50'
+                            }`}
+                          >
+                            <div className="font-bold text-[11px] truncate">{course.name}</div>
+                            <div className={`text-[9px] ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>
+                              {course.code} • 3 Forms
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Class Checkboxes Selection Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 max-h-44 overflow-y-auto">
+                  {(() => {
+                    let displayClasses: string[] = [];
+
+                    if (assignClassDeptFilter === 'Pre-School & Primary') {
+                      displayClasses = ['Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2', 'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6'];
+                    } else if (assignClassDeptFilter === 'Junior High (JHS)') {
+                      displayClasses = ['JHS 1', 'JHS 2', 'JHS 3'];
+                    } else if (assignClassDeptFilter === 'Senior High (SHS)') {
+                      const courseObj = INITIAL_SHS_COURSES.find(c => c.name === selectedShsCourse) || INITIAL_SHS_COURSES[0];
+                      const courseStreamClasses = courseObj.classesGenerated || [`${courseObj.name} 1`, `${courseObj.name} 2`, `${courseObj.name} 3`];
+                      displayClasses = [
+                        ...courseStreamClasses,
+                        `SHS 1 (${courseObj.name})`,
+                        `SHS 2 (${courseObj.name})`,
+                        `SHS 3 (${courseObj.name})`,
+                        'SHS 1', 'SHS 2', 'SHS 3'
+                      ];
+                    } else {
+                      const shsObj = INITIAL_SHS_COURSES.find(c => c.name === selectedShsCourse) || INITIAL_SHS_COURSES[0];
+                      displayClasses = [
+                        'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6',
+                        'JHS 1', 'JHS 2', 'JHS 3',
+                        `SHS 1 (${shsObj.name})`, `SHS 2 (${shsObj.name})`, `SHS 3 (${shsObj.name})`,
+                        ...AVAILABLE_CLASSES_LIST
+                      ];
+                    }
+
+                    const uniqueDisplay = Array.from(new Set(displayClasses));
+
+                    return uniqueDisplay.map(cls => {
+                      const isChecked = assignClasses.includes(cls);
+                      return (
+                        <button
+                          key={cls}
+                          type="button"
+                          onClick={() => toggleClassSelection(cls)}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                            isChecked
+                              ? 'bg-purple-50 border-purple-300 text-purple-900 font-bold shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100/80 font-medium'
+                          }`}
+                        >
+                          <span className="text-xs truncate">{cls}</span>
+                          <div className={`w-4 h-4 rounded-md flex items-center justify-center border ${
+                            isChecked ? 'bg-purple-600 border-purple-600 text-white' : 'border-slate-300 bg-white'
+                          }`}>
+                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 

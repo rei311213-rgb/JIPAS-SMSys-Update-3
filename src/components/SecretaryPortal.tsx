@@ -120,7 +120,7 @@ type SecretaryActiveTab =
   | 'generate_receipt';
 
 export default function SecretaryPortal({
-  secretary,
+  secretary: rawSecretary,
   students: propStudents,
   bills: propBills,
   payments: propPayments,
@@ -133,12 +133,13 @@ export default function SecretaryPortal({
   onUpdateBills,
   onLogout
 }: SecretaryPortalProps) {
+  const secretary = rawSecretary || { name: 'Secretary', role: 'secretary', campus: 'JIPAS 1' } as any;
   const [activeTab, setActiveTab] = useState<SecretaryActiveTab>('fee_collection');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Secretaries are restricted strictly to their assigned campus established during account creation
-  const selectedCampus: 'General' | 'JIPAS 1' | 'JIPAS 2' = (secretary.campus as any) || 'JIPAS 1';
+  const selectedCampus: 'General' | 'JIPAS 1' | 'JIPAS 2' = (secretary?.campus as any) || 'JIPAS 1';
 
   const students = useMemo(() => {
     const campusFiltered = filterStudentsByCampus(propStudents, selectedCampus);
@@ -377,7 +378,7 @@ export default function SecretaryPortal({
 
     setIsSubmittingEnrollment(true);
     try {
-      const isShs = enrollDepartment.toLowerCase().includes('senior') || enrollDepartment.toLowerCase().includes('shs');
+      const isShs = (enrollDepartment || '').toLowerCase().includes('senior') || (enrollDepartment || '').toLowerCase().includes('shs');
       const resolvedClassName = isShs ? `${enrollCourse} ${enrollLevel}` : enrollClassName;
       const newStudent: Student = {
         id: `st-enroll-${Date.now()}`,
@@ -531,9 +532,9 @@ export default function SecretaryPortal({
   const getAvailableElectives = (courseName: string) => {
     const allCourses = [...effectiveShsCourses, ...(courses || [])];
     const match = allCourses.find(c =>
-      c.name.toLowerCase() === (courseName || '').toLowerCase() ||
-      c.name.toLowerCase().includes((courseName || '').toLowerCase()) ||
-      (courseName || '').toLowerCase().includes(c.name.toLowerCase())
+      (c.name || '').toLowerCase() === (courseName || '').toLowerCase() ||
+      (c.name || '').toLowerCase().includes((courseName || '').toLowerCase()) ||
+      (courseName || '').toLowerCase().includes((c.name || '').toLowerCase())
     );
     return match?.electiveSubjects || [];
   };
@@ -545,7 +546,7 @@ export default function SecretaryPortal({
   const handleEnrollDepartmentChange = (dept: string) => {
     setEnrollDepartment(dept);
     setEnrollElectives([]);
-    if (dept.toLowerCase().includes('senior') || dept.toLowerCase().includes('shs')) {
+    if ((dept || '').toLowerCase().includes('senior') || (dept || '').toLowerCase().includes('shs')) {
       const defaultCourse = effectiveShsCourses[0]?.name || 'Science (General)';
       setEnrollCourse(defaultCourse);
       setEnrollClassName(`${defaultCourse} ${enrollLevel}`);
@@ -565,13 +566,13 @@ export default function SecretaryPortal({
     if (effectiveDept && effectiveDept !== 'All') {
       const matchingStored = allStoredClasses.filter(c => {
         const deptItem = getStoredDepartments().find(d => d.name === effectiveDept || d.name === c.department || d.id === (c as any).departmentId);
-        return (c.department && c.department.toLowerCase() === effectiveDept.toLowerCase()) ||
+        return (c.department && (c.department || '').toLowerCase() === (effectiveDept || '').toLowerCase()) ||
                (deptItem && (c as any).departmentId === deptItem.id) ||
                ((c as any).departmentName === effectiveDept);
       }).map(c => c.name);
 
       const matchingFromStudents = students
-        .filter(s => (s.department && s.department.toLowerCase() === effectiveDept.toLowerCase()))
+        .filter(s => (s.department && (s.department || '').toLowerCase() === (effectiveDept || '').toLowerCase()))
         .map(s => s.currentClass || s.className)
         .filter(Boolean);
 
@@ -666,9 +667,9 @@ export default function SecretaryPortal({
     if (!searchStudentQuery.trim()) return [];
     const query = searchStudentQuery.toLowerCase();
     return students.filter(s => 
-      s.name.toLowerCase().includes(query) ||
-      s.admissionNo.toLowerCase().includes(query) ||
-      (s.currentClass && s.currentClass.toLowerCase().includes(query)) ||
+      (s.name || s.fullName || '').toLowerCase().includes(query) ||
+      (s.admissionNo || '').toLowerCase().includes(query) ||
+      ((s.currentClass || s.className || '').toLowerCase().includes(query)) ||
       (s.parentPhone && s.parentPhone.includes(query))
     ).slice(0, 8);
   }, [students, searchStudentQuery]);
@@ -695,12 +696,13 @@ export default function SecretaryPortal({
   const todaySecretaryPayments = useMemo(() => {
     return payments.filter(p => {
       const isToday = p.date === todayStr;
+      const secNameLower = (secretary?.name || '').toLowerCase();
       const isSecretary = p.receivedBy?.toLowerCase().includes('secretary') || 
-                          p.receivedBy?.toLowerCase().includes(secretary.name.toLowerCase()) ||
+                          (secNameLower && p.receivedBy?.toLowerCase().includes(secNameLower)) ||
                           p.collectorRole === 'secretary';
       return isToday && isSecretary;
     });
-  }, [payments, todayStr, secretary.name]);
+  }, [payments, todayStr, secretary?.name]);
 
   const totalFeesCollectedToday = useMemo(() => {
     return addMoney(...todaySecretaryPayments.map(p => p.amount ?? p.paid ?? 0));
@@ -757,9 +759,9 @@ export default function SecretaryPortal({
         // Search query
         const q = collectionsSearchQuery.trim().toLowerCase();
         const matchesQuery = !q || 
-          p.studentName.toLowerCase().includes(q) ||
-          p.admissionNo.toLowerCase().includes(q) ||
-          (p.receiptNo && p.receiptNo.toLowerCase().includes(q));
+          (p.studentName || '').toLowerCase().includes(q) ||
+          (p.admissionNo || '').toLowerCase().includes(q) ||
+          (p.receiptNo && (p.receiptNo || '').toLowerCase().includes(q));
 
         if (!matchesQuery) return false;
 
@@ -767,24 +769,24 @@ export default function SecretaryPortal({
         if (collectionsFilterDepartment !== 'All') {
           const student = students.find(s => s.id === p.studentId || s.admissionNo === p.admissionNo);
           const dept = p.department || student?.department || 'General';
-          if (dept.toLowerCase() !== collectionsFilterDepartment.toLowerCase()) return false;
+          if ((dept || '').toLowerCase() !== (collectionsFilterDepartment || '').toLowerCase()) return false;
         }
 
         // Class filter
         if (collectionsFilterClass !== 'All') {
-          if (p.className.toLowerCase() !== collectionsFilterClass.toLowerCase()) return false;
+          if ((p.className || '').toLowerCase() !== (collectionsFilterClass || '').toLowerCase()) return false;
         }
 
         // Method filter
         if (collectionsFilterMethod !== 'All') {
-          if (p.method && p.method.toLowerCase() !== collectionsFilterMethod.toLowerCase()) return false;
-          if (p.paymentMethod && p.paymentMethod.toLowerCase() !== collectionsFilterMethod.toLowerCase()) return false;
+          if (p.method && (p.method || '').toLowerCase() !== (collectionsFilterMethod || '').toLowerCase()) return false;
+          if (p.paymentMethod && (p.paymentMethod || '').toLowerCase() !== (collectionsFilterMethod || '').toLowerCase()) return false;
         }
 
         // Payment status filter
         if (collectionsFilterPaymentStatus !== 'All') {
           const statusValue = p.status || 'Completed';
-          if (statusValue.toLowerCase() !== collectionsFilterPaymentStatus.toLowerCase()) return false;
+          if ((statusValue || '').toLowerCase() !== (collectionsFilterPaymentStatus || '').toLowerCase()) return false;
         }
 
         // Date range filter
@@ -837,10 +839,11 @@ export default function SecretaryPortal({
   const todaySecretaryExpenses = useMemo(() => {
     return expenses.filter(e => {
       const isToday = e.date === todayStr;
-      const isSecretary = e.recorderRole === 'secretary' || e.recordedBy?.toLowerCase().includes(secretary.name.toLowerCase());
+      const secNameLower = (secretary?.name || '').toLowerCase();
+      const isSecretary = e.recorderRole === 'secretary' || (secNameLower && e.recordedBy?.toLowerCase().includes(secNameLower));
       return isToday && isSecretary && e.status !== 'Void';
     });
-  }, [expenses, todayStr, secretary.name]);
+  }, [expenses, todayStr, secretary?.name]);
 
   const totalExpensesLoggedToday = useMemo(() => {
     return addMoney(...todaySecretaryExpenses.map(e => e.amount || 0));
@@ -2073,7 +2076,7 @@ export default function SecretaryPortal({
                     </div>
 
                     {/* SHS Course & Level OR Admission Class */}
-                    {(enrollDepartment.toLowerCase().includes('senior') || enrollDepartment.toLowerCase().includes('shs')) ? (
+                    {((enrollDepartment || '').toLowerCase().includes('senior') || (enrollDepartment || '').toLowerCase().includes('shs')) ? (
                       <div className="md:col-span-2 p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-4 animate-fade-in">
                         <div className="flex items-center gap-2 text-indigo-900 font-black text-xs">
                           <BookOpen className="w-4 h-4 text-indigo-600" />

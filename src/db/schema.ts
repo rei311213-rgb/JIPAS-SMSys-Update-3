@@ -149,3 +149,18 @@ export const staffLoans = pgTable('staff_loans', {
   amount: decimal('amount', { precision: 12, scale: 2 }),
   repaymentAmount: decimal('repayment_amount', { precision: 12, scale: 2 }),
 });
+
+export const staffAttendance = pgTable('staff_attendance', {
+  id: uuid('id').primaryKey(),
+  date: date('date').notNull(),
+  teacherId: uuid('teacher_id').notNull(),
+  teacherName: text('teacher_name').notNull(),
+  status: text('status').notNull(),
+  campus: text('campus'),
+  timeIn: text('time_in'),
+  timeOut: text('time_out'),
+  remarks: text('remarks'),
+  clockInMethod: text('clock_in_method'),
+  verified: boolean('verified').default(false),
+  officeStationId: text('office_station_id'),
+});
