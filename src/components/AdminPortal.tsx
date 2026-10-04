@@ -2044,13 +2044,24 @@ export default function AdminPortal({
 
             {/* Class Broadcast Status Overview Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6',
-                'JHS 1', 'JHS 2', 'JHS 3'
-              ].map((className) => {
-                const bcast = broadcasts?.find(b => (b.className || '').toLowerCase() === className.toLowerCase() && (b.term || '').toLowerCase().includes('third'));
+              {(classes && classes.length > 0 ? classes : [
+                { id: '1', name: 'Basic 1' }, { id: '2', name: 'Basic 2' }, { id: '3', name: 'Basic 3' },
+                { id: '4', name: 'Basic 4' }, { id: '5', name: 'Basic 5' }, { id: '6', name: 'Basic 6' },
+                { id: '7', name: 'JHS 1' }, { id: '8', name: 'JHS 2' }, { id: '9', name: 'JHS 3' }
+              ]).map((cls: any) => {
+                const className = typeof cls === 'string' ? cls : cls.name;
+                const bcast = broadcasts?.find(b => 
+                  (b.className || '').toLowerCase() === className.toLowerCase() && 
+                  (b.term || '').toLowerCase() === activePeriod.academicTerm.toLowerCase() &&
+                  (b.academicYear === activePeriod.academicYear)
+                );
                 const isBroadcasted = bcast?.isBroadcasted ?? false;
-                const classStudentCount = students.filter(s => (s.className || '').toLowerCase() === className.toLowerCase()).length || 24;
+                const classStudentCount = students.filter(s => (s.className || '').toLowerCase() === className.toLowerCase()).length;
+                const classReportCount = reports.filter(r => 
+                  (r.className || '').toLowerCase() === className.toLowerCase() && 
+                  r.term === activePeriod.academicTerm && 
+                  r.academicYear === activePeriod.academicYear
+                ).length;
 
                 return (
                   <div
@@ -2063,8 +2074,8 @@ export default function AdminPortal({
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-white">{className}</span>
-                        <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        <span className="font-bold text-sm text-white truncate">{className}</span>
+                        <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
                           isBroadcasted 
                             ? 'bg-emerald-900/80 text-emerald-300 border border-emerald-700/60' 
                             : 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
@@ -2073,7 +2084,7 @@ export default function AdminPortal({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        {classStudentCount} students • {isBroadcasted ? 'Accessible on Student Portal' : 'Hidden from students'}
+                        {classReportCount} / {classStudentCount || 'N/A'} reports ready • {isBroadcasted ? 'Accessible on Student Portal' : 'Hidden from students'}
                       </p>
                     </div>
 
@@ -2082,10 +2093,10 @@ export default function AdminPortal({
                         onClick={async () => {
                           const newStatus = isBroadcasted ? 'Draft' : 'Published';
                           const updatedRecord: any = {
-                            id: bcast?.id || `broadcast-${className.replace(/\s+/g, '-').toLowerCase()}-third-term`,
+                            id: bcast?.id || `broadcast-${className.replace(/\s+/g, '-').toLowerCase()}-${activePeriod.academicTerm.replace(/\s+/g, '-').toLowerCase()}`,
                             className,
-                            academicYear: '2025-2026',
-                            term: 'Third Term',
+                            academicYear: activePeriod.academicYear,
+                            term: activePeriod.academicTerm,
                             isBroadcasted: !isBroadcasted,
                             broadcastedAt: !isBroadcasted ? new Date().toLocaleDateString('en-GB') : undefined,
                             broadcastedBy: currentUser?.name || 'Administrator',
@@ -2093,7 +2104,11 @@ export default function AdminPortal({
                             releaseNotes: !isBroadcasted ? 'Terminal assessment released by Administration.' : 'Draft mode'
                           };
                           const all = broadcasts || [];
-                          const idx = all.findIndex(b => (b.className || '').toLowerCase() === className.toLowerCase() && (b.term || '').toLowerCase().includes('third'));
+                          const idx = all.findIndex(b => 
+                            (b.className || '').toLowerCase() === className.toLowerCase() && 
+                            (b.term || '').toLowerCase() === activePeriod.academicTerm.toLowerCase() &&
+                            (b.academicYear === activePeriod.academicYear)
+                          );
                           let nextList: any[];
                           if (idx >= 0) {
                             nextList = [...all];

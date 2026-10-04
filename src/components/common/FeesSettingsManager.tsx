@@ -976,9 +976,10 @@ export default function FeesSettingsManager({
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-bold focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="All Classes">All Classes (General)</option>
-                    <option value="Pre School">Pre School (Creche, Nursery, KG)</option>
-                    <option value="Primary School (All)">Primary School (Basic 1 - 6)</option>
+                    <option value="Senior High School (All)">Senior High School (SHS 1 - 3)</option>
                     <option value="Junior High School (All)">Junior High School (JHS 1 - 3)</option>
+                    <option value="Primary School (All)">Primary School (Basic 1 - 6)</option>
+                    <option value="Pre School">Pre School (Creche, Nursery, KG)</option>
                     <option value="Basic 1">Basic 1</option>
                     <option value="Basic 2">Basic 2</option>
                     <option value="JHS 1">JHS 1</option>

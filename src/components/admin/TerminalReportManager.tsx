@@ -28,6 +28,7 @@ import {
   clearAllClassReportBroadcasts
 } from '../../services/dbService';
 import { PDFGeneratorService } from '../../services/pdfService';
+import { getActiveAcademicPeriod } from '../../services/storageService';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -59,8 +60,22 @@ export default function TerminalReportManager({
   // Active Filter state
   const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
   const [selectedClass, setSelectedClass] = useState<string>('Basic 1');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2025-2026');
-  const [selectedTerm, setSelectedTerm] = useState<string>('Third Term');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>(() => {
+    try {
+      const active = getActiveAcademicPeriod();
+      return active.academicYear || '2025-2026';
+    } catch {
+      return '2025-2026';
+    }
+  });
+  const [selectedTerm, setSelectedTerm] = useState<string>(() => {
+    try {
+      const active = getActiveAcademicPeriod();
+      return active.academicTerm || 'First Term';
+    } catch {
+      return 'First Term';
+    }
+  });
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Local state for reports & broadcasts
@@ -102,7 +117,8 @@ export default function TerminalReportManager({
     let baseList = [
       'Creche', 'Nursery 1', 'Nursery 2', 'KG 1', 'KG 2',
       'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'Basic 6',
-      'JHS 1', 'JHS 2', 'JHS 3'
+      'JHS 1', 'JHS 2', 'JHS 3',
+      'SHS 1', 'SHS 2', 'SHS 3'
     ];
     if (classes && classes.length > 0) {
       baseList = Array.from(new Set([...baseList, ...classes.map(c => c.name)]));

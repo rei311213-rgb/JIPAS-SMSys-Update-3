@@ -879,8 +879,9 @@ export default function ExaminationManager({
                   onChange={(e) => setConvDept(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white"
                 >
-                  <option value="Primary School">Primary School</option>
+                  <option value="Senior High School">Senior High School (SHS)</option>
                   <option value="Junior High School">Junior High School</option>
+                  <option value="Primary School">Primary School</option>
                   <option value="Pre School">Pre School</option>
                 </select>
               </div>

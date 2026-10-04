@@ -3769,8 +3769,9 @@ export default function SystemSettingsManager({
                           ))
                         ) : (
                           <>
-                            <option value="Primary School">Primary School</option>
+                            <option value="Senior High School">Senior High School</option>
                             <option value="Junior High School">Junior High School</option>
+                            <option value="Primary School">Primary School</option>
                             <option value="Nursery & KG">Nursery & KG</option>
                             <option value="Science Department">Science Department</option>
                             <option value="Languages & Humanities">Languages & Humanities</option>
@@ -3903,8 +3904,9 @@ export default function SystemSettingsManager({
                         ))
                       ) : (
                         <>
-                          <option value="Primary School">Primary School</option>
+                          <option value="Senior High School">Senior High School</option>
                           <option value="Junior High School">Junior High School</option>
+                          <option value="Primary School">Primary School</option>
                           <option value="Nursery & KG">Nursery & KG</option>
                           <option value="Creche">Creche</option>
                           <option value="Administration">Administration</option>

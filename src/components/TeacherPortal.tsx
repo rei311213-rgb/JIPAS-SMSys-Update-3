@@ -655,7 +655,7 @@ export default function TeacherPortal({
       if (scoreObj) {
         initial[st.id] = { classScore: scoreObj.classScore, examScore: scoreObj.examScore };
       } else {
-        initial[st.id] = { classScore: 28, examScore: 56 };
+        initial[st.id] = { classScore: 0, examScore: 0 };
       }
     });
     return initial;
@@ -1276,7 +1276,7 @@ export default function TeacherPortal({
       const updated = { ...prev };
       classStudents.forEach(st => {
         const rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
-        const scores = subjectScores[st.id] || { classScore: 28, examScore: 56 };
+        const scores = subjectScores[st.id] || { classScore: 0, examScore: 0 };
         
         let totalAvg = scores.classScore + scores.examScore;
         if (rep?.scores && rep.scores.length > 0) {
@@ -2724,7 +2724,7 @@ export default function TeacherPortal({
                       </thead>
                       <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
                         {classStudents.map((st, idx) => {
-                          const sc = subjectScores[st.id] || { classScore: 28, examScore: 56 };
+                          const sc = subjectScores[st.id] || { classScore: 0, examScore: 0 };
                           const det = detailedSbaScores[st.id] || { classwork: 8, homework: 8, classTest: 14 };
                           const total = sc.classScore + sc.examScore;
                           const { grade, remark } = calculateGrade(total);
@@ -2850,7 +2850,7 @@ export default function TeacherPortal({
                   {/* Mobile Cards View for Score Entry */}
                   <div className="md:hidden space-y-3 pt-2">
                     {classStudents.map((st) => {
-                      const sc = subjectScores[st.id] || { classScore: 28, examScore: 56 };
+                      const sc = subjectScores[st.id] || { classScore: 0, examScore: 0 };
                       const det = detailedSbaScores[st.id] || { classwork: 8, homework: 8, classTest: 14 };
                       const total = sc.classScore + sc.examScore;
                       const { grade, remark } = calculateGrade(total);
@@ -4776,7 +4776,7 @@ export default function TeacherPortal({
                             </thead>
                             <tbody className="divide-y divide-slate-300 font-semibold text-slate-800 border-t border-slate-950">
                               {(() => {
-                                const rep = reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo);
+                                const rep = reports.find(r => (r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo) && r.term === academicTerm && r.academicYear === academicYear);
                                 return rep?.scores && rep.scores.length > 0 ? (
                                   rep.scores.map((sc, index) => {
                                     return (
@@ -4826,7 +4826,7 @@ export default function TeacherPortal({
                           </span>
                           <div className="space-y-2 text-xs">
                             {(() => {
-                              const rep = reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo);
+                              const rep = reports.find(r => (r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo) && r.term === academicTerm && r.academicYear === academicYear);
                               return (
                                 <>
                                   <div className="flex justify-between border-b border-slate-200 pb-1.5">
