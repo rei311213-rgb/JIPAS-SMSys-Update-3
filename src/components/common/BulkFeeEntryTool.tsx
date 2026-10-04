@@ -5,6 +5,7 @@ import {
 import { Student, StudentBill, PaymentRecord, User } from '../../types';
 import { saveBill, savePayment } from '../../services/dbService';
 import { getStoredSettings } from '../../services/storageService';
+import { generateNextReceiptSerialNumber } from '../../services/receiptSerialService';
 
 interface BulkFeeEntryToolProps {
   students: Student[];
@@ -316,7 +317,7 @@ export default function BulkFeeEntryTool({ students, currentUser, onClose }: Bul
           // Generate PaymentRecord matching types
           const newPayment: PaymentRecord = {
             id: `pay-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
-            receiptNo: `REC-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`,
+            receiptNo: generateNextReceiptSerialNumber(),
             date: new Date().toISOString().split('T')[0],
             studentId: student.id,
             studentName: student.fullName,

@@ -481,6 +481,8 @@ export default function StudentManager({
   const [formParentName, setFormParentName] = useState('');
   const [formParentPhone, setFormParentPhone] = useState('');
   const [formCampus, setFormCampus] = useState<'JIPAS 1' | 'JIPAS 2'>('JIPAS 1');
+  const [formNationality, setFormNationality] = useState('Ghanaian');
+  const [formBloodGroup, setFormBloodGroup] = useState('O+');
   const [formPhoto, setFormPhoto] = useState<string>('https://images.unsplash.com/photo-1543269865-cbf427effbad?w=200&auto=format&fit=crop&q=80');
 
   // IndexedDB Auto-save Student Creation Draft Integration
@@ -543,6 +545,8 @@ export default function StudentManager({
     setFormParentName('');
     setFormParentPhone('');
     setFormCampus('JIPAS 1');
+    setFormNationality('Ghanaian');
+    setFormBloodGroup('O+');
     setFormPhoto('https://images.unsplash.com/photo-1543269865-cbf427effbad?w=200&auto=format&fit=crop&q=80');
   };
 
@@ -804,6 +808,8 @@ export default function StudentManager({
     setFormParentName(st.parentName || '');
     setFormParentPhone(st.parentPhone || '');
     setFormCampus(st.campus || 'JIPAS 1');
+    setFormNationality(st.nationality || 'Ghanaian');
+    setFormBloodGroup(st.bloodGroup || 'O+');
     setFormPhoto(st.photo || (st.gender === 'Female' 
       ? 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=200&auto=format&fit=crop&q=80'
       : 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=200&auto=format&fit=crop&q=80'));
@@ -847,6 +853,8 @@ export default function StudentManager({
           house: formHouse,
           campus: formCampus,
           campus_id: formCampus,
+          nationality: formNationality || 'Ghanaian',
+          bloodGroup: formBloodGroup || 'O+',
           parentName: formParentName.trim() || 'Parent / Guardian',
           parentPhone: formParentPhone.trim(),
           photo: formPhoto
@@ -878,6 +886,8 @@ export default function StudentManager({
           house: formHouse,
           campus: formCampus,
           campus_id: formCampus,
+          nationality: formNationality || 'Ghanaian',
+          bloodGroup: formBloodGroup || 'O+',
           parentName: formParentName.trim() || 'Parent / Guardian',
           parentPhone: formParentPhone.trim(),
           academicYear: '2025-2026',
@@ -1776,20 +1786,6 @@ export default function StudentManager({
                       </div>
                     </div>
                   )}
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">School House</label>
-                    <select
-                      value={formHouse}
-                      onChange={(e) => setFormHouse(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-semibold"
-                    >
-                      <option value="Blue">Blue House (Aggrey)</option>
-                      <option value="Green">Green House (Guggisberg)</option>
-                      <option value="Yellow">Yellow House (Nkrumah)</option>
-                      <option value="Red">Red House (Casely Hayford)</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             </div>
@@ -2651,29 +2647,42 @@ export default function StudentManager({
                   </div>
                 </div>
 
-                {/* Body with Photo & Bio */}
-                <div className="flex gap-4 items-center">
+                {/* Body with Photo & Full Bio-data */}
+                <div className="flex gap-3.5 items-start">
                   <img
                     src={st.photo || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80'}
                     alt={st.fullName}
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0"
+                    className="w-16 h-16 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0 mt-0.5"
                   />
-                  <div className="space-y-0.5 overflow-hidden">
+                  <div className="space-y-0.5 overflow-hidden flex-1 text-[11px]">
                     <h5 className="font-black text-xs text-white truncate">{st.fullName}</h5>
                     <p className="text-[11px] font-mono font-bold text-amber-300">{st.admissionNo}</p>
-                    <p className="text-[10px] text-indigo-200">Class: <strong>{st.className}</strong></p>
-                    <p className="text-[10px] text-indigo-200">House: <strong>{st.house}</strong></p>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9.5px] text-indigo-200 pt-1">
+                      <span>Class: <strong className="text-white">{st.className}</strong></span>
+                      <span>House: <strong className="text-white">{st.house || 'Blue'}</strong></span>
+                      <span>DOB: <strong className="text-white">{st.dob || '14/05/2012'}</strong></span>
+                      <span>Gender: <strong className="text-white">{st.gender || 'Male'}</strong></span>
+                      <span>Nationality: <strong className="text-white">{st.nationality || 'Ghanaian'}</strong></span>
+                      <span>Blood: <strong className="text-amber-300">{st.bloodGroup || 'O+'}</strong></span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Footer Bar */}
                 <div className="bg-white/10 rounded-xl p-2.5 flex justify-between items-center text-[10px]">
                   <div>
-                    <span className="text-indigo-300 block text-[8px] uppercase font-bold">Emergency Tel:</span>
+                    <span className="text-indigo-300 block text-[8px] uppercase font-bold">Emergency Tel / Guardian:</span>
                     <span className="font-mono font-semibold text-white">{st.parentPhone || '0249755593'}</span>
+                    {st.parentName && <span className="text-[8px] text-indigo-200 block truncate max-w-[140px]">({st.parentName})</span>}
                   </div>
-                  <div className="w-6 h-6 bg-white rounded p-0.5 flex items-center justify-center">
-                    <QrCode className="w-5 h-5 text-slate-900" />
+                  <div className="flex items-center gap-2">
+                    <div className="text-right text-[8px] text-indigo-300">
+                      <span>VALID:</span>
+                      <strong className="block text-white font-mono">{st.academicYear || '2026/2027'}</strong>
+                    </div>
+                    <div className="w-6 h-6 bg-white rounded p-0.5 flex items-center justify-center shrink-0">
+                      <QrCode className="w-5 h-5 text-slate-900" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3120,6 +3129,26 @@ export default function StudentManager({
               </div>
 
               <div>
+                <label className="block font-bold text-slate-700 mb-1">Nationality *</label>
+                <select
+                  value={formNationality}
+                  onChange={(e) => setFormNationality(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-indigo-300 rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="Ghanaian">Ghanaian</option>
+                  <option value="Togolese">Togolese</option>
+                  <option value="Nigerian">Nigerian</option>
+                  <option value="Ivorian">Ivorian</option>
+                  <option value="Beninois">Beninois</option>
+                  <option value="Burkinabe">Burkinabe</option>
+                  <option value="French">French</option>
+                  <option value="British">British</option>
+                  <option value="American">American</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   Admission Date / Date d'admission *
                 </label>
@@ -3280,38 +3309,9 @@ export default function StudentManager({
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1">House</label>
-                      <select
-                        value={formHouse}
-                        onChange={(e) => setFormHouse(e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white"
-                      >
-                        <option value="Blue">Blue House</option>
-                        <option value="Green">Green House</option>
-                        <option value="Yellow">Yellow House</option>
-                        <option value="Red">Red House</option>
-                      </select>
-                    </div>
                   </div>
                 )}
               </div>
-
-              {formDepartment === 'Senior High School' && (
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">House</label>
-                  <select
-                    value={formHouse}
-                    onChange={(e) => setFormHouse(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-semibold bg-white"
-                  >
-                    <option value="Blue">Blue House</option>
-                    <option value="Green">Green House</option>
-                    <option value="Yellow">Yellow House</option>
-                    <option value="Red">Red House</option>
-                  </select>
-                </div>
-              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

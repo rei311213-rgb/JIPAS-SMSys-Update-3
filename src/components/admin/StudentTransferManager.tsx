@@ -153,10 +153,10 @@ export default function StudentTransferManager({
         <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px;">
           <img src="${absoluteLogoSrc}" alt="JIPAS Crest" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 8px;" />
           <h1 style="margin: 0; font-size: 22px; font-weight: bold; color: #1e3a8a; letter-spacing: 0.5px; text-transform: uppercase;">
-            Joy International Primary & High School
+            Joy International School (JIPAS)
           </h1>
           <p style="margin: 3px 0 0 0; font-size: 11px; font-style: italic; color: #475569;">
-            "Excellence in Knowledge and Character" — JIPAS Educational Complex
+            "Excellence in Knowledge and Character" — JOY INTERNATIONAL SCHOOL (JIPAS)
           </p>
           <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">
             Accredited by the Ministry of Education • Official Campus: ${record.fromCampus || 'Main Campus'}

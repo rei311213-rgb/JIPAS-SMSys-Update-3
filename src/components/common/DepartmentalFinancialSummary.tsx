@@ -142,7 +142,7 @@ export const DepartmentalFinancialSummary: React.FC<DepartmentalFinancialSummary
         <body>
           <div class="header-wrap">
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-            <h1>JIPAS Educational Complex — Departmental Financial Summary</h1>
+            <h1>JOY INTERNATIONAL SCHOOL (JIPAS) — Departmental Financial Summary</h1>
           </div>
           <div class="subtitle">Generated on ${new Date().toLocaleString()} | Currency: CFA (XOF/XAF)</div>
           

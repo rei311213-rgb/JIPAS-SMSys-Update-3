@@ -571,7 +571,7 @@ export const INITIAL_PAYMENT_SETTINGS: PaymentSettingsConfig = {
       enabled: true,
       isPrimary: false,
       bankOrProviderName: 'GCB Bank',
-      accountName: 'JIPAS Educational Complex',
+      accountName: 'JOY INTERNATIONAL SCHOOL (JIPAS)',
       accountNumber: '10211839001',
       branchOrSortCode: 'Accra Central Branch',
       instructions: 'Pay at any GCB Bank branch or via GCB Mobile App. Enter Student Admission No as Deposit / Payment Reference.'
@@ -644,7 +644,7 @@ export function saveStoredPaymentSettings(settings: PaymentSettingsConfig): void
 }
 
 export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
-  schoolName: 'JIPAS',
+  schoolName: 'JOY INTERNATIONAL SCHOOL (JIPAS)',
   schoolMotto: 'Education is Wealth • Founded 2002',
   schoolLogo: '/logo.png',
   laptopLogo: '/logo.png',
@@ -671,9 +671,14 @@ export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
 export function getStoredSettings(): SchoolSettings {
   const settings = readStorage<SchoolSettings>(STORAGE_KEYS.GENERAL_SETTINGS, INITIAL_SCHOOL_SETTINGS);
   const activePeriod = getActiveAcademicPeriod();
+  const rawName = settings?.schoolName;
+  const officialSchoolName = (!rawName || rawName === 'JIPAS' || rawName === 'JIPAS Educational Complex' || rawName === 'JIPAS Academy')
+    ? 'JOY INTERNATIONAL SCHOOL (JIPAS)'
+    : rawName;
   return {
     ...INITIAL_SCHOOL_SETTINGS,
     ...(settings || {}),
+    schoolName: officialSchoolName,
     activeAcademicYear: activePeriod.academicYear,
     activeTerm: activePeriod.academicTerm
   };

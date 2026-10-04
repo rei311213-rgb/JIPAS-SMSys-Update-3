@@ -749,7 +749,7 @@ export default function ExaminationManager({
             <div className="text-center border-b-2 border-slate-800 pb-4 flex flex-col items-center">
               <div className="text-xs font-black tracking-widest text-indigo-700 uppercase mb-2">Republic of the region • GES Accredited</div>
               <JIPASLogo size="md" className="mb-2" />
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">JIPAS</h2>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">JOY INTERNATIONAL SCHOOL (JIPAS)</h2>
               <p className="text-xs text-slate-500">01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com</p>
               <div className="inline-block bg-slate-900 text-white text-xs font-bold px-4 py-1 rounded-full mt-2 uppercase tracking-wider">
                 Terminal Examination Report Card

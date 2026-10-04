@@ -70,6 +70,7 @@ import LanguageSwitcher from './components/common/LanguageSwitcher';
 import { CampusProvider } from './context/CampusContext';
 import SyncNowButton from './components/common/SyncNowButton';
 import CampusSelector from './components/common/CampusSelector';
+import ReceiptQRVerificationModal from './components/common/ReceiptQRVerificationModal';
 import { PWAInstallButton } from './components/common/PWAInstallButton';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { useI18n } from './i18n/I18nContext';
@@ -248,6 +249,25 @@ export default function App() {
   const [loginLogs, setLoginLogs] = useState<LoginLog[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [globalVerifyModal, setGlobalVerifyModal] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.has('verify_receipt');
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleOpenVerify = () => setGlobalVerifyModal(true);
+    window.addEventListener('jipas_open_verify_receipt', handleOpenVerify);
+    return () => {
+      window.removeEventListener('jipas_open_verify_receipt', handleOpenVerify);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -1296,6 +1316,19 @@ export default function App() {
       <footer className="bg-[#040814]/90 border-t border-slate-800/60 py-6 text-center text-xs text-slate-400 relative z-10">
         <p>© 2026 JIPAS. All rights reserved. Powered by Academy Cloud Services & Supabase Cloud.</p>
       </footer>
+
+      {/* Global Digital Receipt Verification Modal */}
+      {globalVerifyModal && (
+        <ReceiptQRVerificationModal
+          isOpen={globalVerifyModal}
+          onClose={() => {
+            setGlobalVerifyModal(false);
+            if (typeof window !== 'undefined' && window.location.search.includes('verify_receipt')) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          }}
+        />
+      )}
     </div>
   </CampusProvider>
   );

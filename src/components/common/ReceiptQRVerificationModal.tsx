@@ -76,8 +76,31 @@ export default function ReceiptQRVerificationModal({
       let parsed: any = null;
       let targetReceiptNo = rawText.trim();
 
-      // Check if payload is JSON
-      if (rawText.trim().startsWith('{') && rawText.trim().endsWith('}')) {
+      // Check if payload is URL with verification query params
+      if (rawText.includes('http://') || rawText.includes('https://') || rawText.includes('verify_receipt=')) {
+        try {
+          const urlObj = new URL(rawText.startsWith('http') ? rawText : `http://localhost${rawText}`);
+          const rNo = urlObj.searchParams.get('verify_receipt') || urlObj.searchParams.get('receiptNo') || urlObj.searchParams.get('r');
+          const adm = urlObj.searchParams.get('student') || urlObj.searchParams.get('adm');
+          const name = urlObj.searchParams.get('name');
+          const amt = parseFloat(urlObj.searchParams.get('amt') || '0');
+          const dt = urlObj.searchParams.get('dt');
+          const id = urlObj.searchParams.get('id');
+          if (rNo) targetReceiptNo = rNo;
+          parsed = {
+            receiptNo: rNo,
+            admissionNo: adm,
+            studentName: name,
+            amount: amt,
+            date: dt,
+            receiptId: id,
+            institution: 'JOY INTERNATIONAL SCHOOL (JIPAS)',
+            verificationUrl: rawText
+          };
+        } catch {
+          // not valid url, continue
+        }
+      } else if (rawText.trim().startsWith('{') && rawText.trim().endsWith('}')) {
         try {
           parsed = JSON.parse(rawText);
           targetReceiptNo = (parsed.receiptNo || parsed.receiptId || '').trim();

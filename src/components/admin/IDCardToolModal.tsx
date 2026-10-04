@@ -30,11 +30,17 @@ export default function IDCardToolModal({
   const idNumber = isStudent ? record.admissionNo : (record.staffId || record.id);
   const classOrDept = isStudent ? record.className : (record.department || 'Primary Faculty');
   const extraInfo = isStudent 
-    ? `House: ${record.house || 'Unassigned'}` 
+    ? `Campus: ${record.campus || 'JIPAS 1'}` 
     : `Rank: ${record.rank || 'Faculty'}`;
   
+  // Comprehensive Student Biodata (Excluding Blood group and House)
+  const studentDob = record.dob || 'N/A';
+  const studentGender = record.gender || 'N/A';
+  const studentNationality = record.nationality || 'Ghanaian';
+  const studentCampus = record.campus || 'JIPAS 1';
+  
   const photoUrl = record.photo || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80';
-  const emergencyPhone = isStudent ? (record.parentPhone || '0249755593') : (record.phone || '0249755593');
+  const emergencyPhone = isStudent ? (record.parentPhone || record.emergencyContactPhone || '0249755593') : (record.phone || '0249755593');
   const emergencyEmail = isStudent ? 'info@jipas.com' : (record.email || 'info@jipas.com');
 
   const getThemeClasses = () => {
@@ -88,7 +94,7 @@ export default function IDCardToolModal({
               <div class="logo-area">
                 <span class="logo-sym">J</span>
                 <div>
-                  <div class="school-title">JIPAS EDUCATIONAL COMPLEX</div>
+                  <div class="school-title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
                   <div class="school-sub">Lomé — Togo</div>
                 </div>
               </div>
@@ -101,6 +107,13 @@ export default function IDCardToolModal({
                 <div class="id-row">ID: <strong>${idNumber}</strong></div>
                 <div class="meta-row">Class/Dept: <strong>${classOrDept}</strong></div>
                 <div class="meta-row">${extraInfo}</div>
+                ${isStudent ? `
+                  <div class="biodata-grid" style="display: flex; gap: 8px; font-size: 7px; color: #94a3b8; margin-top: 2px;">
+                    <span>DOB: <strong>${studentDob}</strong></span>
+                    <span>Sex: <strong>${studentGender}</strong></span>
+                    <span>Nat: <strong>${studentNationality}</strong></span>
+                  </div>
+                ` : ''}
               </div>
             </div>
             <div class="footer">
@@ -113,7 +126,7 @@ export default function IDCardToolModal({
         return `
           <div class="card portrait-card front-card">
             <div class="header" style="text-align: center;">
-              <div class="school-title" style="font-size: 11px; margin-bottom: 2px;">JIPAS EDUCATIONAL COMPLEX</div>
+              <div class="school-title" style="font-size: 11px; margin-bottom: 2px;">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
               <div class="school-sub" style="font-size: 7px;">Official Identity Card</div>
             </div>
             <div class="portrait-body">
@@ -124,6 +137,12 @@ export default function IDCardToolModal({
                 <div>ID: <strong>${idNumber}</strong></div>
                 <div>Class/Dept: <strong>${classOrDept}</strong></div>
                 <div>${extraInfo}</div>
+                ${isStudent ? `
+                  <div style="font-size: 6.5px; color: #94a3b8; margin-top: 3px; line-height: 1.2;">
+                    DOB: <strong>${studentDob}</strong> | Sex: <strong>${studentGender}</strong><br/>
+                    Nat: <strong>${studentNationality}</strong>
+                  </div>
+                ` : ''}
               </div>
             </div>
             <div class="footer">
@@ -158,7 +177,7 @@ export default function IDCardToolModal({
           <div class="card portrait-card back-card">
             <div class="back-title" style="margin-top: 10px;">IMPORTANT INFO</div>
             <div class="back-text" style="font-size: 7px; line-height: 1.4; margin: 10px 0;">
-              This card is the property of JIPAS Educational Complex.<br/>
+              This card is the property of JOY INTERNATIONAL SCHOOL (JIPAS).<br/>
               If found, please return to the school administration office.<br/><br/>
               <strong>Emergency Contacts:</strong><br/>
               Phone: ${emergencyPhone}<br/>
@@ -446,7 +465,7 @@ export default function IDCardToolModal({
                   <div className="flex items-center gap-2">
                     <JIPASLogo size="xs" />
                     <div className="text-left">
-                      <h4 className="text-[10px] font-black tracking-tight text-white leading-none">JIPAS EDUCATIONAL COMPLEX</h4>
+                      <h4 className="text-[10px] font-black tracking-tight text-white leading-none">JOY INTERNATIONAL SCHOOL (JIPAS)</h4>
                       <p className="text-[7px] text-slate-400 mt-0.5 leading-none">Lomé — Togo</p>
                     </div>
                   </div>
@@ -471,6 +490,13 @@ export default function IDCardToolModal({
                     <p className={`text-[10px] font-mono font-bold leading-none ${theme.textAccent}`}>{idNumber}</p>
                     <p className="text-[9px] text-slate-300">Class/Dept: <strong>{classOrDept}</strong></p>
                     <p className="text-[9px] text-slate-400">{extraInfo}</p>
+                    {isStudent && (
+                      <div className="pt-1 flex flex-wrap gap-1 text-[7.5px] text-slate-300 font-medium">
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">DOB: {studentDob}</span>
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Sex: {studentGender}</span>
+                        <span className="bg-slate-800/80 px-1 py-0.5 rounded border border-white/10">Nat: {studentNationality}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

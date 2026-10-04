@@ -13,6 +13,7 @@ import TeacherAttendanceReport from './TeacherAttendanceReport';
 import TeacherAttendanceStats from './TeacherAttendanceStats';
 import BulkTeacherUploadModal from './BulkTeacherUploadModal';
 import IDCardToolModal from './IDCardToolModal';
+import StaffLetterGeneratorModal, { StaffLetterType } from '../common/StaffLetterGeneratorModal';
 import { 
   saveTeacher, 
   deleteTeacher, 
@@ -137,6 +138,8 @@ export default function TeacherManager({
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [deletingTeacher, setDeletingTeacher] = useState<Teacher | null>(null);
   const [selectedIDCardRecord, setSelectedIDCardRecord] = useState<any | null>(null);
+  const [letterModalStaff, setLetterModalStaff] = useState<Teacher | null>(null);
+  const [letterModalType, setLetterModalType] = useState<StaffLetterType>('employment');
 
   const [showAddAssignModal, setShowAddAssignModal] = useState(false);
   const [editingAssign, setEditingAssign] = useState<TeacherAssignmentItem | null>(null);
@@ -193,6 +196,8 @@ export default function TeacherManager({
   const [formSubjects, setFormSubjects] = useState('Mathematics, English Language');
   const [formShsStream, setFormShsStream] = useState('General Science');
   const [formCampus, setFormCampus] = useState<'JIPAS 1' | 'JIPAS 2'>('JIPAS 1');
+  const [formNationality, setFormNationality] = useState('Ghanaian');
+  const [formProbationStatus, setFormProbationStatus] = useState<'Probation' | 'Confirmed' | 'Contract'>('Probation');
   const [formPhoto, setFormPhoto] = useState<string>('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80');
 
   const handleToggleFormSubject = (subj: string) => {
@@ -238,6 +243,7 @@ export default function TeacherManager({
     setFormClasses(t.classesTaught?.join(', ') || 'Basic 1');
     setFormSubjects(t.subjectsTaught?.join(', ') || 'Mathematics');
     setFormCampus(t.campus || 'JIPAS 1');
+    setFormNationality(t.nationality || 'Ghanaian');
     setFormPhoto(t.photo || (t.gender === 'Female' 
       ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80' 
       : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80'));
@@ -269,6 +275,7 @@ export default function TeacherManager({
         ntcLicenseNo: formNtcLicense,
         emergencyContact: formEmergencyContact,
         bloodGroup: formBloodGroup,
+        nationality: formNationality || 'Ghanaian',
         dateOfEmployment: formDateOfEmployment || editingTeacher.dateOfEmployment || editingTeacher.dateJoined || new Date().toISOString().split('T')[0],
         dateJoined: formDateOfEmployment || editingTeacher.dateJoined || new Date().toISOString().split('T')[0],
         classesTaught: classArray,
@@ -326,6 +333,7 @@ export default function TeacherManager({
         ntcLicenseNo: formNtcLicense || 'NTC/TR/2026/001',
         emergencyContact: formEmergencyContact || '0240000000',
         bloodGroup: formBloodGroup || 'O+',
+        nationality: formNationality || 'Ghanaian',
         dateOfEmployment: formDateOfEmployment || new Date().toISOString().split('T')[0],
         dateJoined: formDateOfEmployment || new Date().toISOString().split('T')[0],
         classesTaught: classArray,
@@ -847,6 +855,26 @@ export default function TeacherManager({
                                 >
                                   <CreditCard className="w-3.5 h-3.5" />
                                 </button>
+                                <button
+                                  onClick={() => {
+                                    setLetterModalStaff(teacher);
+                                    setLetterModalType('employment');
+                                  }}
+                                  title="Generate Official Employment Letter"
+                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setLetterModalStaff(teacher);
+                                    setLetterModalType('confirmation');
+                                  }}
+                                  title="Generate Acceptance Letter After Probation"
+                                  className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                                >
+                                  <Award className="w-3.5 h-3.5" />
+                                </button>
                                 {!isReadOnly && (
                                   <>
                                     <button
@@ -941,6 +969,26 @@ export default function TeacherManager({
                       className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <CreditCard className="w-3.5 h-3.5" /> ID Card
+                    </button>
+                    <button
+                      onClick={() => {
+                        setLetterModalStaff(teacher);
+                        setLetterModalType('employment');
+                      }}
+                      title="Generate Employment Letter"
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Offer Letter
+                    </button>
+                    <button
+                      onClick={() => {
+                        setLetterModalStaff(teacher);
+                        setLetterModalType('confirmation');
+                      }}
+                      title="Generate Acceptance Letter After Probation"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Award className="w-3.5 h-3.5" /> Post-Probation
                     </button>
                     {!isReadOnly && (
                       <>
@@ -1716,6 +1764,39 @@ export default function TeacherManager({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Nationality <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formNationality}
+                    onChange={(e) => setFormNationality(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-indigo-300 rounded-xl bg-white font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="Ghanaian">Ghanaian</option>
+                    <option value="Togolese">Togolese</option>
+                    <option value="Nigerian">Nigerian</option>
+                    <option value="Beninese">Beninese</option>
+                    <option value="Ivorian">Ivorian</option>
+                    <option value="Burkinabe">Burkinabe</option>
+                    <option value="Other / International">Other / International</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Probation / Status</label>
+                  <select
+                    value={formProbationStatus || 'Probation'}
+                    onChange={(e) => setFormProbationStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold"
+                  >
+                    <option value="Probation">On Probation (3-6 Months)</option>
+                    <option value="Confirmed">Confirmed / Permanent Staff</option>
+                    <option value="Contract">Contract Faculty</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block font-bold text-slate-700 mb-1">Classes Taught (comma separated)</label>
                   <input
                     type="text"
@@ -2209,6 +2290,16 @@ export default function TeacherManager({
         onClose={() => setSelectedIDCardRecord(null)}
         record={selectedIDCardRecord}
       />
+
+      {/* Staff Letter Generator Modal (Employment & Post-Probation Acceptance) */}
+      {letterModalStaff && (
+        <StaffLetterGeneratorModal
+          isOpen={!!letterModalStaff}
+          onClose={() => setLetterModalStaff(null)}
+          staff={letterModalStaff}
+          initialType={letterModalType}
+        />
+      )}
     </div>
   );
 }

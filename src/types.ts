@@ -297,6 +297,9 @@ export interface Student {
   emergencyContactPhone?: string;
   healthConditions?: string;
   bloodGroup?: string;
+  nationality?: string;
+  religion?: string;
+  hometown?: string;
   previousSchool?: string;
   documents?: StudentDocument[];
   transfers?: StudentTransferRecord[];
@@ -367,6 +370,10 @@ export interface Teacher {
   ntcLicenseNo?: string;
   emergencyContact?: string;
   bloodGroup?: string;
+  nationality?: string;
+  probationStatus?: 'Probation' | 'Confirmed' | 'Contract';
+  probationEndDate?: string;
+  monthlySalary?: number;
   dateJoined?: string;
   dateOfEmployment?: string;
   photo?: string;
@@ -1961,6 +1968,41 @@ export interface ConvergenceSimulationResult {
   clockSkewCompensationCount: number;
   violationsCount: number;
   details?: string;
+}
+
+// =========================================================================
+// NEXT TERM FEES BILLING & DEPARTMENT/CLASS TARIFF STRUCTURES
+// =========================================================================
+
+export interface NextTermFeeItem {
+  id: string;
+  name: string;
+  amount: number;
+  category?: 'tuition' | 'pta' | 'ict' | 'exam' | 'health' | 'maintenance' | 'transit' | 'boarding' | 'custom';
+  isOptional?: boolean;
+  defaultSelected?: boolean;
+}
+
+export interface NextTermBillSetup {
+  id: string;
+  targetType: 'class' | 'department';
+  targetName: string; // e.g. "Primary 4" or "Primary School"
+  academicYear: string; // e.g. "2026-2027"
+  term: string; // e.g. "Second Term"
+  resumptionDate?: string;
+  dueDate?: string;
+  items: NextTermFeeItem[];
+  totalAmount: number;
+  notes?: string;
+  bankDetails?: {
+    bankName: string;
+    accountNo: string;
+    accountName: string;
+    branch: string;
+    momoCode?: string;
+  };
+  updatedAt: string;
+  updatedBy?: string;
 }
 
 

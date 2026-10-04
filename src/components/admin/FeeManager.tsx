@@ -3,7 +3,7 @@ import {
   CreditCard, Plus, Pencil, Trash2, DollarSign, Receipt, Printer, 
   Download, Search, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, 
   FileText, ShieldCheck, Filter, TrendingUp, Wallet, Check, Send,
-  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw, QrCode
+  Users, Building2, BookOpen, User, X, AlertCircle, RefreshCw, QrCode, Layers
 } from 'lucide-react';
 import FeeCorrectionModal from '../common/FeeCorrectionModal';
 import PaymentCorrectionModal from '../common/PaymentCorrectionModal';
@@ -22,6 +22,8 @@ import ReceiptQRVerificationModal from '../common/ReceiptQRVerificationModal';
 import FeesSettingsManager from '../common/FeesSettingsManager';
 import OverdueFeeAlertsManager from './OverdueFeeAlertsManager';
 import BulkFeeEntryTool from '../common/BulkFeeEntryTool';
+import AuditPaymentLogs from '../accountant/AuditPaymentLogs';
+import { generateNextReceiptSerialNumber } from '../../services/receiptSerialService';
 import { INITIAL_FEE_OPTIONS_DATA } from '../../data/feeDescriptions';
 import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses, getStoredSettings } from '../../services/storageService';
 import { subscribeRefunds, saveRefund, deleteRefund, savePayment, saveBill } from '../../services/dbService';
@@ -112,6 +114,7 @@ export default function FeeManager({
   const [isProcessingRefund, setIsProcessingRefund] = useState(false);
   const [refundToast, setRefundToast] = useState<string | null>(null);
   const [selectedBillingClass, setSelectedBillingClass] = useState<string>('All');
+  const [auditSubTab, setAuditSubTab] = useState<'payment_logs' | 'tamper_log'>('payment_logs');
 
   React.useEffect(() => {
     if (initialBills) setBillsList(initialBills);
@@ -489,7 +492,7 @@ export default function FeeManager({
     if (!pendingPayment) return;
     const { student, amount, method, paidAs, academicYear, term } = pendingPayment;
 
-    const receiptNo = `REC/2026/${Math.floor(100000 + Math.random() * 900000)}`;
+    const receiptNo = generateNextReceiptSerialNumber({ academicYear });
     const newPayment: PaymentRecord = {
       id: `p-${Date.now()}`,
       receiptNo,
@@ -734,6 +737,12 @@ export default function FeeManager({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => onNavigate && onNavigate('fee_next_term_bills')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Layers className="w-4 h-4" /> Next Term Fees Bill (By Class/Dept)
+                </button>
                 <button
                   onClick={handleGenerateBatchBills}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -1718,47 +1727,103 @@ export default function FeeManager({
 
       {/* 8. AUDIT ACTIVITY MODULE */}
       {(activeModule === 'fee_audit_activity' || activeModule === 'fee_audit' || activeModule === 'audit_activity' || activeModule === 'audit') && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
-          <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                Financial Audit Trail & Tamper Log
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Immutable chronological log of all cash flows, billing adjustments, and bursar ledger operations.
-              </p>
+        <div className="space-y-6">
+          {/* Sub-tab Switcher between Forensic Payment Audit & Immutable Tamper Log */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAuditSubTab('payment_logs')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                  auditSubTab === 'payment_logs'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-950/20'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Audit Payment Logs & Duplicate Rectification</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  auditSubTab === 'payment_logs' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Batch Core Shield
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAuditSubTab('tamper_log')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                  auditSubTab === 'tamper_log'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-950/20'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>System Tamper Log & Audit Trail</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  auditSubTab === 'tamper_log' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {auditLogs.length} events
+                </span>
+              </button>
+            </div>
+            
+            <div className="text-[11px] text-slate-500 font-bold px-3 py-1 bg-slate-50 rounded-xl border border-slate-100">
+              Forensic Override Shield • Admin Clearance
             </div>
           </div>
 
-          <div className="border border-slate-200 rounded-xl overflow-x-auto">
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="bg-slate-900 text-white uppercase text-[10px] font-bold">
-                <tr>
-                  <th className="p-3">#</th>
-                  <th className="p-3">Timestamp</th>
-                  <th className="p-3">Action Event</th>
-                  <th className="p-3">Operator</th>
-                  <th className="p-3">Target Student / Entity</th>
-                  <th className="p-3 text-right">Value (CFA)</th>
-                  <th className="p-3">Log Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {auditLogs.map((log, idx) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
-                    <td className="p-3 font-mono text-slate-600">{log.timestamp}</td>
-                    <td className="p-3 font-bold text-slate-900">{log.action}</td>
-                    <td className="p-3 font-semibold text-indigo-700">{log.user}</td>
-                    <td className="p-3 font-mono text-slate-700">{log.studentAdmNo}</td>
-                    <td className="p-3 text-right font-mono font-bold text-slate-900">{(log.amount ?? 0).toFixed(2)} CFA</td>
-                    <td className="p-3 text-slate-600 max-w-sm truncate">{log.details}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {auditSubTab === 'payment_logs' ? (
+            <AuditPaymentLogs
+              payments={paymentsList}
+              bills={billsList}
+              students={students}
+              onUpdateBills={onUpdateBills}
+            />
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                    Financial Audit Trail & Tamper Log
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Immutable chronological log of all cash flows, billing adjustments, and bursar ledger operations.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-slate-900 text-white uppercase text-[10px] font-bold">
+                    <tr>
+                      <th className="p-3">#</th>
+                      <th className="p-3">Timestamp</th>
+                      <th className="p-3">Action Event</th>
+                      <th className="p-3">Operator</th>
+                      <th className="p-3">Target Student / Entity</th>
+                      <th className="p-3 text-right">Value (CFA)</th>
+                      <th className="p-3">Log Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {auditLogs.map((log, idx) => (
+                      <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
+                        <td className="p-3 font-mono text-slate-600">{log.timestamp}</td>
+                        <td className="p-3 font-bold text-slate-900">{log.action}</td>
+                        <td className="p-3 font-semibold text-indigo-700">{log.user}</td>
+                        <td className="p-3 font-mono text-slate-700">{log.studentAdmNo}</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-900">{(log.amount ?? 0).toFixed(2)} CFA</td>
+                        <td className="p-3 text-slate-600 max-w-sm truncate">{log.details}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1790,7 +1855,7 @@ export default function FeeManager({
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 space-y-4">
             <div className="text-center border-b-2 border-dashed border-slate-300 pb-4 flex flex-col items-center">
               <JIPASLogo size="sm" className="mb-2" />
-              <h3 className="font-black text-lg text-slate-900 leading-tight">JIPAS</h3>
+              <h3 className="font-black text-lg text-slate-900 leading-tight">JOY INTERNATIONAL SCHOOL (JIPAS)</h3>
               <p className="text-[10px] text-slate-500">Official Bursary & School Fees Receipt • Est. 1990</p>
               <div className="font-mono font-bold text-xs text-indigo-700 mt-1">Receipt No: {activeReceipt.receiptNo}</div>
             </div>

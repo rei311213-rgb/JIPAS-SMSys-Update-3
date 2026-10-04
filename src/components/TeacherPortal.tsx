@@ -823,6 +823,8 @@ export default function TeacherPortal({
   const [enrollElectives, setEnrollElectives] = useState<string[]>([]);
   const [enrollHouse, setEnrollHouse] = useState('Blue');
   const [enrollCampus, setEnrollCampus] = useState<'JIPAS 1' | 'JIPAS 2'>(teacher.campus || 'JIPAS 1');
+  const [enrollNationality, setEnrollNationality] = useState('Ghanaian');
+  const [enrollBloodGroup, setEnrollBloodGroup] = useState('O+');
   const [enrollParentName, setEnrollParentName] = useState('');
   const [enrollParentPhone, setEnrollParentPhone] = useState('');
   const [enrollPhoto, setEnrollPhoto] = useState('');
@@ -1024,6 +1026,8 @@ export default function TeacherPortal({
         rollNo: String(students.filter(s => s.className === resolvedClassName).length + 1),
         house: enrollHouse,
         campus: enrollCampus,
+        nationality: enrollNationality || 'Ghanaian',
+        bloodGroup: enrollBloodGroup || 'O+',
         parentName: enrollParentName.trim() || 'Parent',
         parentPhone: enrollParentPhone.trim(),
         academicYear: '2025-2026',
@@ -3953,20 +3957,23 @@ export default function TeacherPortal({
                           </div>
                         )}
 
-                        {/* School House */}
-                        <div>
+                        {/* Nationality */}
+                        <div className="col-span-1 md:col-span-2">
                           <label className="block text-xs font-black text-slate-700 uppercase mb-1">
-                            School House
+                            Nationality <span className="text-rose-500">*</span>
                           </label>
                           <select
-                            value={enrollHouse}
-                            onChange={(e) => setEnrollHouse(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-semibold text-xs"
+                            value={enrollNationality}
+                            onChange={(e) => setEnrollNationality(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-indigo-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 text-xs"
                           >
-                            <option value="Blue">Blue House (Aggrey)</option>
-                            <option value="Green">Green House (Guggisberg)</option>
-                            <option value="Yellow">Yellow House (Nkrumah)</option>
-                            <option value="Red">Red House (Casely Hayford)</option>
+                            <option value="Ghanaian">Ghanaian</option>
+                            <option value="Togolese">Togolese</option>
+                            <option value="Nigerian">Nigerian</option>
+                            <option value="Beninese">Beninese</option>
+                            <option value="Ivorian">Ivorian</option>
+                            <option value="Burkinabe">Burkinabe</option>
+                            <option value="Other / International">Other / International</option>
                           </select>
                         </div>
                       </div>

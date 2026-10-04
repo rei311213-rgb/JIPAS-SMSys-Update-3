@@ -1057,7 +1057,7 @@ export default function TerminalReportManager({
                 REPUBLIC OF GHANA • GHANA EDUCATION SERVICE (GES)
               </div>
               <JIPASLogo size="md" className="mb-2" />
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">JIPAS</h2>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">JOY INTERNATIONAL SCHOOL (JIPAS)</h2>
               <p className="text-[11px] text-slate-500">
                 {SCHOOL_CONTACT.poBox} • {SCHOOL_CONTACT.address} • Tel: {SCHOOL_CONTACT.tel} • {SCHOOL_CONTACT.email}
               </p>
@@ -1396,7 +1396,7 @@ export default function TerminalReportManager({
                   <div className="text-center border-b border-slate-400 pb-3 flex flex-col items-center">
                     <div className="text-[10px] font-black uppercase tracking-widest text-blue-700 mb-1">Republic of the region • GES Accredited</div>
                     <JIPASLogo size="sm" className="mb-2" />
-                    <h3 className="text-xl font-black text-slate-900">JIPAS</h3>
+                    <h3 className="text-xl font-black text-slate-900">JOY INTERNATIONAL SCHOOL (JIPAS)</h3>
                     <div className="text-xs font-bold text-slate-600">Continuous Assessment & Terminal Report Card • {selectedAcademicYear} ({selectedTerm})</div>
                   </div>
 

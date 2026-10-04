@@ -25,7 +25,9 @@ export type AccountantTabType =
   | 'dept-financial-summary' 
   | 'financial-reconciliation'
   | 'audit-trail'
-  | 'fee-audit-report';
+  | 'fee-audit-report'
+  | 'next-term-bills'
+  | 'generate-receipt';
 
 interface AccountantSidebarProps {
   activeTab: AccountantTabType;
@@ -113,6 +115,22 @@ export default function AccountantSidebar({
       icon: DollarSign,
       badge: actionRequiredCount > 0 ? `${actionRequiredCount} Action` : (billsCount > 0 ? billsCount : undefined),
       badgeColor: actionRequiredCount > 0 ? 'bg-rose-600 text-white font-black animate-pulse' : 'bg-blue-100 text-blue-800'
+    },
+    {
+      id: 'next-term-bills',
+      label: 'Next Term Fees Bill',
+      sublabel: 'Setup tariffs & individual bills',
+      icon: Layers,
+      badge: 'Next Term',
+      badgeColor: 'bg-emerald-500 text-white'
+    },
+    {
+      id: 'generate-receipt',
+      label: 'Print Receipts Desk',
+      sublabel: 'Multi-receipts & Print Queue',
+      icon: FileText,
+      badge: 'Batch',
+      badgeColor: 'bg-indigo-500 text-white'
     },
     {
       id: 'new-payment',

@@ -38,6 +38,8 @@ import UserPortalReviewManager from './admin/UserPortalReviewManager';
 import DepartmentalFinancialSummary from './common/DepartmentalFinancialSummary';
 import FinancialAuditTrail from './common/FinancialAuditTrail';
 import ExpenseManager from './common/ExpenseManager';
+import ReceiptGenerationDashboard from './common/ReceiptGenerationDashboard';
+import NextTermBillingManager from './common/NextTermBillingManager';
 import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
@@ -346,6 +348,8 @@ const ADMIN_NAV_GROUPS = [
       { id: 'fee_payment_stats', label: 'Payment Statistics', icon: BarChart3 },
       { id: 'fee_income_expenses', label: 'Income & Expenses', icon: Wallet },
       { id: 'fee_overdue_alerts', label: 'Overdue Fee Alerts', icon: AlertCircle },
+      { id: 'fee_next_term_bills', label: 'Next Term Fees Bill', icon: Layers },
+      { id: 'fee_generate_receipt', label: 'Generate Receipt', icon: FileText },
       { id: 'fee_audit_activity', label: 'Audit Activity', icon: Shield },
     ]
   },
@@ -2116,7 +2120,7 @@ export default function AdminPortal({
         )}
 
         {/* 7. FEE MANAGEMENT MODULES */}
-        {(activeModule.startsWith('fee_') || activeModule === 'fees' || activeModule === 'bills' || activeModule === 'payments' || activeModule === 'income_expenses' || activeModule === 'audit_activity' || activeModule === 'payment_settings' || activeModule === 'payment_channels' || activeModule === 'payment_proofs' || activeModule === 'fee_bulk_entry') && (
+        {(activeModule.startsWith('fee_') || activeModule === 'fees' || activeModule === 'bills' || activeModule === 'payments' || activeModule === 'income_expenses' || activeModule === 'audit_activity' || activeModule === 'payment_settings' || activeModule === 'payment_channels' || activeModule === 'payment_proofs' || activeModule === 'fee_bulk_entry') && activeModule !== 'fee_generate_receipt' && activeModule !== 'fee_next_term_bills' && (
           <FeeManager
             activeModule={activeModule}
             students={students}
@@ -2128,6 +2132,23 @@ export default function AdminPortal({
             onAddNotification={onAddNotification}
             preselectedStudentId={selectedStudentForFees?.id}
             currentUser={currentUser}
+          />
+        )}
+
+        {/* 7.1 BATCH RECEIPT GENERATION & MULTI-PRINT (PHASE 54) */}
+        {activeModule === 'fee_generate_receipt' && (
+          <ReceiptGenerationDashboard
+            payments={payments}
+            bills={bills}
+            students={students}
+          />
+        )}
+
+        {/* 7.2 NEXT TERM FEES BILL & INVOICING ENGINE */}
+        {activeModule === 'fee_next_term_bills' && (
+          <NextTermBillingManager
+            userRole="admin"
+            onNavigateToReceipts={() => handleNavigate('fee_generate_receipt')}
           />
         )}
 

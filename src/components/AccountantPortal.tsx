@@ -28,6 +28,9 @@ import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
 import ReceiptQRVerificationModal from './common/ReceiptQRVerificationModal';
 import BulkFeeEntryTool from './common/BulkFeeEntryTool';
+import ReceiptGenerationDashboard from './common/ReceiptGenerationDashboard';
+import NextTermBillingManager from './common/NextTermBillingManager';
+import { generateNextReceiptSerialNumber } from '../services/receiptSerialService';
 import FeeCorrectionModal from './common/FeeCorrectionModal';
 import PaymentCorrectionModal from './common/PaymentCorrectionModal';
 import { printContent } from '../utils/printUtils';
@@ -91,7 +94,9 @@ export const VALID_ACCOUNTANT_TABS = new Set<string>([
   'financial-reconciliation',
   'audit-trail',
   'fee-audit-report',
-  'audit-payment-logs'
+  'audit-payment-logs',
+  'generate-receipt',
+  'next-term-bills'
 ]);
 
 export type AccountantTab = 
@@ -114,7 +119,9 @@ export type AccountantTab =
   | 'financial-reconciliation'
   | 'audit-trail'
   | 'fee-audit-report'
-  | 'audit-payment-logs';
+  | 'audit-payment-logs'
+  | 'generate-receipt'
+  | 'next-term-bills';
 
 export const getInitialAccountantTab = (): AccountantTab => {
   if (typeof window !== 'undefined') {
@@ -274,7 +281,7 @@ export default function AccountantPortal({
           <div class="print-a4-page">
             <div class="header">
               <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-              <div class="title">JIPAS EDUCATIONAL COMPLEX</div>
+              <div class="title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
               <div class="subtitle">OFFICIAL PARENT FEE INVOICE & PAYMENT RECEIPT</div>
               <div class="address">01 BP. 2364 • Lomé — Togo &bull; Official Bursar & Accounts Division &bull; Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48</div>
             </div>
@@ -339,14 +346,14 @@ export default function AccountantPortal({
                 </div>
               </div>
               <div class="stamp">
-                JIPAS EDUCATIONAL COMPLEX<br/>
+                JOY INTERNATIONAL SCHOOL (JIPAS)<br/>
                 <span style="color: #0284c7; font-size: 8px;">OFFICIAL BURSAR SEAL & VERIFICATION</span><br/>
                 DATE: ${receipt.date}
               </div>
             </div>
 
             <div class="notice">
-              Notice: This document serves as an official parent invoice and fee payment clearance voucher issued by JIPAS Educational Complex. Please retain this copy for examination admittance and student records reconciliation.
+              Notice: This document serves as an official parent invoice and fee payment clearance voucher issued by JOY INTERNATIONAL SCHOOL (JIPAS). Please retain this copy for examination admittance and student records reconciliation.
             </div>
           </div>
 
@@ -665,7 +672,7 @@ export default function AccountantPortal({
 
     const newPayment: PaymentRecord = {
       id: `pay-${Date.now()}`,
-      receiptNo: `RCT-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`,
+      receiptNo: generateNextReceiptSerialNumber({ academicYear: getStoredSettings().activeAcademicYear }),
       date: dateFormatted,
       studentId: selectedStudent.id,
       studentName: selectedStudent.fullName,
@@ -1441,6 +1448,84 @@ export default function AccountantPortal({
                   activeTab === 'audit-payment-logs' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
                 }`}>
                   Spot and delete erroneously tripled/duplicated payments
+                </p>
+              </div>
+            </button>
+
+            {/* Menu 5C: Generate Receipt */}
+            <button
+              onClick={() => setActiveTab('generate-receipt')}
+              className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
+                activeTab === 'generate-receipt'
+                  ? 'bg-indigo-700 text-white border-indigo-700 shadow-md scale-[1.02]'
+                  : 'bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-700 hover:to-indigo-800 border-indigo-100 hover:border-indigo-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
+                  activeTab === 'generate-receipt'
+                    ? 'bg-white text-indigo-700'
+                    : 'bg-indigo-700 text-white group-hover:bg-white group-hover:text-indigo-700'
+                }`}>
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
+                  activeTab === 'generate-receipt'
+                    ? 'bg-indigo-950 text-indigo-100'
+                    : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
+                }`}>
+                  Receipts
+                </span>
+              </div>
+              <div>
+                <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
+                  activeTab === 'generate-receipt' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                }`}>
+                  Generate Receipt
+                </h4>
+                <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
+                  activeTab === 'generate-receipt' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                }`}>
+                  Generate individual or batch A6 receipts cleanly
+                </p>
+              </div>
+            </button>
+
+            {/* Menu 5D: Next Term Fees Bill */}
+            <button
+              onClick={() => setActiveTab('next-term-bills')}
+              className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
+                activeTab === 'next-term-bills'
+                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-md scale-[1.02]'
+                  : 'bg-gradient-to-br from-emerald-50 to-slate-50 hover:from-emerald-700 hover:to-emerald-800 border-emerald-100 hover:border-emerald-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
+                  activeTab === 'next-term-bills'
+                    ? 'bg-white text-emerald-700'
+                    : 'bg-emerald-700 text-white group-hover:bg-white group-hover:text-emerald-700'
+                }`}>
+                  <Layers className="w-5 h-5" />
+                </div>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
+                  activeTab === 'next-term-bills'
+                    ? 'bg-emerald-950 text-emerald-100'
+                    : 'bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white'
+                }`}>
+                  Invoicing
+                </span>
+              </div>
+              <div>
+                <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
+                  activeTab === 'next-term-bills' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                }`}>
+                  Next Term Fees Bill
+                </h4>
+                <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
+                  activeTab === 'next-term-bills' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
+                }`}>
+                  Setup bills by class/dept, generate individual bills & print receipts
                 </p>
               </div>
             </button>
@@ -2822,7 +2907,7 @@ export default function AccountantPortal({
                         <div class="print-a6-receipt-item">
                           <div class="header">
                             <img src="${absoluteLogoSrc}" class="logo" />
-                            <div class="title">JIPAS EDUCATIONAL COMPLEX</div>
+                            <div class="title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
                             <div class="subtitle">Official Terminal Fee Invoice</div>
                           </div>
                           <div class="box">
@@ -3876,6 +3961,23 @@ export default function AccountantPortal({
         />
       )}
 
+      {/* 9C. BATCH RECEIPT GENERATION & MULTI-PRINT (PHASE 54) */}
+      {activeTab === 'generate-receipt' && (
+        <ReceiptGenerationDashboard
+          payments={payments}
+          bills={bills}
+          students={students}
+        />
+      )}
+
+      {/* 9D. NEXT TERM FEES BILL & MULTI-RECEIPT GENERATOR */}
+      {activeTab === 'next-term-bills' && (
+        <NextTermBillingManager
+          userRole="accountant"
+          onNavigateToReceipts={() => setActiveTab('generate-receipt')}
+        />
+      )}
+
       {/* Student Financial Ledger & Balance Review Modal */}
       {reviewingStudent && (() => {
         const studentBill = bills.find(b => b.studentId === reviewingStudent.id || b.admissionNo === reviewingStudent.admissionNo);
@@ -4105,7 +4207,7 @@ export default function AccountantPortal({
               <div className="text-center border-b-2 border-slate-900 pb-4 flex flex-col items-center">
                 <JIPASLogo size="md" className="mb-2" />
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-wide">
-                  JIPAS EDUCATIONAL COMPLEX
+                  JOY INTERNATIONAL SCHOOL (JIPAS)
                 </h2>
                 <p className="text-[11px] font-extrabold text-sky-600 uppercase tracking-wider mt-0.5">
                   "Education is Wealth" • Official Accounts & Bursary Division
@@ -4243,7 +4345,7 @@ export default function AccountantPortal({
                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center flex flex-col sm:flex-row items-center justify-around gap-3">
                   <div className="flex flex-col items-center sm:items-start">
                     <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider">
-                      JIPAS EDUCATIONAL COMPLEX
+                      JOY INTERNATIONAL SCHOOL (JIPAS)
                     </span>
                     <span className="text-[9px] font-extrabold text-sky-600 uppercase tracking-widest mt-0.5">
                       Official Bursary Seal & Verified

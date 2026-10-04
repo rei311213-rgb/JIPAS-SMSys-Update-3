@@ -147,7 +147,7 @@ export const BankDepositManager: React.FC<BankDepositManagerProps> = ({
         </head>
         <body>
           <div class="header">
-            <h1 class="school">JIPAS Educational Complex</h1>
+            <h1 class="school">JOY INTERNATIONAL SCHOOL (JIPAS)</h1>
             <p class="sub">GES Accredited Institution • Bank Deposit Verification Voucher</p>
             <div class="badge">OFFICIAL BANK DEPOSIT RECEIPT LOG</div>
           </div>

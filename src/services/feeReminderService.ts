@@ -63,7 +63,7 @@ export function identifyStudentsForFeeReminder(
       preformattedMessage = `Dear ${parentName}, thank you for your recent tuition payment of ${formatCurrency(paid)} towards ${studentName}'s (${className}, ID: ${admissionNo}) fees. A remaining balance of ${formatCurrency(balance)} is outstanding out of total ${formatCurrency(total)} for ${year} (${term}). Kindly arrange settlement by ${dueDate} to complete clearance. - JIPAS Bursary & Accounts Office (Tel: +233 24 123 4567)`;
     } else {
       notificationTitle = `Outstanding Fee Reminder: ${studentName} (${className})`;
-      preformattedMessage = `OFFICIAL FEE NOTICE: Dear ${parentName}, this is an urgent reminder from JIPAS Educational Complex that ${studentName} (${className}, ID: ${admissionNo}) has an unpaid tuition balance of ${formatCurrency(balance)} for ${year} (${term}). Full fees payable: ${formatCurrency(total)}. Please arrange settlement on or before ${dueDate} at the school bursary. Contact JIPAS Accounts Office for inquiries.`;
+      preformattedMessage = `OFFICIAL FEE NOTICE: Dear ${parentName}, this is an urgent reminder from JOY INTERNATIONAL SCHOOL (JIPAS) that ${studentName} (${className}, ID: ${admissionNo}) has an unpaid tuition balance of ${formatCurrency(balance)} for ${year} (${term}). Full fees payable: ${formatCurrency(total)}. Please arrange settlement on or before ${dueDate} at the school bursary. Contact JIPAS Accounts Office for inquiries.`;
     }
 
     overdueList.push({

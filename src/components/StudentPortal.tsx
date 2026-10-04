@@ -395,7 +395,7 @@ export default function StudentPortal({
         <body>
           <div class="header">
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-            <div class="title">JIPAS EDUCATIONAL COMPLEX</div>
+            <div class="title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
             <div class="subtitle">OFFICIAL FEE PAYMENT RECEIPT</div>
             <div style="font-size: 10px; color: #64748b;">01 BP. 2364 • Lomé — Togo &bull; Official Student Bursary Receipt</div>
           </div>
@@ -485,7 +485,7 @@ export default function StudentPortal({
         <body>
           <div class="header">
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-            <div class="title">JIPAS EDUCATIONAL COMPLEX</div>
+            <div class="title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
             <div class="subtitle">OFFICIAL TERMINAL ACADEMIC PERFORMANCE REPORT</div>
             <div style="font-size: 11px; color: #64748b; margin-top: 3px;">01 BP. 2364 • Lomé — Togo &bull; Academic Assessment Bureau</div>
           </div>
@@ -566,38 +566,46 @@ export default function StudentPortal({
           <title>Official Student ID Card - ${student.fullName}</title>
           <style>
             @page { size: 85.6mm 54mm; margin: 0; }
-            body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 12px; background: #0f172a; color: #fff; width: 85.6mm; height: 54mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+            body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 10px 12px; background: #0f172a; color: #fff; width: 85.6mm; height: 54mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
             .header-flex { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 2px; }
             .school-logo { width: 14px; height: 14px; object-fit: contain; }
-            .title { font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; }
-            .sub { font-size: 7px; text-align: center; color: #cbd5e1; text-transform: uppercase; }
-            .content { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
-            .avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #38bdf8; background: #1e293b; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; shrink: 0; }
-            .info { font-size: 8px; line-height: 1.3; }
-            .info strong { color: #f8fafc; font-size: 9px; display: block; }
-            .footer { border-top: 1px solid #334155; padding-top: 4px; display: flex; justify-content: space-between; font-size: 7px; color: #94a3b8; }
+            .title { font-size: 10px; font-weight: 900; text-align: center; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; }
+            .sub { font-size: 6.5px; text-align: center; color: #cbd5e1; text-transform: uppercase; margin-bottom: 3px; }
+            .content { display: flex; gap: 8px; align-items: center; }
+            .avatar { width: 44px; height: 44px; border-radius: 8px; border: 1.5px solid #38bdf8; background: #1e293b; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; shrink: 0; overflow: hidden; }
+            .info { font-size: 7.5px; line-height: 1.25; flex: 1; }
+            .info strong { color: #f8fafc; font-size: 8.5px; display: block; margin-bottom: 1px; }
+            .biodata-grid { display: flex; flex-wrap: wrap; gap: 4px; font-size: 6.5px; color: #94a3b8; margin-top: 2px; }
+            .footer { border-top: 1px solid #334155; padding-top: 3px; display: flex; justify-content: space-between; font-size: 6.5px; color: #94a3b8; align-items: center; }
           </style>
         </head>
         <body>
           <div>
             <div class="header-flex">
               <img src="${absoluteLogoSrc}" alt="Crest" class="school-logo" />
-              <div class="title">JIPAS EDUCATIONAL COMPLEX</div>
+              <div class="title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
             </div>
             <div class="sub">OFFICIAL STUDENT IDENTIFICATION CARD</div>
             <div class="content">
-              <div class="avatar">${student.fullName.charAt(0)}</div>
+              <div class="avatar">
+                ${student.photo ? `<img src="${student.photo}" style="width: 100%; height: 100%; object-fit: cover;" />` : student.fullName.charAt(0)}
+              </div>
               <div class="info">
                 <strong>${student.fullName}</strong>
-                ID: ${student.admissionNo}<br/>
-                Class: ${student.className}<br/>
-                House: ${student.house} House
+                <span>ID: <code style="color: #38bdf8; font-weight: bold;">${student.admissionNo}</code></span> • 
+                <span>Class: <b>${student.className}</b></span><br/>
+                <span>Campus: <b>${student.campus || 'JIPAS 1'}</b></span>
+                <div class="biodata-grid">
+                  <span>DOB: <b>${student.dob || 'N/A'}</b></span> |
+                  <span>Sex: <b>${student.gender || 'N/A'}</b></span> |
+                  <span>Nat: <b>${student.nationality || 'Ghanaian'}</b></span>
+                </div>
               </div>
             </div>
           </div>
           <div class="footer">
-            <span>Emergency: ${student.parentPhone || 'N/A'}</span>
-            <span>01 BP. 2364 • Lomé — Togo</span>
+            <span>Emergency Tel: ${student.parentPhone || '0249755593'}</span>
+            <span>VALID UNTIL: DEC 2028</span>
           </div>
           <script>window.onload = function() { window.print(); window.close(); }</script>
         </body>
@@ -647,7 +655,7 @@ export default function StudentPortal({
             <tr>
               <td>
                 <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-                <div class="school-title">JIPAS EDUCATIONAL COMPLEX</div>
+                <div class="school-title">JOY INTERNATIONAL SCHOOL (JIPAS)</div>
                 <div class="doc-sub">OFFICIAL STUDENT FEE PAYMENT & REMAINING ARREARS STATEMENT</div>
                 <div style="font-size: 11px; color: #64748b; margin-top: 4px;">01 BP. 2364 • Lomé — Togo • Official Financial Control Desk</div>
               </td>
@@ -2152,7 +2160,7 @@ export default function StudentPortal({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
           <div id="printable-fee-history" className="print-a4-page print-no-break bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 space-y-4 print:p-0 print:border-none">
             <div className="text-center pb-3 border-b-2 border-slate-800">
-              <h2 className="text-base font-black text-slate-900">JIPAS</h2>
+              <h2 className="text-base font-black text-slate-900">JOY INTERNATIONAL SCHOOL (JIPAS)</h2>
               <p className="text-[10px] text-slate-500">Comprehensive Student Account Statement</p>
             </div>
 
@@ -2236,7 +2244,12 @@ export default function StudentPortal({
                 <div>
                   <div className="text-sm font-black tracking-tight">{student.fullName}</div>
                   <div className="text-[11px] text-emerald-200 font-mono mt-0.5">{student.admissionNo}</div>
-                  <div className="text-[10px] text-slate-300 mt-0.5">{student.className} • {student.house} House</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">{student.className} • {student.campus || 'JIPAS 1'}</div>
+                  <div className="flex flex-wrap gap-1 mt-1 text-[8px] text-slate-300">
+                    <span className="bg-white/10 px-1.5 py-0.5 rounded">DOB: {student.dob || 'N/A'}</span>
+                    <span className="bg-white/10 px-1.5 py-0.5 rounded">Sex: {student.gender || 'N/A'}</span>
+                    <span className="bg-white/10 px-1.5 py-0.5 rounded">Nat: {student.nationality || 'Ghanaian'}</span>
+                  </div>
                 </div>
               </div>
 

@@ -198,7 +198,7 @@ export default function FinancialAuditManager({
         <body>
           <div class="header">
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-            <h1 class="school-name">JIPAS Educational Complex</h1>
+            <h1 class="school-name">JOY INTERNATIONAL SCHOOL (JIPAS)</h1>
             <p class="sub">Official Internal Audit & Financial Examination Board • 01 BP. 2364 • Lomé — Togo</p>
             <div class="badge">OFFICIAL FINANCIAL AUDIT CERTIFICATION REPORT</div>
           </div>

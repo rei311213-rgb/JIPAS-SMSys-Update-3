@@ -20,7 +20,9 @@ export type SecretaryTabType =
   | 'bulk_fee_entry'
   | 'graduated_batch'
   | 'employee_history'
-  | 'staff_attendance';
+  | 'staff_attendance'
+  | 'generate_receipt'
+  | 'next_term_bills';
 
 interface SecretarySidebarProps {
   activeTab: SecretaryTabType;
@@ -154,6 +156,24 @@ export default function SecretarySidebar({
       icon: Layers,
       badge: 'Bulk',
       badgeColor: 'bg-indigo-500 text-white'
+    },
+    {
+      id: 'generate_receipt',
+      category: 'POS DESK',
+      label: 'Generate & Print Receipts',
+      sublabel: 'Print A6 receipts individually or by class/date in batch',
+      icon: FileText,
+      badge: 'Batch',
+      badgeColor: 'bg-indigo-500 text-white'
+    },
+    {
+      id: 'next_term_bills',
+      category: 'POS DESK',
+      label: 'Next Term Fees Bill',
+      sublabel: 'Generate individual student bills & print multiple receipts',
+      icon: Layers,
+      badge: 'Next Term',
+      badgeColor: 'bg-emerald-500 text-white'
     },
     {
       id: 'graduated_batch',

@@ -75,7 +75,7 @@ export const SecurityAuditLogsManager: React.FC = () => {
         <body>
           <div class="header-wrap">
             <img src="${absoluteLogoSrc}" alt="School Crest" class="school-logo" />
-            <h1>JIPAS Educational Complex — System Security & Role Audit Trail</h1>
+            <h1>JOY INTERNATIONAL SCHOOL (JIPAS) — System Security & Role Audit Trail</h1>
           </div>
           <div class="subtitle">Generated on ${new Date().toLocaleString()} | Target: Role Modifications & Privilege Changes</div>
           <table>

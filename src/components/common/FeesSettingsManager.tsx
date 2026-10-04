@@ -139,7 +139,7 @@ export default function FeesSettingsManager({
   const [methodFormData, setMethodFormData] = useState<Partial<PaymentMethodConfig>>({
     type: 'bank',
     name: '',
-    accountName: 'JIPAS Educational Complex',
+    accountName: 'JOY INTERNATIONAL SCHOOL (JIPAS)',
     accountNumber: '',
     bankOrProviderName: '',
     branchOrSortCode: '',
@@ -556,7 +556,7 @@ export default function FeesSettingsManager({
         id: `pm-${Date.now()}`,
         type: methodFormData.type || 'bank',
         name: methodFormData.name || 'New Payment Method',
-        accountName: methodFormData.accountName || 'JIPAS Educational Complex',
+        accountName: methodFormData.accountName || 'JOY INTERNATIONAL SCHOOL (JIPAS)',
         accountNumber: methodFormData.accountNumber || '',
         bankOrProviderName: methodFormData.bankOrProviderName || '',
         branchOrSortCode: methodFormData.branchOrSortCode || '',
@@ -1760,7 +1760,7 @@ export default function FeesSettingsManager({
                   setMethodFormData({
                     type: 'bank',
                     name: '',
-                    accountName: 'JIPAS Educational Complex',
+                    accountName: 'JOY INTERNATIONAL SCHOOL (JIPAS)',
                     accountNumber: '',
                     bankOrProviderName: '',
                     branchOrSortCode: '',
@@ -2148,7 +2148,7 @@ export default function FeesSettingsManager({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. JIPAS Educational Complex"
+                  placeholder="e.g. JOY INTERNATIONAL SCHOOL (JIPAS)"
                   value={methodFormData.accountName}
                   onChange={(e) => setMethodFormData({ ...methodFormData, accountName: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900"

@@ -35,6 +35,7 @@ import GraduatedBatchManager from './common/GraduatedBatchManager';
 import PastEmployeeHistoryManager from './common/PastEmployeeHistoryManager';
 import JIPASLogo from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
+import ReceiptGenerationDashboard from './common/ReceiptGenerationDashboard';
 import { getStoredExpenses } from '../services/storageService';
 import { filterExpensesByCampus } from '../lib/campusUtils';
 import { addMoney, subtractMoney, formatCurrency } from '../utils/financeUtils';
@@ -62,7 +63,7 @@ const VALID_CEO_MODULES = new Set([
   'attendance', 'staff_attendance', 'discipline',
   'academic_performance', 'performance_analytics', 'school_finances',
   'fees_payments', 'expenses', 'income_expenses', 'financial_trends', 'financial_reconciliation', 'staff_queries',
-  'graduated_batches', 'graduated_batch_registry', 'employee_history', 'past_employees'
+  'graduated_batches', 'graduated_batch_registry', 'employee_history', 'past_employees', 'generate_receipt'
 ]);
 
 export default function CEOPortal({
@@ -432,6 +433,15 @@ export default function CEOPortal({
           badgeBg: 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
         },
         {
+          id: 'generate_receipt',
+          label: 'Generate & Print Receipts',
+          description: 'Print secure official A6 receipts individually or by class in batch',
+          icon: FileText,
+          badge: 'Batch A6',
+          color: 'from-cyan-600 to-indigo-700',
+          badgeBg: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+        },
+        {
           id: 'expenses',
           label: 'School Expenses',
           description: 'Operational spending logs, approval records & expense vouchers',
@@ -791,6 +801,14 @@ export default function CEOPortal({
                   students={students}
                   classFeeTariffs={[]} // Empty for read-only overview
                   onAddPayment={() => {}} // READ ONLY
+                />
+              )}
+
+              {activeModule === 'generate_receipt' && (
+                <ReceiptGenerationDashboard 
+                  payments={payments}
+                  bills={bills}
+                  students={students}
                 />
               )}
 

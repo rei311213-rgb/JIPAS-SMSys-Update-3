@@ -488,5 +488,38 @@ select[class*="bg-[#"]:disabled {
     page-break-after: always !important;
     break-after: page !important;
   }
+
+  /* Batch A6 Receipt Printing Engine */
+  body.print-batch-active {
+    width: 105mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-batch-active * {
+    visibility: hidden !important;
+  }
+
+  body.print-batch-active .print-batch-only-wrapper,
+  body.print-batch-active .print-batch-only-wrapper * {
+    visibility: visible !important;
+  }
+
+  body.print-batch-active .print-batch-only-wrapper {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 105mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
+
+/* Screen visibility for batch print container */
+.print-batch-only-wrapper {
+  display: none;
+}
+
 
