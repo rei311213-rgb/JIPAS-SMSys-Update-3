@@ -354,9 +354,9 @@ export default function StudentPortal({
 
   // Computed metrics
   const averageScore = studentReport?.averageScore || 85.8;
-  const attendanceRate = studentReport?.attendanceTotal 
+  const attendanceRate = studentReport?.attendanceTotal && studentReport.attendanceTotal > 0
     ? Math.round((studentReport.attendancePresent / studentReport.attendanceTotal) * 100) 
-    : 97;
+    : 0;
   const totalPayable = studentBill?.payable || 1200;
   const totalPaid = studentBill?.paid || 1200;
   const balanceDue = studentBill?.balance ?? 0;
@@ -1260,8 +1260,8 @@ export default function StudentPortal({
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Attendance Log</p>
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{studentReport?.attendancePresent || 68} Days</h3>
-                <p className="text-xs text-slate-500 font-semibold mt-1">Total: {studentReport?.attendanceTotal || 70} Days ({attendanceRate}%)</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{studentReport?.attendancePresent ?? 0} Days</h3>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Total: {studentReport?.attendanceTotal ?? 0} Days ({attendanceRate}%)</p>
               </div>
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
                 <CheckCircle2 className="w-6 h-6" />

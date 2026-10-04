@@ -4750,7 +4750,7 @@ export default function TeacherPortal({
                         <div>
                           <span className="block text-[9px] font-black uppercase text-slate-400">Attendance</span>
                           <span className="font-bold text-slate-950 mt-0.5 block">
-                            {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendancePresent || '66'} / {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendanceTotal || '70'} days
+                            {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendancePresent ?? 0} / {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendanceTotal ?? 0} days
                           </span>
                         </div>
                       </div>
