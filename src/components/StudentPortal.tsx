@@ -156,7 +156,6 @@ export default function StudentPortal({
   const [selectedTerm, setSelectedTerm] = useState<string>('First Term');
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentRecord | null>(null);
   const [showPrintStatementModal, setShowPrintStatementModal] = useState<boolean>(false);
-  const [showDigitalIdModal, setShowDigitalIdModal] = useState<boolean>(false);
 
   // Security Password States
   const [secPasswordInput, setSecPasswordInput] = useState('');
@@ -849,12 +848,6 @@ export default function StudentPortal({
               {clearancePercent}%
             </span>
           </div>
-          <button
-            onClick={() => setShowDigitalIdModal(true)}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-          >
-            <QrCode className="w-4 h-4" /> Digital ID
-          </button>
         </div>
       </div>
 
@@ -1966,12 +1959,6 @@ export default function StudentPortal({
               </div>
 
               <div className="sm:ml-auto">
-                <button
-                  onClick={() => setShowDigitalIdModal(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <QrCode className="w-4 h-4" /> Open Digital ID
-                </button>
               </div>
             </div>
 
@@ -2208,72 +2195,6 @@ export default function StudentPortal({
               <button
                 onClick={() => setShowPrintStatementModal(false)}
                 className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===================== MODAL: DIGITAL STUDENT ID CARD ===================== */}
-      {showDigitalIdModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 space-y-4 print:p-0 print:border-none">
-            {/* Student ID Card Front */}
-            <div className="bg-gradient-to-br from-emerald-900 via-teal-800 to-slate-900 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                <div className="flex items-center gap-2">
-                  <JIPASLogo size="xs" />
-                  <div>
-                    <div className="text-[10px] font-black tracking-widest text-amber-300 uppercase">Student Identity Card</div>
-                    <div className="text-xs font-black">JIPAS</div>
-                  </div>
-                </div>
-                <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded uppercase">
-                  2026/2027
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-xs border border-white/30 overflow-hidden flex items-center justify-center">
-                  {student.photo ? (
-                    <img src={student.photo} alt={student.fullName} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 text-white" />
-                  )}
-                </div>
-                <div>
-                  <div className="text-sm font-black tracking-tight">{student.fullName}</div>
-                  <div className="text-[11px] text-emerald-200 font-mono mt-0.5">{student.admissionNo}</div>
-                  <div className="text-[10px] text-slate-300 mt-0.5">{student.className} • {student.campus || 'JIPAS 1'}</div>
-                  <div className="flex flex-wrap gap-1 mt-1 text-[8px] text-slate-300">
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded">DOB: {student.dob || 'N/A'}</span>
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded">Sex: {student.gender || 'N/A'}</span>
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded">Nat: {student.nationality || 'Ghanaian'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Barcode / Emergency Phone */}
-              <div className="pt-2 border-t border-white/20 flex justify-between items-center text-[9px] text-slate-300">
-                <span>Emergency: {student.parentPhone}</span>
-                <span className="font-mono bg-white text-slate-900 font-bold px-1.5 py-0.5 rounded text-[8px] tracking-widest">
-                  |||||||||||||||
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <button
-                onClick={handlePrintIdCardPDF}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" /> Generate & Print ID Card
-              </button>
-              <button
-                onClick={() => setShowDigitalIdModal(false)}
-                className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold cursor-pointer"
               >
                 Close
               </button>
