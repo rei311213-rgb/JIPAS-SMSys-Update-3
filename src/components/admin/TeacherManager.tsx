@@ -200,6 +200,10 @@ export default function TeacherManager({
   const [formProbationStatus, setFormProbationStatus] = useState<'Probation' | 'Confirmed' | 'Contract'>('Probation');
   const [formPhoto, setFormPhoto] = useState<string>('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80');
 
+  // CEO Digital Signature Modal State
+  const [showCeoSigModal, setShowCeoSigModal] = useState(false);
+  const [ceoSigPreview, setCeoSigPreview] = useState(typeof window !== 'undefined' ? localStorage.getItem('jipas_ceo_signature') || '' : '');
+
   const handleToggleFormSubject = (subj: string) => {
     const currentList = formSubjects.split(',').map(s => s.trim()).filter(Boolean);
     const exists = currentList.some(s => s.toLowerCase() === subj.toLowerCase());
@@ -657,6 +661,12 @@ export default function TeacherManager({
                 className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
               >
                 <CreditCard className="w-4 h-4 text-indigo-600" /> Staff ID Cards
+              </button>
+              <button
+                onClick={() => setShowCeoSigModal(true)}
+                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Award className="w-4 h-4 text-amber-600" /> CEO Signature
               </button>
               {!isReadOnly && (
                 <>
@@ -2299,6 +2309,84 @@ export default function TeacherManager({
           staff={letterModalStaff}
           initialType={letterModalType}
         />
+      )}
+
+      {/* CEO Digital Signature Upload Modal */}
+      {showCeoSigModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-100 rounded-2xl text-amber-800">
+                  <Award className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-slate-900">Headmaster / CEO Digital Signature</h3>
+                  <p className="text-xs text-slate-500">Upload signature image for official appointment letters.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCeoSigModal(false)} className="text-slate-400 hover:text-slate-700 font-bold p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center bg-slate-50 flex flex-col items-center justify-center space-y-3">
+                {ceoSigPreview ? (
+                  <div className="space-y-2">
+                    <img src={ceoSigPreview} alt="CEO Signature" className="h-16 max-w-[200px] object-contain mx-auto border bg-white p-2 rounded-xl shadow-xs" />
+                    <span className="text-[10px] text-emerald-600 font-bold block">Signature Active & Ready for Letters</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Upload className="w-8 h-8 text-slate-400 mx-auto" />
+                    <span className="font-bold text-slate-700">Upload signature PNG or JPEG image</span>
+                    <span className="text-[10px] text-slate-400 block">Transparent background recommended</span>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const res = ev.target?.result as string;
+                        if (res) {
+                          setCeoSigPreview(res);
+                          localStorage.setItem('jipas_ceo_signature', res);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              {ceoSigPreview && (
+                <button
+                  onClick={() => {
+                    setCeoSigPreview('');
+                    localStorage.removeItem('jipas_ceo_signature');
+                  }}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs"
+                >
+                  Remove Signature
+                </button>
+              )}
+              <button
+                onClick={() => setShowCeoSigModal(false)}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

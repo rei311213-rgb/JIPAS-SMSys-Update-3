@@ -603,8 +603,16 @@ export default function StudentTranscriptManager({
                 <div className="absolute right-0 bottom-6 border-2 border-red-600/70 text-red-600 font-black text-[9px] uppercase tracking-widest px-2 py-1 rotate-[-12deg] rounded-sm pointer-events-none select-none">
                   OFFICIALLY CERTIFIED • JIPAS
                 </div>
-                <div className="border-b border-slate-400 w-36 mx-auto mb-1 pb-1">
-                  <span className="font-serif italic text-sm text-indigo-950 font-semibold">Marcus Prosper</span>
+                <div className="border-b border-slate-400 w-36 mx-auto mb-1 pb-1 min-h-[32px] flex items-center justify-center">
+                  {typeof window !== 'undefined' && localStorage.getItem('jipas_ceo_signature') ? (
+                    <img 
+                      src={localStorage.getItem('jipas_ceo_signature') || ''} 
+                      alt="Headmaster Signature" 
+                      className="h-9 max-w-[120px] object-contain mx-auto" 
+                    />
+                  ) : (
+                    <span className="font-serif italic text-sm text-indigo-950 font-semibold">Marcus Prosper</span>
+                  )}
                 </div>
                 <p className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">Headmaster / Principal</p>
                 <p className="text-[9px] text-slate-500">Date: {issueDate}</p>

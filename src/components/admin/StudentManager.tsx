@@ -485,6 +485,11 @@ export default function StudentManager({
   const [formBloodGroup, setFormBloodGroup] = useState('O+');
   const [formPhoto, setFormPhoto] = useState<string>('https://images.unsplash.com/photo-1543269865-cbf427effbad?w=200&auto=format&fit=crop&q=80');
 
+  // Student ID Card Admin Setup State
+  const [idCardIssueDate, setIdCardIssueDate] = useState('2026-09-01');
+  const [idCardExpiryDate, setIdCardExpiryDate] = useState('2029-12-31');
+  const [idCardClassFilter, setIdCardClassFilter] = useState('All Classes');
+
   // IndexedDB Auto-save Student Creation Draft Integration
   const currentDraftValues = useMemo<StudentFormDraftData>(() => ({
     fullName: [formLastName.trim(), formOtherNames.trim()].filter(Boolean).join(' ') || formFullName,
@@ -2607,89 +2612,130 @@ export default function StudentManager({
       )}
 
       {/* 3. STUDENT ID CARDS MODULE */}
-      {activeModule === 'student_id_cards' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
-          <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-100">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-indigo-600" />
-                Student Identification Card Generator
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Official JIPAS student identity badges with barcode simulation and guardian emergency contact.
-              </p>
-            </div>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <Printer className="w-4 h-4" /> Print ID Cards Batch
-            </button>
-          </div>
+      {activeModule === 'student_id_cards' && (() => {
+        const classFilteredStudents = idCardClassFilter === 'All Classes'
+          ? studentsList
+          : studentsList.filter(s => s.className.toLowerCase() === idCardClassFilter.toLowerCase());
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredStudents.map((st) => (
-              <div
-                key={st.id}
-                className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-md border border-indigo-800 space-y-4 relative overflow-hidden"
-              >
-                {/* Header */}
-                <div className="flex justify-between items-center border-b border-indigo-800/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <JIPASLogo size="xs" />
-                    <div>
-                      <h4 className="font-black text-sm tracking-wider text-amber-400 leading-tight">JIPAS</h4>
-                      <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-semibold">Student Identity Badge</p>
-                    </div>
-                  </div>
-                  <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
-                    <GraduationCap className="w-4 h-4 text-amber-300" />
-                  </div>
-                </div>
-
-                {/* Body with Photo & Full Bio-data */}
-                <div className="flex gap-3.5 items-start">
-                  <img
-                    src={st.photo || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80'}
-                    alt={st.fullName}
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0 mt-0.5"
-                  />
-                  <div className="space-y-0.5 overflow-hidden flex-1 text-[11px]">
-                    <h5 className="font-black text-xs text-white truncate">{st.fullName}</h5>
-                    <p className="text-[11px] font-mono font-bold text-amber-300">{st.admissionNo}</p>
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9.5px] text-indigo-200 pt-1">
-                      <span>Class: <strong className="text-white">{st.className}</strong></span>
-                      <span>House: <strong className="text-white">{st.house || 'Blue'}</strong></span>
-                      <span>DOB: <strong className="text-white">{st.dob || '14/05/2012'}</strong></span>
-                      <span>Gender: <strong className="text-white">{st.gender || 'Male'}</strong></span>
-                      <span>Nationality: <strong className="text-white">{st.nationality || 'Ghanaian'}</strong></span>
-                      <span>Blood: <strong className="text-amber-300">{st.bloodGroup || 'O+'}</strong></span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Bar */}
-                <div className="bg-white/10 rounded-xl p-2.5 flex justify-between items-center text-[10px]">
-                  <div>
-                    <span className="text-indigo-300 block text-[8px] uppercase font-bold">Emergency Tel / Guardian:</span>
-                    <span className="font-mono font-semibold text-white">{st.parentPhone || '0249755593'}</span>
-                    {st.parentName && <span className="text-[8px] text-indigo-200 block truncate max-w-[140px]">({st.parentName})</span>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right text-[8px] text-indigo-300">
-                      <span>VALID:</span>
-                      <strong className="block text-white font-mono">{st.academicYear || '2026/2027'}</strong>
-                    </div>
-                    <div className="w-6 h-6 bg-white rounded p-0.5 flex items-center justify-center shrink-0">
-                      <QrCode className="w-5 h-5 text-slate-900" />
-                    </div>
-                  </div>
-                </div>
+        return (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-600" />
+                  Student Identification Card Generator
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Set issue and expiry dates, filter by class, and print official JIPAS student identity badges.
+                </p>
               </div>
-            ))}
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Print ID Cards ({classFilteredStudents.length})
+              </button>
+            </div>
+
+            {/* Admin Setup Bar for Class ID Cards */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Class / Stream</label>
+                <select
+                  value={idCardClassFilter}
+                  onChange={(e) => setIdCardClassFilter(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                >
+                  <option value="All Classes">All Classes (Entire School)</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Date of Issue</label>
+                <input
+                  type="date"
+                  value={idCardIssueDate}
+                  onChange={(e) => setIdCardIssueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-mono font-bold text-slate-900"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={idCardExpiryDate}
+                  onChange={(e) => setIdCardExpiryDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-mono font-bold text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classFilteredStudents.map((st) => (
+                <div
+                  key={st.id}
+                  className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-md border border-indigo-800 space-y-4 relative overflow-hidden cursor-pointer hover:border-indigo-500 transition-all"
+                  onClick={() => setSelectedIDCardRecord(st)}
+                >
+                  {/* Header */}
+                  <div className="flex justify-between items-center border-b border-indigo-800/80 pb-3">
+                    <div className="flex items-center gap-2">
+                      <JIPASLogo size="xs" />
+                      <div>
+                        <h4 className="font-black text-sm tracking-wider text-amber-400 leading-tight">JIPAS</h4>
+                        <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-semibold">Student Identity Badge</p>
+                      </div>
+                    </div>
+                    <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
+                      <GraduationCap className="w-4 h-4 text-amber-300" />
+                    </div>
+                  </div>
+
+                  {/* Body with Photo & Full Bio-data */}
+                  <div className="flex gap-3.5 items-start">
+                    <img
+                      src={st.photo || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80'}
+                      alt={st.fullName}
+                      className="w-16 h-16 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0 mt-0.5"
+                    />
+                    <div className="space-y-0.5 overflow-hidden flex-1 text-[11px]">
+                      <h5 className="font-black text-xs text-white truncate">{st.fullName}</h5>
+                      <p className="text-[11px] font-mono font-bold text-amber-300">{st.admissionNo}</p>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9.5px] text-indigo-200 pt-1">
+                        <span>Class: <strong className="text-white">{st.className}</strong></span>
+                        <span>Campus: <strong className="text-white">{st.campus || 'JIPAS 1'}</strong></span>
+                        <span>DOB: <strong className="text-white">{st.dob || '14/05/2012'}</strong></span>
+                        <span>Gender: <strong className="text-white">{st.gender || 'Male'}</strong></span>
+                        <span>Nationality: <strong className="text-white">{st.nationality || 'Ghanaian'}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Bar */}
+                  <div className="bg-white/10 rounded-xl p-2.5 flex justify-between items-center text-[10px]">
+                    <div>
+                      <span className="text-indigo-300 block text-[8px] uppercase font-bold">Emergency Tel / Guardian:</span>
+                      <span className="font-mono font-semibold text-white">{st.parentPhone || '0249755593'}</span>
+                      {st.parentName && <span className="text-[8px] text-indigo-200 block truncate max-w-[140px]">({st.parentName})</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right text-[8px] text-indigo-300">
+                        <span>VALID:</span>
+                        <strong className="block text-white font-mono text-[8.5px]">{idCardIssueDate} → {idCardExpiryDate}</strong>
+                      </div>
+                      <div className="w-6 h-6 bg-white rounded p-0.5 flex items-center justify-center shrink-0">
+                        <QrCode className="w-5 h-5 text-slate-900" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 4. STUDENT ATTENDANCE MODULE */}
       {activeModule === 'student_attendance' && (
@@ -3800,6 +3846,8 @@ export default function StudentManager({
         isOpen={!!selectedIDCardRecord}
         onClose={() => setSelectedIDCardRecord(null)}
         record={selectedIDCardRecord}
+        defaultIssueDate={idCardIssueDate}
+        defaultExpiryDate={idCardExpiryDate}
       />
 
       {/* 6. DOCUMENT VERIFICATION MODAL */}

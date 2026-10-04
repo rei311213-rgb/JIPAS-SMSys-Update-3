@@ -1985,8 +1985,8 @@ export interface NextTermFeeItem {
 
 export interface NextTermBillSetup {
   id: string;
-  targetType: 'class' | 'department';
-  targetName: string; // e.g. "Primary 4" or "Primary School"
+  targetType: 'class' | 'department' | 'candidate_category';
+  targetName: string; // e.g. "Primary 4" or "BECE Candidates (JHS 3)"
   academicYear: string; // e.g. "2026-2027"
   term: string; // e.g. "Second Term"
   resumptionDate?: string;

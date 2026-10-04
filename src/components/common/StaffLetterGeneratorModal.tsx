@@ -76,6 +76,8 @@ export default function StaffLetterGeneratorModal({
       ? logoSrc 
       : window.location.origin + (logoSrc.startsWith('/') ? '' : '/') + logoSrc;
 
+    const ceoSig = typeof window !== 'undefined' ? localStorage.getItem('jipas_ceo_signature') || '' : '';
+
     const printHtml = `
       <div style="font-family: 'Times New Roman', Times, serif; padding: 40px 50px; color: #0f172a; max-width: 840px; margin: 0 auto; line-height: 1.5; background: #fff;">
         <!-- Official Letterhead -->
@@ -200,7 +202,7 @@ export default function StaffLetterGeneratorModal({
         <!-- Signatures & Official Seal Grid -->
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; padding-top: 14px; border-top: 1px solid #cbd5e1;">
           <div style="text-align: center; width: 220px;">
-            <div style="height: 35px; border-bottom: 1px dashed #475569;"></div>
+            ${ceoSig ? `<img src="${ceoSig}" style="height: 40px; max-width: 140px; object-fit: contain; margin: 0 auto 2px auto; display: block;" />` : `<div style="height: 35px; border-bottom: 1px dashed #475569;"></div>`}
             <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: bold; color: #0f172a;">Executive Director / CEO</p>
             <p style="margin: 1px 0 0 0; font-size: 9px; color: #64748b;">Joy International School (JIPAS)</p>
           </div>

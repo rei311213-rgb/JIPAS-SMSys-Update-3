@@ -1,5 +1,6 @@
 import { StudentBill, Student, NotificationItem, DailyFeeAuditSummary } from '../types';
 import { addMoney, formatCurrency } from '../utils/financeUtils';
+import { getServerDate } from './serverClockService';
 
 const AUDIT_STORAGE_KEY = 'jipas_daily_fee_audit_summary';
 const LAST_AUDIT_DATE_KEY = 'jipas_last_daily_fee_audit_date';
@@ -8,17 +9,17 @@ const LAST_AUDIT_DATE_KEY = 'jipas_last_daily_fee_audit_date';
  * Formats current date as YYYY-MM-DD for daily milestone comparison
  */
 export const getTodayDateKey = (): string => {
-  const now = new Date();
+  const now = getServerDate();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 
 /**
- * Formats full human-readable timestamp
+ * Formats full human-readable timestamp using authoritative server time
  */
-export const getFormattedTimestamp = (d: Date = new Date()): string => {
+export const getFormattedTimestamp = (d: Date = getServerDate()): string => {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} GMT`;
 };
 
 /**

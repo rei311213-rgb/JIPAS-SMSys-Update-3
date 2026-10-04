@@ -147,6 +147,46 @@ export const INITIAL_NEXT_TERM_SETUPS: NextTermBillSetup[] = [
       { id: 'item-shs-8', name: 'Academic Library & Digital Research', amount: 60, category: 'custom', defaultSelected: true },
       { id: 'item-shs-9', name: 'WASSCE Mock Series & Registration Prep', amount: 80, category: 'custom', defaultSelected: true }
     ]
+  },
+  {
+    id: 'setup-candidate-bece',
+    targetType: 'candidate_category',
+    targetName: 'BECE Candidates (JHS 3)',
+    academicYear: '2026-2027',
+    term: 'Second Term',
+    resumptionDate: '12th January 2027',
+    dueDate: '25th January 2027',
+    notes: 'BECE Candidate billing structure includes WAEC registration, mock examinations, and extra prep.',
+    bankDetails: DEFAULT_NEXT_TERM_BANK_DETAILS,
+    updatedAt: new Date().toISOString(),
+    totalAmount: 1350,
+    items: [
+      { id: 'item-bece-1', name: 'Tuition & Intensive Instruction', amount: 620, category: 'tuition', defaultSelected: true },
+      { id: 'item-bece-2', name: 'WAEC BECE Registration & Biometrics', amount: 350, category: 'exam', defaultSelected: true },
+      { id: 'item-bece-3', name: 'BECE Mock Examination Series (1, 2 & 3)', amount: 150, category: 'exam', defaultSelected: true },
+      { id: 'item-bece-4', name: 'Science Practical & ICT Materials', amount: 90, category: 'ict', defaultSelected: true },
+      { id: 'item-bece-5', name: 'Saturday Remedial & Evening Classes', amount: 140, category: 'custom', defaultSelected: true }
+    ]
+  },
+  {
+    id: 'setup-candidate-wassce',
+    targetType: 'candidate_category',
+    targetName: 'WASSCE Candidates (SHS 3)',
+    academicYear: '2026-2027',
+    term: 'Second Term',
+    resumptionDate: '12th January 2027',
+    dueDate: '25th January 2027',
+    notes: 'WASSCE Candidate billing structure includes WAEC registration, elective practicals, and intensive mock exams.',
+    bankDetails: DEFAULT_NEXT_TERM_BANK_DETAILS,
+    updatedAt: new Date().toISOString(),
+    totalAmount: 1650,
+    items: [
+      { id: 'item-wassce-1', name: 'Senior High Tuition & Instruction', amount: 750, category: 'tuition', defaultSelected: true },
+      { id: 'item-wassce-2', name: 'WAEC WASSCE Registration & Biometric Index', amount: 450, category: 'exam', defaultSelected: true },
+      { id: 'item-wassce-3', name: 'WASSCE Mock Examination Series & Examiners Review', amount: 200, category: 'exam', defaultSelected: true },
+      { id: 'item-wassce-4', name: 'Science / Elective Practical Consumables', amount: 150, category: 'custom', defaultSelected: true },
+      { id: 'item-wassce-5', name: 'ICT Research, Coding & Internet Connectivity', amount: 100, category: 'ict', defaultSelected: true }
+    ]
   }
 ];
 
@@ -284,13 +324,25 @@ export function findNextTermSetup(
   department?: string,
   term?: string,
   academicYear?: string
-): { setup: NextTermBillSetup; matchLevel: 'class' | 'department' | 'inferred' | 'fallback' } {
+): { setup: NextTermBillSetup; matchLevel: 'class' | 'department' | 'candidate_category' | 'inferred' | 'fallback' } {
   const setups = getStoredNextTermSetups();
   const normClass = normalizeClassName(className);
   const targetDept = department || inferDepartmentForClass(className);
   const normDept = normalizeClassName(targetDept);
+  const isBeceCandidate = normClass.includes('jhs 3') || normClass.includes('jhs3') || normClass.includes('jhs-3');
+  const isWassceCandidate = normClass.includes('shs 3') || normClass.includes('shs3') || normClass.includes('shs-3') || normClass.includes('form 3');
 
-  // 1. Exact Class match
+  // 1. BECE / WASSCE Candidate Category match
+  if (isBeceCandidate) {
+    const beceMatch = setups.find(s => s.targetType === 'candidate_category' && s.targetName.toLowerCase().includes('bece'));
+    if (beceMatch) return { setup: beceMatch, matchLevel: 'candidate_category' };
+  }
+  if (isWassceCandidate) {
+    const wassceMatch = setups.find(s => s.targetType === 'candidate_category' && s.targetName.toLowerCase().includes('wassce'));
+    if (wassceMatch) return { setup: wassceMatch, matchLevel: 'candidate_category' };
+  }
+
+  // 2. Exact Class match
   if (normClass) {
     const classMatch = setups.find(s => 
       s.targetType === 'class' && 
@@ -299,7 +351,7 @@ export function findNextTermSetup(
     if (classMatch) return { setup: classMatch, matchLevel: 'class' };
   }
 
-  // 2. Exact Department match
+  // 3. Exact Department match
   if (normDept) {
     const deptMatch = setups.find(s => 
       s.targetType === 'department' && 
@@ -310,7 +362,7 @@ export function findNextTermSetup(
     if (deptMatch) return { setup: deptMatch, matchLevel: 'department' };
   }
 
-  // 3. Inferred department based on class name
+  // 4. Inferred department based on class name
   const inferredDept = inferDepartmentForClass(className);
   const inferredMatch = setups.find(s => 
     s.targetType === 'department' && 
@@ -318,7 +370,7 @@ export function findNextTermSetup(
   );
   if (inferredMatch) return { setup: inferredMatch, matchLevel: 'inferred' };
 
-  // 4. Fallback to first available setup or default
+  // 5. Fallback to first available setup or default
   return { 
     setup: setups[0] || INITIAL_NEXT_TERM_SETUPS[1], 
     matchLevel: 'fallback' 

@@ -9,6 +9,8 @@ interface IDCardToolModalProps {
   isOpen: boolean;
   onClose: () => void;
   record: any; // Can be Student or Teacher
+  defaultIssueDate?: string;
+  defaultExpiryDate?: string;
 }
 
 import { printContent } from '../../utils/printUtils';
@@ -16,10 +18,14 @@ import { printContent } from '../../utils/printUtils';
 export default function IDCardToolModal({
   isOpen,
   onClose,
-  record
+  record,
+  defaultIssueDate,
+  defaultExpiryDate
 }: IDCardToolModalProps) {
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('portrait');
   const [cardTheme, setCardTheme] = useState<'indigo' | 'emerald' | 'crimson' | 'amber'>('indigo');
+  const [issueDate, setIssueDate] = useState(defaultIssueDate || '2026-09-01');
+  const [expiryDate, setExpiryDate] = useState(defaultExpiryDate || '2029-12-31');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   if (!isOpen || !record) return null;
@@ -117,7 +123,7 @@ export default function IDCardToolModal({
               </div>
             </div>
             <div class="footer">
-              <span>VALID UNTIL: DEC 2028</span>
+              <span>Issued: ${issueDate} • Expires: ${expiryDate}</span>
               <span class="footer-badge">ISO/IEC 7810 ID-1</span>
             </div>
           </div>
@@ -146,7 +152,7 @@ export default function IDCardToolModal({
               </div>
             </div>
             <div class="footer">
-              <span>VALID UNTIL: DEC 2028</span>
+              <span>Issued: ${issueDate} • Expires: ${expiryDate}</span>
             </div>
           </div>
         `;
@@ -502,7 +508,7 @@ export default function IDCardToolModal({
 
                 {/* Card Footer */}
                 <div className="flex justify-between items-center text-[7px] text-slate-400 border-t border-white/10 pt-2">
-                  <span>VALID UNTIL: DEC 2028</span>
+                  <span>Issued: {issueDate} • Expires: {expiryDate}</span>
                   <span className="font-bold">ISO/IEC 7810</span>
                 </div>
               </div>
@@ -596,6 +602,28 @@ export default function IDCardToolModal({
                     <span>{item.name}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Issue & Expiry Setup */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date of Issue</label>
+                <input
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-mono font-bold bg-white text-slate-900"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-mono font-bold bg-white text-slate-900"
+                />
               </div>
             </div>
 

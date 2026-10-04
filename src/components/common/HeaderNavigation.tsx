@@ -5,6 +5,7 @@ import CampusSelector from './CampusSelector';
 import SyncNowButton from './SyncNowButton';
 import { PWAInstallButton } from './PWAInstallButton';
 import SidebarToggleButton from './SidebarToggleButton';
+import ServerClockIndicator from './ServerClockIndicator';
 import { useI18n } from '../../i18n/I18nContext';
 import { User, ThemePaletteConfig, SchoolSettings } from '../../types';
 import { getStoredSettings } from '../../services/storageService';
@@ -76,6 +77,9 @@ export default function HeaderNavigation({
         {/* Desktop Controls (> sm) */}
         <div className="hidden sm:flex items-center gap-2 sm:gap-2.5 shrink-0">
           <PWAInstallButton />
+
+          {/* Real-time Authoritative Server Clock Indicator */}
+          <ServerClockIndicator />
 
           {/* Sync Now Button */}
           {currentUser.role !== 'student' && (
@@ -165,6 +169,8 @@ export default function HeaderNavigation({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <ServerClockIndicator variant="compact" />
+
             {currentUser.role !== 'student' && (
               <SyncNowButton variant="compact" />
             )}
