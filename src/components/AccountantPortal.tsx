@@ -22,6 +22,7 @@ import DepartmentalFinancialSummary from './common/DepartmentalFinancialSummary'
 import FinancialAuditTrail from './common/FinancialAuditTrail';
 import FinancialReconciliationDashboard from './admin/FinancialReconciliationDashboard';
 import RevenueTrendsModule from './accountant/RevenueTrendsModule';
+import AuditPaymentLogs from './accountant/AuditPaymentLogs';
 import AutomatedFeeReminderUtility from './accountant/AutomatedFeeReminderUtility';
 import StaffAttendanceTracker from './common/StaffAttendanceTracker';
 import ReceiptQRCode from './common/ReceiptQRCode';
@@ -45,6 +46,7 @@ import {
   recordSecurityAuditLog,
   getStoredSettings,
   getStoredBills,
+  getStoredPayments,
   getActiveAcademicPeriod
 } from '../services/storageService';
 import { saveBill } from '../services/dbService';
@@ -88,7 +90,8 @@ export const VALID_ACCOUNTANT_TABS = new Set<string>([
   'dept-financial-summary',
   'financial-reconciliation',
   'audit-trail',
-  'fee-audit-report'
+  'fee-audit-report',
+  'audit-payment-logs'
 ]);
 
 export type AccountantTab = 
@@ -110,7 +113,8 @@ export type AccountantTab =
   | 'dept-financial-summary' 
   | 'financial-reconciliation'
   | 'audit-trail'
-  | 'fee-audit-report';
+  | 'fee-audit-report'
+  | 'audit-payment-logs';
 
 export const getInitialAccountantTab = (): AccountantTab => {
   if (typeof window !== 'undefined') {
@@ -685,18 +689,28 @@ export default function AccountantPortal({
 
     onAddPayment(newPayment);
 
-    // Real-time bill arrears deduction
+    // Real-time bill arrears deduction using cleanly computed bills
     if (onUpdateBills && selectedBill) {
+      const allPayments = [newPayment, ...getStoredPayments().filter(p => p.id !== newPayment.id)];
       const updated = bills.map(b => {
         if (b.id === selectedBill.id) {
-          const newPaidTotal = (b.paid || 0) + paidVal;
-          const updatedBal = Math.max(0, b.payable - newPaidTotal);
+          const studentPayments = allPayments.filter(p => {
+            const isVoid = p.status === 'Voided' || (p as any).isVoided === true;
+            if (isVoid) return false;
+            const matchById = b.studentId && p.studentId && p.studentId === b.studentId;
+            const matchByAdm = b.admissionNo && p.admissionNo && p.admissionNo.trim().toUpperCase() === b.admissionNo.trim().toUpperCase();
+            return matchById || matchByAdm;
+          });
+          const sumPaid = studentPayments.reduce((sum, p) => sum + (p.paid ?? p.amount ?? 0), 0);
+          const payable = b.payable ?? b.subTotal ?? 0;
+          const balance = Math.max(0, payable - sumPaid);
           return {
             ...b,
-            paid: newPaidTotal,
-            balance: updatedBal,
-            status: (updatedBal === 0 ? 'Fully Paid' : 'Partially Paid') as any,
-            actionRequired: updatedBal > 0 ? b.actionRequired : false
+            paid: sumPaid,
+            paidAmount: sumPaid,
+            balance,
+            status: (balance === 0 ? 'Fully Paid' : 'Partially Paid') as any,
+            actionRequired: balance > 0 ? b.actionRequired : false
           };
         }
         return b;
@@ -1388,6 +1402,45 @@ export default function AccountantPortal({
                   activeTab === 'fee-settings' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Configure fee breakdown, compulsory items & currencies
+                </p>
+              </div>
+            </button>
+
+            {/* Menu 5B: Audit Payment Logs */}
+            <button
+              onClick={() => setActiveTab('audit-payment-logs')}
+              className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
+                activeTab === 'audit-payment-logs'
+                  ? 'bg-rose-700 text-white border-rose-700 shadow-md scale-[1.02]'
+                  : 'bg-gradient-to-br from-rose-50 to-slate-50 hover:from-rose-700 hover:to-rose-800 border-rose-100 hover:border-rose-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
+                  activeTab === 'audit-payment-logs'
+                    ? 'bg-white text-rose-700'
+                    : 'bg-rose-700 text-white group-hover:bg-white group-hover:text-rose-700'
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
+                  activeTab === 'audit-payment-logs'
+                    ? 'bg-rose-950 text-rose-100'
+                    : 'bg-rose-100 group-hover:bg-rose-500 text-rose-800 group-hover:text-white'
+                }`}>
+                  Forensics
+                </span>
+              </div>
+              <div>
+                <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
+                  activeTab === 'audit-payment-logs' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                }`}>
+                  Audit Payment Logs
+                </h4>
+                <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
+                  activeTab === 'audit-payment-logs' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
+                }`}>
+                  Spot and delete erroneously tripled/duplicated payments
                 </p>
               </div>
             </button>
@@ -3810,6 +3863,16 @@ export default function AccountantPortal({
           bills={bills}
           payments={payments}
           expenses={expenses}
+        />
+      )}
+
+      {/* 9B. AUDIT PAYMENT LOGS (FORENSIC OVERRIDE SHIELD) */}
+      {activeTab === 'audit-payment-logs' && (
+        <AuditPaymentLogs
+          payments={payments}
+          bills={bills}
+          students={students}
+          onUpdateBills={onUpdateBills}
         />
       )}
 

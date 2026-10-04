@@ -85,6 +85,45 @@ app.post('/api/ai/analyze-at-risk', async (req, res) => {
   }
 });
 
+// Server-side Duplicate Payments Validator
+app.post('/api/payments/validate', (req, res) => {
+  try {
+    const { payments } = req.body;
+    if (!Array.isArray(payments)) {
+      return res.status(400).json({ error: 'Payments list is required as an array.' });
+    }
+
+    const flaggedPaymentIds: string[] = [];
+    const seenMap = new Map<string, string>(); // key -> id
+
+    payments.forEach((p: any) => {
+      if (!p || !p.id) return;
+      const isVoid = p.status === 'Voided' || p.isVoided === true;
+      if (isVoid) return;
+
+      const studentKey = (p.studentId || p.admissionNo || '').trim().toLowerCase();
+      const amountKey = Number(p.paid ?? p.amount ?? 0);
+      const dateKey = (p.date || '').trim();
+      const key = `${studentKey}-${amountKey}-${dateKey}`;
+
+      if (seenMap.has(key)) {
+        flaggedPaymentIds.push(p.id);
+        const originalId = seenMap.get(key)!;
+        if (!flaggedPaymentIds.includes(originalId)) {
+          flaggedPaymentIds.push(originalId);
+        }
+      } else {
+        seenMap.set(key, p.id);
+      }
+    });
+
+    res.json({ flaggedPaymentIds });
+  } catch (err: any) {
+    console.error('Duplicate payment validation error:', err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+  }
+});
+
 // Vite middleware for development
 async function setupDevMiddleware() {
   if (process.env.NODE_ENV !== 'production') {

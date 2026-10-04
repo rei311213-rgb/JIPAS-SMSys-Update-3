@@ -515,23 +515,28 @@ export default function FeeManager({
     savePayment(newPayment).catch(err => console.warn('savePayment notice in FeeManager:', err));
     onAddPayment(newPayment);
 
-    // Update bills list & persist
+    // Update bills list & persist authoritatively from payments list
+    const allPayments = [newPayment, ...getStoredPayments().filter(p => p.id !== newPayment.id)];
     let targetBill: StudentBill | null = null;
     const currentStoredBills = getStoredBills();
     const updatedBills = (currentStoredBills.length > 0 ? currentStoredBills : billsList).map(b => {
       const matchById = student.id && b.studentId && b.studentId === student.id;
       const matchByAdm = student.admissionNo && b.admissionNo && b.admissionNo.trim().toUpperCase() === student.admissionNo.trim().toUpperCase();
       if (matchById || matchByAdm) {
-        const currentPaid = b.paid ?? b.paidAmount ?? 0;
+        const studentPayments = allPayments.filter(p => {
+          const isVoid = p.status === 'Voided' || (p as any).isVoided === true;
+          if (isVoid) return false;
+          return p.studentId === b.studentId || (p.admissionNo && p.admissionNo.trim().toUpperCase() === b.admissionNo.trim().toUpperCase());
+        });
+        const sumPaid = studentPayments.reduce((sum, p) => sum + (p.paid ?? p.amount ?? 0), 0);
         const currentPayable = b.payable ?? b.totalAmount ?? 0;
-        const newPaid = currentPaid + amount;
-        const newBal = calculateBillBalance(currentPayable, newPaid, b.discount, b.arrears);
+        const newBal = calculateBillBalance(currentPayable, sumPaid, b.discount, b.arrears);
         const updatedB = {
           ...b,
-          paid: newPaid,
-          paidAmount: newPaid,
+          paid: sumPaid,
+          paidAmount: sumPaid,
           balance: newBal,
-          status: getPaymentStatus(newBal, newPaid)
+          status: getPaymentStatus(newBal, sumPaid)
         };
         targetBill = updatedB;
         return updatedB;

@@ -1593,15 +1593,45 @@ export async function savePayment(payment: PaymentRecord) {
     throw new Error('Invalid payment record: ID and positive amount are required.');
   }
 
+  let verifiedPayment = { ...payment };
+
+  // Call server-side duplicate payment validator before final db persistence
+  try {
+    const currentForCheck = getStoredPayments();
+    const idxForCheck = currentForCheck.findIndex(p => p.id === payment.id);
+    const updatedForCheck = idxForCheck >= 0 
+      ? currentForCheck.map(p => p.id === payment.id ? payment : p) 
+      : [payment, ...currentForCheck];
+
+    let host = 'http://localhost:3000';
+    if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null' && window.location.origin !== 'undefined') {
+      host = window.location.origin;
+    }
+    const response = await fetch(`${host}/api/payments/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payments: updatedForCheck })
+    });
+    if (response.ok) {
+      const { flaggedPaymentIds } = await response.json();
+      if (Array.isArray(flaggedPaymentIds) && flaggedPaymentIds.includes(payment.id)) {
+        verifiedPayment.isDuplicateRisk = true;
+        verifiedPayment.notes = `${verifiedPayment.notes || ''} [FLAGGED: Potential duplicate payment detected via server-side validation]`.trim();
+      }
+    }
+  } catch (err) {
+    console.warn('[savePayment] Server duplicate validator offline/error:', err);
+  }
+
   const current = getStoredPayments();
-  const idx = current.findIndex(p => p.id === payment.id);
-  const updated = idx >= 0 ? current.map(p => p.id === payment.id ? payment : p) : [payment, ...current];
+  const idx = current.findIndex(p => p.id === verifiedPayment.id);
+  const updated = idx >= 0 ? current.map(p => p.id === verifiedPayment.id ? verifiedPayment : p) : [verifiedPayment, ...current];
   saveStoredPayments(updated);
 
   // Synchronize matching StudentBill with authoritative ledger calculation
   try {
-    const studentKeyById = (payment.studentId || '').trim().toLowerCase();
-    const studentKeyByAdm = (payment.admissionNo || '').trim().toLowerCase();
+    const studentKeyById = (verifiedPayment.studentId || '').trim().toLowerCase();
+    const studentKeyByAdm = (verifiedPayment.admissionNo || '').trim().toLowerCase();
     const allBills = getStoredBills();
     let billUpdated = false;
 
@@ -1620,7 +1650,7 @@ export async function savePayment(payment: PaymentRecord) {
           const pAdm = (p.admissionNo || '').trim().toLowerCase();
           return (studentKeyById && pId === studentKeyById) ||
                  (studentKeyByAdm && pAdm === studentKeyByAdm) ||
-                 (studentKeyById && pAdm === studentKeyById);
+                 (studentKeyById && pAdm === studentKeyByAdm);
         });
 
         const sumPaid = addMoney(...studentValidPayments.map(p => p.paid ?? p.amount ?? 0));
@@ -1648,16 +1678,16 @@ export async function savePayment(payment: PaymentRecord) {
 
   await executeCloudWrite(
     'payments',
-    payment.id,
-    payment,
+    verifiedPayment.id,
+    verifiedPayment,
     () => {
       saveStoredPayments(getStoredPayments());
     },
     undefined,
-    `Payment: ${formatCurrency(payment.amount)} - ${payment.studentName || payment.studentId} (Receipt: ${payment.receiptNo || payment.id})`
+    `Payment: ${formatCurrency(verifiedPayment.amount)} - ${verifiedPayment.studentName || verifiedPayment.studentId} (Receipt: ${verifiedPayment.receiptNo || verifiedPayment.id})`
   );
 
-  return payment;
+  return verifiedPayment;
 }
 
 /**

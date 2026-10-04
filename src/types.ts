@@ -612,6 +612,7 @@ export interface PaymentRecord {
   receivedBy?: string;
   description?: string;
   notes?: string;
+  isDuplicateRisk?: boolean;
   academicYear?: string;
   term?: string;
 }

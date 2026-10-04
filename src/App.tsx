@@ -852,41 +852,9 @@ export default function App() {
       console.warn('savePayment sync notice:', err);
     }
 
-    // Real-time synchronization with StudentBill:
-    let updatedTargetBill: StudentBill | null = null;
-    const currentBills = getStoredBills();
-    const updatedBills = (currentBills.length > 0 ? currentBills : bills).map(bill => {
-      const matchById = newPayment.studentId && bill.studentId && bill.studentId === newPayment.studentId;
-      const matchByAdm = newPayment.admissionNo && bill.admissionNo && bill.admissionNo.trim().toUpperCase() === newPayment.admissionNo.trim().toUpperCase();
-      if (matchById || matchByAdm) {
-        const currentPaid = bill.paid ?? (bill as any).paidAmount ?? 0;
-        const currentPayable = bill.payable ?? (bill as any).totalAmount ?? 0;
-        const paymentAmt = newPayment.paid ?? newPayment.amount ?? 0;
-        const newPaid = currentPaid + paymentAmt;
-        const newBal = Math.max(0, currentPayable - newPaid);
-        const newStatus = newBal === 0 ? 'Fully Paid' : (newPaid > 0 ? 'Partially Paid' : 'Unpaid');
-        const b = {
-          ...bill,
-          paid: newPaid,
-          paidAmount: newPaid,
-          balance: newBal,
-          status: newStatus as any
-        };
-        updatedTargetBill = b;
-        return b;
-      }
-      return bill;
-    });
-
-    setBills(updatedBills);
-    saveStoredBills(updatedBills);
-    if (updatedTargetBill) {
-      try {
-        await saveBill(updatedTargetBill);
-      } catch (err) {
-        console.warn('saveBill after payment sync notice:', err);
-      }
-    }
+    // Load the authoritatively synchronized bills list from storage (calculated cleanly from matching payments)
+    const freshBills = getStoredBills();
+    setBills(freshBills);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
