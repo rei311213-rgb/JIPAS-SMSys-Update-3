@@ -3031,6 +3031,9 @@ export async function clearDemoData(onProgress?: (progressPercent: number, curre
     await setDoc(doc(db, 'settings', 'general'), { 
       demoDataCleared: true 
     }, { merge: true });
+
+    // Push cleared state to Supabase cloud so other devices sync immediately
+    await pushToSupabaseCloud();
   } catch (err) {
     console.warn('[dbService] Demo status sync error:', err);
   }

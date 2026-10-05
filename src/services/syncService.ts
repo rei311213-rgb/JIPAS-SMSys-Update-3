@@ -16,7 +16,7 @@ import {
   JournaledMutation,
   ConvergenceSimulationResult
 } from '../types';
-import { idbSet, IDB_STORE_KEYS } from './idbService';
+import { idbSet, idbClear, IDB_STORE_KEYS } from './idbService';
 import { getActiveCampus } from '../lib/campusUtils';
 import {
   getStoredStudents,
@@ -63,6 +63,11 @@ import {
   saveStoredPaymentSettings,
   getStoredTariffCorrectionLogs,
   saveStoredTariffCorrectionLogs,
+  saveStoredPastEmployees,
+  saveStoredTeacherAttendance,
+  saveStoredStudentAttendance,
+  saveStoredBankDeposits,
+  saveStoredSecurityAuditLogs,
   applyThemePaletteToDom,
   isDemoDataCleared,
   setDemoDataCleared
@@ -647,6 +652,41 @@ export function reconcileCanonicalEntities<T extends { id?: string; updatedAt?: 
 // 8. AUTHORITATIVE PULL & RECONCILIATION (RULE 1 & RULE 3)
 // =========================================================================
 
+export async function clearDemoDataLocally() {
+  setDemoDataCleared(true);
+  try {
+    await idbClear();
+  } catch {}
+  saveStoredStudents([]);
+  saveStoredTeachers([]);
+  saveStoredReports([]);
+  saveStoredBills([]);
+  saveStoredPayments([]);
+  saveStoredCalendarEvents([]);
+  saveStoredNotifications([]);
+  saveStoredAcademicYears([]);
+  saveStoredTerms([]);
+  saveStoredDepartments([]);
+  saveStoredClasses([]);
+  saveStoredHouses([]);
+  saveStoredSubjects([]);
+  saveStoredCourses([]);
+  saveStoredPastEmployees([]);
+  saveStoredTeacherAttendance([]);
+  saveStoredStudentAttendance([]);
+  saveStoredExpenses([]);
+  saveStoredBankDeposits([]);
+  saveStoredSecurityAuditLogs([]);
+  try {
+    const users = getStoredUsers();
+    const preservedAdmins = users.filter(u => u.role === 'admin');
+    saveStoredUsers(preservedAdmins);
+  } catch {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+  }
+}
+
 /**
  * Pulls latest canonical cloud state from Supabase and reconciles with local storage.
  * Strictly guarantees that remote hydration does NOT create local mutations or trigger pushes.
@@ -691,6 +731,14 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
 
     const remoteRevision = typeof remotePayload.revision === 'number' ? remotePayload.revision : 1;
     saveStoredRemoteRevision(remoteRevision);
+
+    if (remotePayload.demoDataCleared === true && !isDemoDataCleared()) {
+      console.log('[Supabase Cloud Sync] Remote demo cleared signal received. Purging local cache on this device.');
+      await clearDemoDataLocally();
+      setSyncSessionStatus('REMOTE_BASELINE_ESTABLISHED');
+      updateCloudSyncStatus({ isSyncing: false });
+      return { success: true, studentsCount: 0, revision: remoteRevision };
+    }
 
     // Reconcile within strict REMOTE_HYDRATION origin to prevent any push feedback loop
     withSyncOrigin('REMOTE_HYDRATION', () => {
