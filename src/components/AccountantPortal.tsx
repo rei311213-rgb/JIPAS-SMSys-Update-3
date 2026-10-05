@@ -4213,7 +4213,7 @@ export default function AccountantPortal({
                   "Education is Wealth" • Official Accounts & Bursary Division
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5 max-w-lg mx-auto text-center">
-                  01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com
+                  01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com
                 </p>
               </div>
 

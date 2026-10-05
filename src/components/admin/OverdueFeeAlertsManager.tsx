@@ -2251,7 +2251,7 @@ export default function OverdueFeeAlertsManager({
                 <JIPASLogo className="w-16 h-16" />
               </div>
               <h1 className="text-xl font-black text-slate-900 tracking-wide uppercase">JIPAS International School</h1>
-              <p className="text-xs text-slate-600">01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com</p>
+              <p className="text-xs text-slate-600">01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com</p>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Office of the Bursar & Academic Accounts</p>
             </div>
 

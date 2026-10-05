@@ -651,7 +651,7 @@ export const INITIAL_SCHOOL_SETTINGS: SchoolSettings = {
   mobileLogo: '/logo.png',
   phone: '(00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48',
   email: 'joyjipas2002@gmail.com',
-  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
+  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
   website: 'www.jipas.edu.gh',
   activeAcademicYear: '2026-2027',
   activeTerm: 'First Term',
@@ -675,10 +675,13 @@ export function getStoredSettings(): SchoolSettings {
   const officialSchoolName = (!rawName || rawName === 'JIPAS' || rawName === 'JIPAS Educational Complex' || rawName === 'JIPAS Academy')
     ? 'JOY INTERNATIONAL SCHOOL (JIPAS)'
     : rawName;
+  const rawAddress = settings?.address || INITIAL_SCHOOL_SETTINGS.address;
+  const officialAddress = rawAddress ? rawAddress.replace(/feeling station/gi, 'Filling Station') : INITIAL_SCHOOL_SETTINGS.address;
   return {
     ...INITIAL_SCHOOL_SETTINGS,
     ...(settings || {}),
     schoolName: officialSchoolName,
+    address: officialAddress,
     activeAcademicYear: activePeriod.academicYear,
     activeTerm: activePeriod.academicTerm
   };

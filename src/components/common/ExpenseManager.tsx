@@ -344,7 +344,7 @@ export default function ExpenseManager({
         <body>
           <div class="header">
             <h1>JOY INTERNATIONAL SCHOOL (JIPAS)</h1>
-            <p>01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com</p>
+            <p>01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com</p>
             <div class="badge">OFFICIAL DISBURSEMENT / EXPENDITURE VOUCHER</div>
           </div>
 

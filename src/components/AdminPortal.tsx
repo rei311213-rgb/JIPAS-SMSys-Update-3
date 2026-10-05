@@ -1260,7 +1260,7 @@ export default function AdminPortal({
                   School Management System Dashboard
                 </h1>
                 <p className="text-blue-200 text-xs mt-1">
-                  01 BP. 2364 • Tél. (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • Kpéhénou N°1 Behind T-Oil Feeling Station and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • joyjipas2002@gmail.com • Motto: Education is Wealth
+                  01 BP. 2364 • Tél. (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • Kpéhénou N°1 Behind T-Oil Filling Station and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • joyjipas2002@gmail.com • Motto: Education is Wealth
                 </p>
               </div>
             </div>

@@ -2936,7 +2936,7 @@ export default function SecretaryPortal({
                         Accredited by the region Education Service (GES) • Reg: GES/GAR/ED/2018/042
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium">
-                        {getStoredSettings().address ? `${getStoredSettings().address} • Tel: ${getStoredSettings().phone || '(00228) 22 60 21 38'}` : '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com'}
+                        {getStoredSettings().address ? `${getStoredSettings().address} • Tel: ${getStoredSettings().phone || '(00228) 22 60 21 38'}` : '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com'}
                       </p>
                     </div>
                   </div>

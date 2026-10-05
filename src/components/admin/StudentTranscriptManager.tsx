@@ -430,7 +430,7 @@ export default function StudentTranscriptManager({
                 Motto: Education is Wealth • Founded 1990
               </p>
               <p className="text-[11px] text-slate-600 font-medium mt-1">
-                01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com
+                01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo • Tel: (00228) 22 60 21 38 / 99 47 38 23 / 90 83 60 48 • joyjipas2002@gmail.com
               </p>
               <div className="mt-3 inline-block bg-slate-900 text-white text-xs font-black px-4 py-1 uppercase tracking-widest rounded-xs">
                 OFFICIAL ACADEMIC TRANSCRIPT & CUMULATIVE RECORD

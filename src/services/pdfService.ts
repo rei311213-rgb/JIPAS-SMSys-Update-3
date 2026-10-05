@@ -22,7 +22,7 @@ import { formatCurrency } from '../utils/financeUtils';
 
 export class PDFGeneratorService {
   private static readonly SCHOOL_NAME = 'JOY INTERNATIONAL SCHOOL (JIPAS)';
-  private static readonly SCHOOL_ADDRESS = '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo';
+  private static readonly SCHOOL_ADDRESS = '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo';
   private static readonly SCHOOL_COLOR: [number, number, number] = [79, 70, 229]; // Indigo-600
 
   private static addHeader(doc: jsPDF, title: string) {

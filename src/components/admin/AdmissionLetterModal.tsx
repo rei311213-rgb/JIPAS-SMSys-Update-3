@@ -49,7 +49,7 @@ export default function AdmissionLetterModal({
               "Excellence in Knowledge and Character"
             </p>
             <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">
-              01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station & Hedzranawoe • Lomé — Togo<br/>
+              01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station & Hedzranawoe • Lomé — Togo<br/>
               Tel: (00228) 22 60 21 38 / 90 83 60 48 • Email: joyjipas2002@gmail.com
             </p>
           </div>

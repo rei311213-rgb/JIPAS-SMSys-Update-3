@@ -63,7 +63,7 @@ interface SystemSettingsManagerProps {
 export const INITIAL_SYSTEM_SETTINGS: SystemSettingsConfig = {
   schoolName: 'JIPAS',
   schoolMotto: 'Excellence in Knowledge and Character',
-  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Feeling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
+  address: '01 BP. 2364 • Kpéhénou N°1 Behind T-Oil Filling Station, and Hedzranawoe 4th Corner after Radio Maria, Lomé — Togo',
   email: 'joyjipas2002@gmail.com',
   phone: '(00228) 22 60 21 38',
   altPhone: '99 47 38 23 / 90 83 60 48',
