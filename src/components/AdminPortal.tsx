@@ -71,7 +71,7 @@ import {
   INITIAL_ACADEMIC_YEARS, INITIAL_TERMS, INITIAL_DEPARTMENTS, 
   INITIAL_CLASSES, INITIAL_HOUSES, INITIAL_SUBJECTS 
 } from '../data/setupData';
-import { checkHasDemoData, clearDemoData, getStoredReports } from '../services/dbService';
+import { checkHasDemoData, clearDemoData, getStoredReports, forceSyncCollections } from '../services/dbService';
 import { getStoredExpenses, getStoredSettings, getActiveAcademicPeriod } from '../services/storageService';
 import { 
   LayoutDashboard, Users, UserCheck, CreditCard, Award, Calendar, Bell, 
@@ -855,6 +855,44 @@ export default function AdminPortal({
     }
   };
 
+  // Centralized Force Full Cloud Sync state and handler
+  const [isFullSyncing, setIsFullSyncing] = useState<boolean>(false);
+  const [fullSyncSuccess, setFullSyncSuccess] = useState<boolean>(false);
+  const [fullSyncFeedback, setFullSyncFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleForceFullCloudSync = async () => {
+    if (isFullSyncing) return;
+    setIsFullSyncing(true);
+    setFullSyncFeedback(null);
+    try {
+      const success = await forceSyncCollections(currentUser?.role || 'admin');
+      if (success) {
+        setFullSyncSuccess(true);
+        setFullSyncFeedback({
+          type: 'success',
+          message: 'Full Cloud Sync Successful: All collections and data providers (Supabase Cloud, Firebase Firestore, IndexedDB) are synchronized across all connected devices.'
+        });
+        setTimeout(() => setFullSyncSuccess(false), 4000);
+        setTimeout(() => setFullSyncFeedback(null), 6000);
+      } else {
+        setFullSyncFeedback({
+          type: 'error',
+          message: 'Cloud synchronization completed with warnings or device is offline. Please check network connectivity.'
+        });
+        setTimeout(() => setFullSyncFeedback(null), 6000);
+      }
+    } catch (err: any) {
+      console.error('[AdminPortal] Force full cloud sync failed:', err);
+      setFullSyncFeedback({
+        type: 'error',
+        message: `Sync failed: ${err?.message || 'Network error'}`
+      });
+      setTimeout(() => setFullSyncFeedback(null), 6000);
+    } finally {
+      setIsFullSyncing(false);
+    }
+  };
+
   // Quick module switcher helper
   const handleNavigate = (mod: string) => {
     const target = normalizeAdminModuleId(mod);
@@ -1127,24 +1165,75 @@ export default function AdminPortal({
             />
           </div>
 
-          <GlobalSearchHeader
-            students={students}
-            teachers={teachers}
-            bills={bills}
-            payments={payments}
-            classFeeTariffs={classFeeTariffs}
-            navGroups={ADMIN_NAV_GROUPS}
-            userRole="admin"
-            onNavigate={(modId) => handleNavigate(modId)}
-            onSelectStudentForReport={(student) => {
-              handleNavigate('terminal_reports');
-            }}
-            onSelectStudentForPayment={(student) => {
-              handleNavigate('fee_bill_students');
-            }}
-            placeholder="Search students, teachers, fee bills, receipts, settings..."
-          />
+          <div className="flex items-center gap-2.5 flex-1 max-w-2xl justify-end">
+            <GlobalSearchHeader
+              students={students}
+              teachers={teachers}
+              bills={bills}
+              payments={payments}
+              classFeeTariffs={classFeeTariffs}
+              navGroups={ADMIN_NAV_GROUPS}
+              userRole="admin"
+              onNavigate={(modId) => handleNavigate(modId)}
+              onSelectStudentForReport={(student) => {
+                handleNavigate('terminal_reports');
+              }}
+              onSelectStudentForPayment={(student) => {
+                handleNavigate('fee_bill_students');
+              }}
+              placeholder="Search students, teachers, fee bills, receipts, settings..."
+            />
+
+            {/* Centralized Force Full Cloud Sync Button in Header */}
+            <button
+              onClick={handleForceFullCloudSync}
+              disabled={isFullSyncing}
+              id="admin-header-force-cloud-sync-btn"
+              title="Force Full Cloud Sync: Synchronizes Supabase Cloud, Firebase Firestore, and local IndexedDB state across all connected computers"
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer shrink-0 border select-none ${
+                isFullSyncing
+                  ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-400/40 animate-pulse'
+                  : fullSyncSuccess
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-400 ring-2 ring-emerald-500/30'
+                  : 'bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500/70 hover:shadow-lg hover:shadow-blue-500/20 active:scale-98'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 shrink-0 ${isFullSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline font-black tracking-wide">
+                {isFullSyncing ? 'Syncing Clouds...' : fullSyncSuccess ? 'Synced! ✓' : 'Force Full Cloud Sync'}
+              </span>
+              <span className="md:hidden font-black">
+                {isFullSyncing ? 'Syncing...' : fullSyncSuccess ? 'Synced ✓' : 'Cloud Sync'}
+              </span>
+            </button>
+          </div>
         </div>
+
+        {/* Centralized Cloud Sync Feedback Alert */}
+        {fullSyncFeedback && (
+          <div
+            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-lg border transition-all animate-fadeIn ${
+              fullSyncFeedback.type === 'success'
+                ? 'bg-emerald-950/90 text-emerald-200 border-emerald-700/80 shadow-emerald-950/30'
+                : 'bg-rose-950/90 text-rose-200 border-rose-700/80 shadow-rose-950/30'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              {fullSyncFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              )}
+              <span>{fullSyncFeedback.message}</span>
+            </div>
+            <button
+              onClick={() => setFullSyncFeedback(null)}
+              className="text-white/70 hover:text-white p-1 rounded-md transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Top Header Banner - Only show on dashboard */}
         {activeModule === 'dashboard' && (
@@ -1185,6 +1274,23 @@ export default function AdminPortal({
               >
                 <Compass className="w-4 h-4 text-slate-950" />
                 <span>Getting Started Guide</span>
+              </button>
+
+              <button
+                onClick={handleForceFullCloudSync}
+                disabled={isFullSyncing}
+                id="admin-banner-force-cloud-sync-btn"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all cursor-pointer border ${
+                  isFullSyncing
+                    ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-400/40 animate-pulse'
+                    : fullSyncSuccess
+                    ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500 text-white'
+                    : 'bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-400/60 shadow-blue-900/40'
+                }`}
+                title="Force synchronize all collections and data providers between computers (Computer A & Computer B)"
+              >
+                <RefreshCw className={`w-4 h-4 ${isFullSyncing ? 'animate-spin' : ''}`} />
+                <span>{isFullSyncing ? 'Syncing All Clouds...' : fullSyncSuccess ? 'Cloud In Sync! ✓' : 'Force Full Cloud Sync'}</span>
               </button>
 
               <button

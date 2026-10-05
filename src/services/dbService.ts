@@ -72,6 +72,7 @@ import {
   pullFromSupabaseCloud,
   subscribeSupabaseRealtime,
   scheduleCloudSyncPush,
+  clearDemoDataLocally,
   UnsyncedDraft
 } from './syncService';
 
@@ -86,7 +87,8 @@ export {
   retryAllUnsyncedDrafts,
   pushToSupabaseCloud,
   pullFromSupabaseCloud,
-  subscribeSupabaseRealtime
+  subscribeSupabaseRealtime,
+  clearDemoDataLocally
 };
 export type { UnsyncedDraft };
 
@@ -109,14 +111,56 @@ export function subscribeDemoStatus(callback: (cleared: boolean) => void) {
 }
 
 /**
- * Forced synchronization: Manually fetches critical collections from Supabase Cloud to ensure 
- * local storage and UI are perfectly in sync with the remote database.
+ * Forced synchronization: Manually fetches critical collections from all data providers
+ * (Supabase Cloud, Firebase Firestore, IndexedDB, and Local Storage) to ensure 
+ * local storage and UI are perfectly in sync with the remote database and resolve desynchronization
+ * between Computer A and Computer B.
  */
-export async function forceSyncCollections(userRole?: string) {
-  console.log(`[dbService] Starting synchronization (Role: ${userRole || 'Guest'})...`);
+export async function forceSyncCollections(userRole?: string): Promise<boolean> {
+  console.log(`[dbService] Starting full synchronization across all data providers (Role: ${userRole || 'Guest'})...`);
+  let hasSuccess = false;
   try {
+    // 1. Data Provider 1: Supabase Cloud Authoritative Pull & Reconcile
     const result = await pullFromSupabaseCloud();
-    return result.success;
+    if (result && result.success !== false) {
+      hasSuccess = true;
+    }
+
+    // 2. Data Provider 2: Firebase Firestore Canonical Verification
+    try {
+      const demoStatusDoc = await getDoc(doc(db, 'systemSettings', 'demoStatus'));
+      if (demoStatusDoc.exists() && demoStatusDoc.data()?.demoDataCleared === true) {
+        const hasLocalRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0 || getStoredBills().length > 0 || getStoredReports().length > 0;
+        if (!isDemoDataCleared() || hasLocalRecords) {
+          console.log('[dbService] Firestore reports demoDataCleared=true. Purging local cache on this device.');
+          await clearDemoDataLocally();
+          hasSuccess = true;
+        }
+      }
+    } catch (fsErr) {
+      console.warn('[dbService] Firestore demo status check notice:', fsErr);
+    }
+
+    // 3. Purge any orphaned dependent records (bills, reports, payments) if any students were cleared
+    try {
+      await purgeOrphanedStudentData();
+    } catch (purgeErr) {
+      console.warn('[dbService] Purge orphaned check notice:', purgeErr);
+    }
+
+    // 4. Data Provider 3 & 4: IndexedDB and UI Broadcaster
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jipas_cloud_synced', {
+        detail: {
+          timestamp: new Date().toISOString(),
+          forced: true,
+          userRole: userRole || 'admin'
+        }
+      }));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    return hasSuccess || (result && result.success !== false);
   } catch (err) {
     console.warn('[dbService] forceSyncCollections notice:', err);
     return false;

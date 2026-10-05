@@ -732,12 +732,15 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
     const remoteRevision = typeof remotePayload.revision === 'number' ? remotePayload.revision : 1;
     saveStoredRemoteRevision(remoteRevision);
 
-    if (remotePayload.demoDataCleared === true && !isDemoDataCleared()) {
-      console.log('[Supabase Cloud Sync] Remote demo cleared signal received. Purging local cache on this device.');
-      await clearDemoDataLocally();
-      setSyncSessionStatus('REMOTE_BASELINE_ESTABLISHED');
-      updateCloudSyncStatus({ isSyncing: false });
-      return { success: true, studentsCount: 0, revision: remoteRevision };
+    if (remotePayload.demoDataCleared === true) {
+      const hasLocalRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0 || getStoredBills().length > 0 || getStoredReports().length > 0;
+      if (!isDemoDataCleared() || hasLocalRecords) {
+        console.log('[Supabase Cloud Sync] Remote demo cleared signal received. Purging local cache on this device.');
+        await clearDemoDataLocally();
+        setSyncSessionStatus('REMOTE_BASELINE_ESTABLISHED');
+        updateCloudSyncStatus({ isSyncing: false });
+        return { success: true, studentsCount: 0, revision: remoteRevision };
+      }
     }
 
     // Reconcile within strict REMOTE_HYDRATION origin to prevent any push feedback loop
