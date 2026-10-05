@@ -9,7 +9,7 @@ import {
   BarChart3, Activity, PieChart as PieIcon
 } from 'lucide-react';
 import { TermReport, StudentAttendanceRecord, ClassItem } from '../../types';
-import { getStoredReports, getStoredStudentAttendance } from '../../services/storageService';
+import { getStoredReports, getStoredStudentAttendance, getStoredStudents } from '../../services/storageService';
 import { generateSchoolPerformanceSummary } from '../../services/pdfService';
 import { getActiveCampus } from '../../lib/campusUtils';
 
@@ -33,6 +33,7 @@ export default function PerformanceOverview({
   const [attendanceTrend, setAttendanceTrend] = useState<any[]>([]);
   const [selectedTerm, setSelectedTerm] = useState('Term 3');
   const [selectedYear, setSelectedYear] = useState('2023/2024');
+  const [studentCount, setStudentCount] = useState<number>(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -41,6 +42,17 @@ export default function PerformanceOverview({
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
+      const students = getStoredStudents();
+      setStudentCount(students.length);
+
+      if (students.length === 0) {
+        setClassAverages([]);
+        setGradeDist([]);
+        setAttendanceTrend([]);
+        setLoading(false);
+        return;
+      }
+
       let reports: TermReport[] = [];
 
       // 1. Check propReports first
@@ -60,6 +72,14 @@ export default function PerformanceOverview({
           (!selectedTerm || r.term === selectedTerm)
         );
         reports = filteredLocal.length > 0 ? filteredLocal : localReports;
+      }
+
+      if (reports.length === 0) {
+        setClassAverages([]);
+        setGradeDist([]);
+        setAttendanceTrend([]);
+        setLoading(false);
+        return;
       }
 
       // Group by class
@@ -113,15 +133,7 @@ export default function PerformanceOverview({
           };
         });
 
-      setAttendanceTrend(trend.length > 0 ? trend : [
-        { date: '09/14', percentage: 94 },
-        { date: '09/15', percentage: 96 },
-        { date: '09/16', percentage: 91 },
-        { date: '09/17', percentage: 95 },
-        { date: '09/18', percentage: 97 },
-        { date: '09/19', percentage: 93 },
-        { date: '09/20', percentage: 98 }
-      ]);
+      setAttendanceTrend(trend);
 
     } catch (err) {
       console.warn('Dashboard stats handled with fallback:', err);
@@ -188,165 +200,168 @@ export default function PerformanceOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Class Averages Bar Chart */}
-        <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              Class Performance Index
-            </h3>
+      {studentCount === 0 || classAverages.length === 0 ? (
+        <div className="bg-[#0F172A] p-16 rounded-2xl border border-slate-800 shadow-xl text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto">
+            <BarChart3 className="w-8 h-8" />
           </div>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={classAverages.length > 0 ? classAverages : [
-                { name: 'JHS 1', average: 78 },
-                { name: 'JHS 2', average: 82 },
-                { name: 'JHS 3', average: 85 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#64748b" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff', fontSize: '12px' }}
-                />
-                <Bar dataKey="average" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Attendance Trends Area Chart */}
-        <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
-              <TrendingUp className="w-4 h-4 text-blue-400" />
-              Attendance Velocity
-            </h3>
-          </div>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={attendanceTrend}>
-                <defs>
-                  <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#64748b" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff', fontSize: '12px' }}
-                />
-                <Area type="monotone" dataKey="percentage" stroke="#3B82F6" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Grade Distribution Pie Chart */}
-        <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
-              <PieIcon className="w-4 h-4 text-amber-400" />
-              Grade Distribution
-            </h3>
-          </div>
-          <div className="flex-1 min-h-0 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={gradeDist.some(g => g.value > 0) ? gradeDist : [
-                    { name: 'A', value: 12 },
-                    { name: 'B', value: 24 },
-                    { name: 'C', value: 18 },
-                    { name: 'D', value: 8 },
-                    { name: 'E', value: 4 },
-                    { name: 'F', value: 1 }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {gradeDist.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff', fontSize: '12px' }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-[#0F172A] p-8 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-2">
-              <Users className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Overall Average</span>
-            <span className="text-4xl font-black text-white">
-              {classAverages.length > 0 
-                ? Math.round(classAverages.reduce((acc, c) => acc + c.average, 0) / classAverages.length) 
-                : 79}%
-            </span>
-          </div>
-
-          <div className="bg-[#0F172A] p-8 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2">
-              <Award className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Class</span>
-            <span className="text-xl font-black text-white truncate w-full px-4">
-              {classAverages[0]?.name || 'JHS 3'}
-            </span>
-          </div>
-
-          <div className="col-span-2 bg-gradient-to-br from-blue-900/20 to-transparent p-6 rounded-2xl border border-blue-900/30">
-            <div className="flex items-center gap-2 text-blue-400 font-bold mb-2">
-              <TrendingUp className="w-4 h-4" />
-              AI Insight
-            </div>
-            <p className="text-[10px] text-slate-400 leading-relaxed">
-              Academic velocity has increased by 12% compared to Term 2. Strongest improvement observed in JHS 2 Mathematics. Attendance remains stable at 94% institutional average.
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-white">No Enrollment or Performance Records</h3>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Institutional performance analytics will automatically populate in real-time once students are enrolled and academic terminal reports are generated.
             </p>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Class Averages Bar Chart */}
+          <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
+                <Activity className="w-4 h-4 text-emerald-400" />
+                Class Performance Index
+              </h3>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={classAverages}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#64748b" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="#64748b" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="average" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Attendance Trends Area Chart */}
+          <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
+                <TrendingUp className="w-4 h-4 text-blue-400" />
+                Attendance Velocity
+              </h3>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={attendanceTrend}>
+                  <defs>
+                    <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#64748b" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="#64748b" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff', fontSize: '12px' }}
+                  />
+                  <Area type="monotone" dataKey="percentage" stroke="#3B82F6" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Grade Distribution Pie Chart */}
+          <div className="bg-[#0F172A] p-6 rounded-2xl border border-slate-800 shadow-xl h-[400px] flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest">
+                <PieIcon className="w-4 h-4 text-amber-400" />
+                Grade Distribution
+              </h3>
+            </div>
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={gradeDist}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {gradeDist.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff', fontSize: '12px' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-[#0F172A] p-8 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-2">
+                <Users className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Overall Average</span>
+              <span className="text-4xl font-black text-white">
+                {classAverages.length > 0 
+                  ? Math.round(classAverages.reduce((acc, c) => acc + c.average, 0) / classAverages.length) 
+                  : 0}%
+              </span>
+            </div>
+
+            <div className="bg-[#0F172A] p-8 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2">
+                <Award className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Class</span>
+              <span className="text-xl font-black text-white truncate w-full px-4">
+                {classAverages[0]?.name || 'N/A'}
+              </span>
+            </div>
+
+            <div className="col-span-2 bg-gradient-to-br from-blue-900/20 to-transparent p-6 rounded-2xl border border-blue-900/30">
+              <div className="flex items-center gap-2 text-blue-400 font-bold mb-2">
+                <TrendingUp className="w-4 h-4" />
+                AI Insight
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Institutional analytics reflect active student enrollment and verified bursary metrics.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

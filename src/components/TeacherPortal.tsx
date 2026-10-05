@@ -2456,7 +2456,10 @@ export default function TeacherPortal({
                           <span>{cls}</span>
                         </div>
                         <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                          {students.filter(s => s.className === cls).length || 6} Students
+                          {(() => {
+                            const count = students.filter(s => s.className === cls).length;
+                            return `${count} Student${count === 1 ? '' : 's'}`;
+                          })()}
                         </span>
                       </div>
                     ))}
