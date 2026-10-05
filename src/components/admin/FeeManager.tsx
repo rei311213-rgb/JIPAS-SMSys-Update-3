@@ -310,7 +310,7 @@ export default function FeeManager({
     const stored = getStoredDepartments().map(d => d.name);
     const fromStudents = students.map(s => s.department).filter(Boolean);
     const list = Array.from(new Set([...stored, ...fromStudents]));
-    return list.length > 0 ? list : ['Pre School', 'Primary School', 'Junior High School', 'Senior High School'];
+    return list.length > 0 ? list : ['Pre-School / Kindergarten', 'Primary School', 'Junior High School', 'Senior High School'];
   }, [students]);
 
   // Extract classes (filtered by selected department if not 'All')

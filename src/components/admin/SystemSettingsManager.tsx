@@ -3772,7 +3772,7 @@ export default function SystemSettingsManager({
                             <option value="Senior High School">Senior High School</option>
                             <option value="Junior High School">Junior High School</option>
                             <option value="Primary School">Primary School</option>
-                            <option value="Nursery & KG">Nursery & KG</option>
+                            <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
                             <option value="Science Department">Science Department</option>
                             <option value="Languages & Humanities">Languages & Humanities</option>
                             <option value="Mathematics & ICT">Mathematics & ICT</option>
@@ -3907,7 +3907,7 @@ export default function SystemSettingsManager({
                           <option value="Senior High School">Senior High School</option>
                           <option value="Junior High School">Junior High School</option>
                           <option value="Primary School">Primary School</option>
-                          <option value="Nursery & KG">Nursery & KG</option>
+                          <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
                           <option value="Creche">Creche</option>
                           <option value="Administration">Administration</option>
                           <option value="Accounts & Finance">Accounts & Finance</option>

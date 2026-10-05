@@ -52,13 +52,32 @@ export const INITIAL_GRADING_SCALES: GradingScaleItem[] = [
       { minScore: 40, maxScore: 44.99, grade: '8', remark: 'Lowest' },
       { minScore: 0, maxScore: 39.99, grade: '9', remark: 'Fail' }
     ]
+  },
+  {
+    id: 'gs-3',
+    department: 'Senior High School',
+    systemName: 'SHS 9-Point Grading Scale (WASSCE Standard)',
+    academicYear: '2025-2026',
+    term: 'Third Term',
+    bands: [
+      { minScore: 80, maxScore: 100, grade: 'A1', remark: 'Excellent' },
+      { minScore: 70, maxScore: 79.99, grade: 'B2', remark: 'Very Good' },
+      { minScore: 65, maxScore: 69.99, grade: 'B3', remark: 'Good' },
+      { minScore: 60, maxScore: 64.99, grade: 'C4', remark: 'Credit' },
+      { minScore: 55, maxScore: 59.99, grade: 'C5', remark: 'Credit' },
+      { minScore: 50, maxScore: 54.99, grade: 'C6', remark: 'Credit' },
+      { minScore: 45, maxScore: 49.99, grade: 'D7', remark: 'Pass' },
+      { minScore: 40, maxScore: 44.99, grade: 'E8', remark: 'Pass' },
+      { minScore: 0, maxScore: 39.99, grade: 'F9', remark: 'Fail' }
+    ]
   }
 ];
 
 export const INITIAL_SCORE_CONVERSIONS: ScoreConversionItem[] = [
   { id: 'sc-1', academicYear: '2025-2026', term: 'Third Term', department: 'Junior High School', classScoreWeight: 40, examScoreWeight: 60, description: 'Standard SBA 40% + Terminal Exam 60%' },
   { id: 'sc-2', academicYear: '2025-2026', term: 'Third Term', department: 'Primary School', classScoreWeight: 30, examScoreWeight: 70, description: 'Primary Class Work 30% + Exam 70%' },
-  { id: 'sc-3', academicYear: '2025-2026', term: 'Third Term', department: 'Pre School', classScoreWeight: 50, examScoreWeight: 50, description: 'Continuous assessment 50% + Term Assessment 50%' }
+  { id: 'sc-3', academicYear: '2025-2026', term: 'Third Term', department: 'Pre-School / Kindergarten', classScoreWeight: 50, examScoreWeight: 50, description: 'Continuous assessment 50% + Term Assessment 50%' },
+  { id: 'sc-shs', academicYear: '2025-2026', term: 'Third Term', department: 'Senior High School', classScoreWeight: 30, examScoreWeight: 70, description: 'SHS Term Work 30% + Terminal Exam 70%' }
 ];
 
 export default function ExaminationManager({
@@ -531,6 +550,9 @@ export default function ExaminationManager({
                 <option value="JHS 1">JHS 1</option>
                 <option value="JHS 2">JHS 2</option>
                 <option value="JHS 3">JHS 3</option>
+                <option value="SHS 1">SHS 1</option>
+                <option value="SHS 2">SHS 2</option>
+                <option value="SHS 3">SHS 3</option>
               </select>
             </div>
             <div>
@@ -689,6 +711,9 @@ export default function ExaminationManager({
                 <option value="JHS 1">JHS 1</option>
                 <option value="JHS 2">JHS 2</option>
                 <option value="JHS 3">JHS 3</option>
+                <option value="SHS 1">SHS 1</option>
+                <option value="SHS 2">SHS 2</option>
+                <option value="SHS 3">SHS 3</option>
               </select>
             </div>
             <div className="pt-4 text-slate-500 font-medium">
@@ -882,7 +907,7 @@ export default function ExaminationManager({
                   <option value="Senior High School">Senior High School (SHS)</option>
                   <option value="Junior High School">Junior High School</option>
                   <option value="Primary School">Primary School</option>
-                  <option value="Pre School">Pre School</option>
+                  <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
                 </select>
               </div>
 

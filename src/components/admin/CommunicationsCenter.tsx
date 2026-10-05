@@ -246,7 +246,7 @@ export default function CommunicationsCenter() {
                     <option value="Senior High School">Senior High School (SHS) Dept</option>
                     <option value="Junior High School">Junior High School (JHS) Dept</option>
                     <option value="Primary School">Primary School Dept</option>
-                    <option value="Kindergarten">Kindergarten / Pre-School</option>
+                    <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
                     <option value="Basic 1">Basic 1 Class</option>
                     <option value="Basic 2">Basic 2 Class</option>
                     <option value="Basic 3">Basic 3 Class</option>

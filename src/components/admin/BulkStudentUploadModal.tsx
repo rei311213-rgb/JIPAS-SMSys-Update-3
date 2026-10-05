@@ -190,7 +190,7 @@ export default function BulkStudentUploadModal({
         if (className.includes('JHS') || className.includes('Junior')) {
           department = 'Junior High School';
         } else if (className.includes('Creche') || className.includes('Nursery') || className.includes('KG')) {
-          department = 'Kindergarten';
+          department = 'Pre-School / Kindergarten';
         } else if (className.includes('SHS') || className.includes('Senior')) {
           department = 'Senior High School';
         } else {

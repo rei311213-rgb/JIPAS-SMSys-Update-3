@@ -258,7 +258,7 @@ export default function TeacherIdCardGenerator({
                                 JIPAS
                               </h3>
                               <p className="text-[8px] text-slate-300 uppercase tracking-widest font-semibold">
-                                Basic & Junior High School
+                                Primary, JHS & SHS
                               </p>
                             </div>
                           </div>

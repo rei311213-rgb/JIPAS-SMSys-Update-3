@@ -1572,7 +1572,17 @@ export async function saveReport(report: TermReport) {
 }
 
 export async function saveAllReports(reportsList: TermReport[]) {
-  return commitInBatchChunks('reports', reportsList, saveStoredReports);
+  const current = getStoredReports();
+  const next = [...current];
+  reportsList.forEach(report => {
+    const idx = next.findIndex(r => r.id === report.id);
+    if (idx >= 0) {
+      next[idx] = report;
+    } else {
+      next.push(report);
+    }
+  });
+  return commitInBatchChunks('reports', next, saveStoredReports);
 }
 
 export async function deleteReport(reportId: string) {

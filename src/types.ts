@@ -425,6 +425,7 @@ export interface TermReport {
   vacationDate?: string;
   rawScore?: number;
   aggregate?: string;
+  promotionDecision?: string;
 }
 
 export interface ClassReportBroadcast {

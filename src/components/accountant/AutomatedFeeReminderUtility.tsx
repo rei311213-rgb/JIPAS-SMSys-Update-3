@@ -316,7 +316,7 @@ export default function AutomatedFeeReminderUtility({
               className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
             >
               <option value="All">All Departments</option>
-              <option value="Pre School">Pre School</option>
+              <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
               <option value="Primary School">Primary School</option>
               <option value="Junior High School">Junior High School</option>
               <option value="Senior High School">Senior High School</option>

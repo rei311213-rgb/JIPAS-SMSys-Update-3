@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Teacher, Student, TermReport, ClassReportBroadcast, StudentBill, PaymentRecord, CalendarEvent, NotificationItem, TeacherAttendanceRecord, StudentAttendanceRecord, StaffLoginUpdateRequest, UserAccountItem } from '../types';
+import { Teacher, Student, TermReport, ScoreItem, ClassReportBroadcast, StudentBill, PaymentRecord, CalendarEvent, NotificationItem, TeacherAttendanceRecord, StudentAttendanceRecord, StaffLoginUpdateRequest, UserAccountItem } from '../types';
 import { 
   Building, School, BookOpen, Award, CheckCircle, Clock, Save, Bell, 
   Search, Users, Calendar, AlertCircle, FileText, Check, X, Phone, 
@@ -471,7 +471,7 @@ export default function TeacherPortal({
 
   // Department options filtered by teacher assigned classes
   const departmentOptions = useMemo(() => {
-    let baseDepts = ['Pre-School', 'Primary School', 'Junior High School', 'Senior High School'];
+    let baseDepts = ['Pre-School / Kindergarten', 'Primary School', 'Junior High School', 'Senior High School'];
     if (Array.isArray(departments) && departments.length > 0) {
       const names = departments.map(d => typeof d === 'object' ? d.name : d).filter(Boolean);
       baseDepts = Array.from(new Set(names));
@@ -589,6 +589,14 @@ export default function TeacherPortal({
   const [academicYear, setAcademicYear] = useState(() => getActiveAcademicPeriod().academicYear);
   const [academicTerm, setAcademicTerm] = useState(() => getActiveAcademicPeriod().academicTerm);
 
+  const findCurrentReport = (studentId: string, admissionNo?: string) => {
+    return reports.find(r => 
+      (r.studentId === studentId || (admissionNo && r.admissionNo === admissionNo)) && 
+      r.term === academicTerm && 
+      r.academicYear === academicYear
+    );
+  };
+
   useEffect(() => {
     const handleUpdate = () => {
       const current = getActiveAcademicPeriod();
@@ -647,19 +655,24 @@ export default function TeacherPortal({
 
   // Local scores buffer for editing subject scores
   // Keyed by student id -> { classScore: number, examScore: number }
-  const [subjectScores, setSubjectScores] = useState<Record<string, { classScore: number; examScore: number }>>(() => {
-    const initial: Record<string, { classScore: number; examScore: number }> = {};
-    students.forEach(st => {
-      const report = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
-      const scoreObj = report?.scores?.find(s => s.subject.toLowerCase() === defaultSubjects[0]?.toLowerCase());
-      if (scoreObj) {
-        initial[st.id] = { classScore: scoreObj.classScore, examScore: scoreObj.examScore };
-      } else {
-        initial[st.id] = { classScore: 0, examScore: 0 };
-      }
-    });
-    return initial;
-  });
+  const [subjectScores, setSubjectScores] = useState<Record<string, { classScore: number; examScore: number }>>({});
+
+  // Detailed SBA Score buffer: studentId -> { classwork: number, homework: number, classTest: number }
+  const [detailedSbaScores, setDetailedSbaScores] = useState<Record<string, {
+    classwork: number;
+    homework: number;
+    classTest: number;
+  }>>({});
+
+  // Student Terminal Remarks buffer: studentId -> remarks object
+  const [terminalRemarks, setTerminalRemarks] = useState<Record<string, {
+    conduct: string;
+    attitude: string;
+    interest: string;
+    teacherComment: string;
+    attendancePresent: number;
+    promotionDecision: string;
+  }>>({});
 
   // Attendance & Remarks State
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().slice(0, 10));
@@ -690,36 +703,61 @@ export default function TeacherPortal({
     }
   }, [selectedClass, attendanceDate, studentAttendanceRecords, students.length]);
   
-  // Student Terminal Remarks buffer: studentId -> remarks object
-  const [terminalRemarks, setTerminalRemarks] = useState<Record<string, {
-    conduct: string;
-    attitude: string;
-    interest: string;
-    teacherComment: string;
-    attendancePresent: number;
-    promotionDecision: string;
-  }>>(() => {
-    const initial: Record<string, any> = {};
-    students.forEach(st => {
-      const rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
-      initial[st.id] = {
-        conduct: rep?.conduct || 'Good & respectful',
-        attitude: rep?.attitude || 'Attentive and eager to learn',
-        interest: rep?.interest || 'Reading & Sports',
-        teacherComment: rep?.teacherComment || 'Satisfactory performance. Shows great potential.',
-        attendancePresent: rep?.attendancePresent || 66,
-        promotionDecision: 'Promoted'
-      };
-    });
-    return initial;
-  });
-
   // Password Change State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordToast, setPasswordToast] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  // Sync subjectScores, detailedSbaScores, and terminalRemarks buffer when context changes
+  useEffect(() => {
+    const nextSubjectScores: Record<string, { classScore: number; examScore: number }> = {};
+    const nextDetailedSbaScores: Record<string, { classwork: number; homework: number; classTest: number }> = {};
+    const nextTerminalRemarks: Record<string, any> = {};
+
+    students.forEach(st => {
+      const rep = findCurrentReport(st.id, st.admissionNo);
+      
+      // Sync Subject Scores
+      const scoreObj = rep?.scores?.find(s => s.subject.toLowerCase() === selectedSubject.toLowerCase());
+      if (scoreObj) {
+        nextSubjectScores[st.id] = { classScore: scoreObj.classScore || 0, examScore: scoreObj.examScore || 0 };
+      } else {
+        nextSubjectScores[st.id] = { classScore: 0, examScore: 0 };
+      }
+
+      // Sync Detailed SBA
+      nextDetailedSbaScores[st.id] = {
+        classwork: scoreObj?.classWork || 0,
+        homework: scoreObj?.homework || 0,
+        classTest: scoreObj?.projectTest || 0
+      };
+      
+      if (scoreObj && !scoreObj.classWork && !scoreObj.homework && !scoreObj.projectTest && scoreObj.classScore > 0) {
+         // Backwards compatibility split if we only have the total
+         nextDetailedSbaScores[st.id] = {
+           classwork: Math.min(10, Math.floor(scoreObj.classScore * 0.25)),
+           homework: Math.min(10, Math.floor(scoreObj.classScore * 0.25)),
+           classTest: Math.min(20, Math.floor(scoreObj.classScore * 0.5))
+         };
+      }
+
+      // Sync Terminal Remarks
+      nextTerminalRemarks[st.id] = {
+        conduct: rep?.conduct || 'Good & respectful',
+        attitude: rep?.attitude || 'Attentive and eager to learn',
+        interest: rep?.interest || 'Reading & Sports',
+        teacherComment: rep?.teacherComment || 'Satisfactory performance. Shows great potential.',
+        attendancePresent: rep?.attendancePresent || 0,
+        promotionDecision: rep?.promotionDecision || 'Promoted'
+      };
+    });
+
+    setSubjectScores(nextSubjectScores);
+    setDetailedSbaScores(nextDetailedSbaScores);
+    setTerminalRemarks(nextTerminalRemarks);
+  }, [selectedSubject, selectedClass, reports, academicYear, academicTerm, students]);
 
   // Class students filtered
   const classStudents = students.filter(s => {
@@ -790,23 +828,6 @@ export default function TeacherPortal({
   // Continuous Assessment (SBA) Breakdown Mode Toggle
   const [isDetailedSbaMode, setIsDetailedSbaMode] = useState<boolean>(false);
   const [isBulkEditMode, setIsBulkEditMode] = useState<boolean>(false);
-  
-  // Detailed SBA Score buffer: studentId -> { classwork: number, homework: number, classTest: number }
-  const [detailedSbaScores, setDetailedSbaScores] = useState<Record<string, {
-    classwork: number;
-    homework: number;
-    classTest: number;
-  }>>(() => {
-    const initial: Record<string, { classwork: number; homework: number; classTest: number }> = {};
-    students.forEach((st, idx) => {
-      initial[st.id] = {
-        classwork: 8 + (idx % 3),
-        homework: 8 + (idx % 3),
-        classTest: 14 + (idx % 7)
-      };
-    });
-    return initial;
-  });
 
   // Enroll New Student State for Teacher's Portal
   const [enrollmentActiveTab, setEnrollmentActiveTab] = useState<'form' | 'submissions'>('form');
@@ -991,7 +1012,7 @@ export default function TeacherPortal({
         ...sp,
         [studentId]: {
           classScore: totalSba,
-          examScore: sp[studentId]?.examScore ?? 50
+          examScore: sp[studentId]?.examScore ?? 0
         }
       }));
       return { ...prev, [studentId]: next };
@@ -1124,22 +1145,46 @@ export default function TeacherPortal({
     const updatedReportsList: TermReport[] = [];
 
     classStudents.forEach(st => {
-      const scoreData = subjectScores[st.id] || { classScore: 30, examScore: 50 };
+      const scoreData = subjectScores[st.id] || { classScore: 0, examScore: 0 };
       const total = scoreData.classScore + scoreData.examScore;
       const { grade, remark } = calculateGrade(total);
 
-      let rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+      let rep = findCurrentReport(st.id, st.admissionNo);
       if (!rep) {
-        // If no report exists, we can't save results into a non-existent object.
-        // We should skip or alert, but never generate a fake report with hardcoded values.
-        console.warn(`[TeacherPortal] No existing term report found for ${st.fullName}. Skipping score update.`);
-        return;
+        // If no report exists, create a new one instead of skipping
+        rep = {
+          id: `rep-${st.id}-${academicTerm.replace(/\s+/g, '-').toLowerCase()}-${academicYear}`,
+          studentId: st.id,
+          studentName: st.fullName,
+          admissionNo: st.admissionNo,
+          className: st.className,
+          academicYear,
+          term: academicTerm,
+          scores: [],
+          totalScore: 0,
+          averageScore: 0,
+          position: 'N/A',
+          isPublished: false,
+          conduct: 'Good',
+          attitude: 'Eager',
+          interest: 'Reading',
+          teacherComment: 'Satisfactory',
+          headmasterComment: 'Good effort.',
+          attendancePresent: 0,
+          attendanceTotal: 65
+        };
       }
 
       const existingScores = [...rep.scores];
       const existingIdx = existingScores.findIndex(s => s.subject.toLowerCase() === selectedSubject.toLowerCase());
-      const updatedScoreObj = {
+      
+      const detail = detailedSbaScores[st.id] || { classwork: 0, homework: 0, classTest: 0 };
+      
+      const updatedScoreObj: ScoreItem = {
         subject: selectedSubject,
+        classWork: detail.classwork,
+        homework: detail.homework,
+        projectTest: detail.classTest,
         classScore: scoreData.classScore,
         examScore: scoreData.examScore,
         total,
@@ -1275,7 +1320,7 @@ export default function TeacherPortal({
     setTerminalRemarks(prev => {
       const updated = { ...prev };
       classStudents.forEach(st => {
-        const rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+        const rep = findCurrentReport(st.id, st.admissionNo);
         const scores = subjectScores[st.id] || { classScore: 0, examScore: 0 };
         
         let totalAvg = scores.classScore + scores.examScore;
@@ -1391,7 +1436,7 @@ export default function TeacherPortal({
     const updatedReportsList: TermReport[] = [];
     classStudents.forEach(st => {
       const remarkData = terminalRemarks[st.id];
-      const rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+      const rep = findCurrentReport(st.id, st.admissionNo);
       if (rep && remarkData) {
         const updated: TermReport = {
           ...rep,
@@ -4272,7 +4317,7 @@ export default function TeacherPortal({
                             let totalAvgSum = 0;
                             let studentsWithScores = 0;
                             classStudents.forEach(st => {
-                              const rep = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+                              const rep = findCurrentReport(st.id, st.admissionNo);
                               if (rep?.scores && rep.scores.length > 0) {
                                 const avg = rep.scores.reduce((sum, s) => sum + s.total, 0) / rep.scores.length;
                                 totalAvgSum += avg;
@@ -4446,7 +4491,7 @@ export default function TeacherPortal({
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                         {classStudents.map((st, idx) => {
-                          const report = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+                          const report = findCurrentReport(st.id, st.admissionNo);
                           const subjectsCount = report?.scores?.length || 0;
                           
                           let totalSum = 0;
@@ -4538,7 +4583,7 @@ export default function TeacherPortal({
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                         {classStudents.map((st, idx) => {
-                          const report = reports.find(r => r.studentId === st.id || r.admissionNo === st.admissionNo);
+                          const report = findCurrentReport(st.id, st.admissionNo);
                           const val = terminalRemarks[st.id] || {
                             conduct: 'Excellent, respectful & highly disciplined',
                             attitude: 'Very attentive, diligent & hardworking',
@@ -4750,7 +4795,7 @@ export default function TeacherPortal({
                         <div>
                           <span className="block text-[9px] font-black uppercase text-slate-400">Attendance</span>
                           <span className="font-bold text-slate-950 mt-0.5 block">
-                            {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendancePresent ?? 0} / {reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo)?.attendanceTotal ?? 0} days
+                            {findCurrentReport(reviewingStudent.id, reviewingStudent.admissionNo)?.attendancePresent ?? 0} / {findCurrentReport(reviewingStudent.id, reviewingStudent.admissionNo)?.attendanceTotal ?? 0} days
                           </span>
                         </div>
                       </div>
@@ -4853,7 +4898,7 @@ export default function TeacherPortal({
                           </span>
                           <div className="space-y-2 text-xs">
                             {(() => {
-                              const rep = reports.find(r => r.studentId === reviewingStudent.id || r.admissionNo === reviewingStudent.admissionNo);
+                              const rep = findCurrentReport(reviewingStudent.id, reviewingStudent.admissionNo);
                               return (
                                 <>
                                   <div>

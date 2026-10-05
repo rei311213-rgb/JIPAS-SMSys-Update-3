@@ -979,7 +979,7 @@ export default function FeesSettingsManager({
                     <option value="Senior High School (All)">Senior High School (SHS 1 - 3)</option>
                     <option value="Junior High School (All)">Junior High School (JHS 1 - 3)</option>
                     <option value="Primary School (All)">Primary School (Basic 1 - 6)</option>
-                    <option value="Pre School">Pre School (Creche, Nursery, KG)</option>
+                    <option value="Pre-School / Kindergarten">Pre-School / Kindergarten (Creche, Nursery, KG)</option>
                     <option value="Basic 1">Basic 1</option>
                     <option value="Basic 2">Basic 2</option>
                     <option value="JHS 1">JHS 1</option>
@@ -2429,7 +2429,7 @@ export default function FeesSettingsManager({
                     onChange={(e) => setTariffFormData({ ...tariffFormData, dept: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="Pre School">Pre School</option>
+                    <option value="Pre-School / Kindergarten">Pre-School / Kindergarten</option>
                     <option value="Primary School">Primary School</option>
                     <option value="Junior High School">Junior High School</option>
                     <option value="Senior High School">Senior High School</option>

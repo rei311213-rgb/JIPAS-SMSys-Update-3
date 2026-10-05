@@ -73,9 +73,10 @@ const PAYMENT_METHODS = [
 const DEPARTMENTS = [
   'General Operations',
   'Academic Faculty',
+  'Senior High School',
   'Primary School',
   'Junior High School',
-  'Pre School',
+  'Pre-School / Kindergarten',
   'Accounts & Finance',
   'Secretarial Desk',
   'Estate & Infrastructure',
