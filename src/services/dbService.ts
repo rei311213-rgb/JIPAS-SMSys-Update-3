@@ -30,6 +30,7 @@ export type QueryConstraint = any;
 import { getActiveCampus, Campus, isAllCampus } from '../lib/campusUtils';
 import { idbClear } from './idbService';
 import { formatCurrency, calculateBillBalance, addMoney, getPaymentStatus } from '../utils/financeUtils';
+import { syncAllBillsWithPayments } from './financialLedgerCalculationService';
 // ... rest of imports
 
 /**
@@ -73,6 +74,7 @@ import {
   subscribeSupabaseRealtime,
   scheduleCloudSyncPush,
   clearDemoDataLocally,
+  enqueuePendingMutation,
   UnsyncedDraft
 } from './syncService';
 
@@ -160,7 +162,17 @@ export async function forceSyncCollections(userRole?: string): Promise<boolean> 
       console.warn('[dbService] Purge orphaned check notice:', purgeErr);
     }
 
-    // 4. Data Provider 3 & 4: IndexedDB and UI Broadcaster
+    // 4. Reconcile all bills with payments to ensure 100% balance integrity across devices
+    try {
+      const currentBills = getStoredBills();
+      const currentPayments = getStoredPayments();
+      const reconciledBills = syncAllBillsWithPayments(currentBills, currentPayments);
+      saveStoredBills(reconciledBills);
+    } catch (reconcileErr) {
+      console.warn('[dbService] Bill ledger synchronization error:', reconcileErr);
+    }
+
+    // 5. Data Provider 3 & 4: IndexedDB and UI Broadcaster
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('jipas_cloud_synced', {
         detail: {
@@ -489,10 +501,16 @@ export async function seedInitialDatabase() {
   }
   try {
     const demoStatusSnap = await getDoc(doc(db, 'systemSettings', 'demoStatus'));
-    if (demoStatusSnap.exists() && demoStatusSnap.data().demoDataCleared) {
-      setDemoDataCleared(true);
-      console.log('[dbService] Demo data previously cleared on remote database, skipping auto-seed.');
-      return;
+    if (demoStatusSnap.exists() && demoStatusSnap.data()?.demoDataCleared) {
+      const hasActiveRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0;
+      if (!hasActiveRecords) {
+        setDemoDataCleared(true);
+        console.log('[dbService] Demo data previously cleared on remote database, skipping auto-seed.');
+        return;
+      } else {
+        setDemoDataCleared(false);
+        setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+      }
     }
   } catch {}
 
@@ -1703,7 +1721,12 @@ export async function savePayment(payment: PaymentRecord) {
     throw new Error('Invalid payment record: ID and positive amount are required.');
   }
 
-  let verifiedPayment = { ...payment };
+  const nowIso = new Date().toISOString();
+  let verifiedPayment = { 
+    ...payment,
+    updatedAt: nowIso,
+    createdAt: (payment as any).createdAt || payment.date || nowIso
+  };
 
   // Call server-side duplicate payment validator before final db persistence
   try {
@@ -1773,7 +1796,8 @@ export async function savePayment(payment: PaymentRecord) {
           paid: sumPaid,
           paidAmount: sumPaid,
           balance,
-          status
+          status,
+          updatedAt: nowIso
         };
       }
       return bill;
@@ -1781,6 +1805,11 @@ export async function savePayment(payment: PaymentRecord) {
 
     if (billUpdated) {
       saveStoredBills(updatedBills);
+      for (const b of updatedBills) {
+        if (b.updatedAt === nowIso) {
+          enqueuePendingMutation('bills', b.id, 'UPDATE', b);
+        }
+      }
     }
   } catch (syncErr) {
     console.warn('[dbService] Bill ledger synchronization notice:', syncErr);

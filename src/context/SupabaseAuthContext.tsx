@@ -54,7 +54,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         
         // Only set initial campus if not already configured in localStorage
         if (typeof localStorage !== 'undefined' && !localStorage.getItem('jipas_active_campus')) {
-          if (userProfile && userProfile.campusId) {
+          if (userProfile && userProfile.campusId && (userProfile.campusId === 'JIPAS 1' || userProfile.campusId === 'JIPAS 2')) {
             localStorage.setItem('jipas_active_campus', userProfile.campusId);
             localStorage.setItem('jipas_selected_campus', userProfile.campusId);
             window.dispatchEvent(new Event('jipas_campus_changed'));
@@ -86,7 +86,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           // Initialize active campus only if none exists yet
           if (typeof localStorage !== 'undefined') {
             const activeCampus = localStorage.getItem('jipas_active_campus');
-            if (!activeCampus && userProfile.campusId) {
+            if ((!activeCampus || activeCampus === 'undefined' || activeCampus === 'null') && userProfile.campusId && (userProfile.campusId === 'JIPAS 1' || userProfile.campusId === 'JIPAS 2')) {
               localStorage.setItem('jipas_active_campus', userProfile.campusId);
               localStorage.setItem('jipas_selected_campus', userProfile.campusId);
               window.dispatchEvent(new Event('jipas_campus_changed'));
@@ -119,10 +119,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     setUser(authUser);
     setProfile(userProfile);
     
-    // --- ADDED: Campus State Correction ---
-    if (userProfile && typeof localStorage !== 'undefined') {
+    // --- Safe Campus State Configuration ---
+    if (userProfile && userProfile.campusId && (userProfile.campusId === 'JIPAS 1' || userProfile.campusId === 'JIPAS 2') && typeof localStorage !== 'undefined') {
       const activeCampus = localStorage.getItem('jipas_active_campus');
-      if (activeCampus !== userProfile.campusId) {
+      if (activeCampus !== userProfile.campusId && activeCampus !== 'General') {
         localStorage.setItem('jipas_active_campus', userProfile.campusId);
         localStorage.setItem('jipas_selected_campus', userProfile.campusId);
         window.dispatchEvent(new Event('jipas_campus_changed'));

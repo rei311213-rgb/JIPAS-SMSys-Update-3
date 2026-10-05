@@ -37,7 +37,7 @@ import JIPASLogo from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
 import ReceiptGenerationDashboard from './common/ReceiptGenerationDashboard';
 import { getStoredExpenses } from '../services/storageService';
-import { filterExpensesByCampus } from '../lib/campusUtils';
+import { getActiveCampus, setActiveCampus, filterExpensesByCampus } from '../lib/campusUtils';
 import { addMoney, subtractMoney, formatCurrency } from '../utils/financeUtils';
 
 interface CEOPortalProps {
@@ -88,14 +88,12 @@ export default function CEOPortal({
 
   // Multi-campus multi-campus state and shadow filters
   const [selectedCampus, setSelectedCampus] = useState<'General' | 'JIPAS 1' | 'JIPAS 2'>(() => {
-    const saved = localStorage.getItem('jipas_active_campus') || localStorage.getItem('jipas_selected_campus');
-    return (saved as any) || 'General';
+    return getActiveCampus();
   });
 
   useEffect(() => {
     const handleEvent = () => {
-      const active = (localStorage.getItem('jipas_active_campus') as any) || (localStorage.getItem('jipas_selected_campus') as any) || 'General';
-      setSelectedCampus(active);
+      setSelectedCampus(getActiveCampus());
     };
     window.addEventListener('jipas_campus_changed', handleEvent);
     return () => window.removeEventListener('jipas_campus_changed', handleEvent);
@@ -103,9 +101,7 @@ export default function CEOPortal({
 
   const handleCampusChange = (campus: 'General' | 'JIPAS 1' | 'JIPAS 2') => {
     setSelectedCampus(campus);
-    localStorage.setItem('jipas_active_campus', campus);
-    localStorage.setItem('jipas_selected_campus', campus);
-    window.dispatchEvent(new Event('jipas_campus_changed'));
+    setActiveCampus(campus);
   };
 
   const students = useMemo(() => {

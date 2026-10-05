@@ -108,6 +108,12 @@ export default function StaffAttendanceManager() {
 
   useEffect(() => {
     fetchCampuses();
+
+    const handleExitToDashboard = () => {
+      setActiveSubTab('today_attendance');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    return () => window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
   }, []);
 
   useEffect(() => {
@@ -661,7 +667,12 @@ export default function StaffAttendanceManager() {
       {/* LIVE ENTRANCE QR SCANNER TAB */}
       {activeSubTab === 'scan_qr' && (
         <div className="space-y-6">
-          <StaffAttendanceQRScanner currentUser={profile} employee={profile} />
+          <StaffAttendanceQRScanner 
+            currentUser={profile} 
+            employee={profile} 
+            onSuccess={() => setActiveSubTab('today_attendance')}
+            onClose={() => setActiveSubTab('today_attendance')}
+          />
         </div>
       )}
 

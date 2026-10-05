@@ -132,7 +132,19 @@ export default function TeacherManager({
   const [queryToast, setQueryToast] = useState(false);
 
   useEffect(() => {
-    setTeachersList(initialTeachers);
+    if (initialTeachers) {
+      setTeachersList(prev => {
+        if (!prev || prev.length === 0) return initialTeachers;
+        const map = new Map<string, Teacher>();
+        initialTeachers.forEach(t => map.set(t.id, t));
+        prev.forEach(t => {
+          if (!map.has(t.id)) {
+            map.set(t.id, t);
+          }
+        });
+        return Array.from(map.values());
+      });
+    }
   }, [initialTeachers]);
   
   // Modals

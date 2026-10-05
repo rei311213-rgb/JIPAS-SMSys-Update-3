@@ -47,6 +47,14 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
   }, [attendanceRecords]);
 
   const currentTeacher = teachers.find(t => t.email === currentUser?.email || t.name === currentUser?.name) || teachers[0];
+  useEffect(() => {
+    const handleExitToDashboard = () => {
+      setActiveTab('today_attendance');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    return () => window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+  }, []);
+
   const myTodayRecord = attendanceRecords.find(r => r.teacherId === currentTeacher?.id && r.date === selectedDate);
 
   const handleClockIn = (status: 'Present' | 'Late' | 'Excused') => {
@@ -186,7 +194,11 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
       {/* LIVE ENTRANCE QR SCANNER TAB */}
       {activeTab === 'scan_qr' && (
         <div className="space-y-4">
-          <StaffAttendanceQRScanner currentUser={currentUser} />
+          <StaffAttendanceQRScanner 
+            currentUser={currentUser} 
+            onSuccess={() => setActiveTab('today_attendance')}
+            onClose={() => setActiveTab('today_attendance')}
+          />
         </div>
       )}
 

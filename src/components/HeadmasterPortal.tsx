@@ -67,7 +67,14 @@ export default function HeadmasterPortal({
     const unsub = subscribeScoreApprovals((items) => {
       setScoreApprovals(items);
     });
-    return () => unsub();
+    const handleExitToDashboard = () => {
+      setActiveTab('overview');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    return () => {
+      unsub();
+      window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    };
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -692,7 +699,12 @@ export default function HeadmasterPortal({
       {/* 5. ATTENDANCE OVERSIGHT */}
       {activeTab === 'attendance' && (
         <div className="space-y-6">
-          <StaffAttendanceQRScanner currentUser={currentUser} employee={currentUser} />
+          <StaffAttendanceQRScanner 
+            currentUser={currentUser} 
+            employee={currentUser} 
+            onSuccess={() => setActiveTab('overview')}
+            onClose={() => setActiveTab('overview')}
+          />
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             <div className="border-b border-slate-100 pb-4">

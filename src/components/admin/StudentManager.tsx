@@ -126,11 +126,29 @@ export default function StudentManager({
   };
 
   useEffect(() => {
-    setStudentsList(initialStudents || []);
+    if (initialStudents) {
+      setStudentsList(prev => {
+        if (prev.length === 0) return initialStudents;
+        const map = new Map<string, Student>();
+        initialStudents.forEach(s => map.set(s.id, s));
+        prev.forEach(s => {
+          if (!map.has(s.id)) {
+            map.set(s.id, s);
+          }
+        });
+        return Array.from(map.values());
+      });
+    }
   }, [initialStudents]);
 
-  // Clean canonical students list without stale useMemo resurrecting deleted students
-  const effectiveStudentsList = studentsList;
+  // Clean canonical students list
+  const effectiveStudentsList = useMemo(() => {
+    if (!studentsList || studentsList.length === 0) return initialStudents || [];
+    const map = new Map<string, Student>();
+    (initialStudents || []).forEach(s => map.set(s.id, s));
+    studentsList.forEach(s => map.set(s.id, s));
+    return Array.from(map.values());
+  }, [studentsList, initialStudents]);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');

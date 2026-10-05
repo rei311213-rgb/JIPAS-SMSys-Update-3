@@ -639,7 +639,14 @@ export default function TeacherPortal({
     const unsub = subscribeTeacherAttendance((records) => {
       setAttendanceRecords(records);
     });
-    return () => unsub();
+    const handleExitToDashboard = () => {
+      setActiveView('dashboard');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    return () => {
+      unsub();
+      window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    };
   }, []);
 
   const todayStr = liveServerClock.toISOString().slice(0, 10);
@@ -5237,7 +5244,11 @@ export default function TeacherPortal({
 
           {activeView === 'scan_entrance_qr' && (
             <div className="space-y-4">
-              <StaffAttendanceQRScanner teacher={teacher} />
+              <StaffAttendanceQRScanner 
+                teacher={teacher} 
+                onSuccess={() => setActiveView('dashboard')}
+                onClose={() => setActiveView('dashboard')}
+              />
             </div>
           )}
 

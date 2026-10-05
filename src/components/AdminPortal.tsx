@@ -40,7 +40,7 @@ import FinancialAuditTrail from './common/FinancialAuditTrail';
 import ExpenseManager from './common/ExpenseManager';
 import ReceiptGenerationDashboard from './common/ReceiptGenerationDashboard';
 import NextTermBillingManager from './common/NextTermBillingManager';
-import { filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
+import { getActiveCampus, setActiveCampus, filterStudentsByCampus, filterTeachersByCampus, filterBillsByCampus, filterPaymentsByCampus, filterExpensesByCampus } from '../lib/campusUtils';
 import JIPASLogo, { getSchoolLogo } from './common/JIPASLogo';
 import CampusSelector from './common/CampusSelector';
 import DashboardSkeleton from './common/DashboardSkeleton';
@@ -65,7 +65,8 @@ import ReleaseManagementPanel from './admin/ReleaseManagementPanel';
 import ChangeAuditPanel from './admin/ChangeAuditPanel';
 import { useI18n } from '../i18n/I18nContext';
 import { PDFGeneratorService } from '../services/pdfService';
-import { addMoney } from '../utils/financeUtils';
+import { addMoney, subtractMoney } from '../utils/financeUtils';
+import { syncAllBillsWithPayments } from '../services/financialLedgerCalculationService';
 
 import { 
   INITIAL_ACADEMIC_YEARS, INITIAL_TERMS, INITIAL_DEPARTMENTS, 
@@ -478,24 +479,29 @@ export default function AdminPortal({
 
   // Campus Multi-Campus State and shadow filters
   const [selectedCampus, setSelectedCampus] = useState<'General' | 'JIPAS 1' | 'JIPAS 2'>(() => {
-    const saved = localStorage.getItem('jipas_active_campus') || localStorage.getItem('jipas_selected_campus');
-    return (saved as any) || 'General';
+    return getActiveCampus();
   });
 
   useEffect(() => {
     const handleEvent = () => {
-      const active = (localStorage.getItem('jipas_active_campus') as any) || (localStorage.getItem('jipas_selected_campus') as any) || 'General';
-      setSelectedCampus(active);
+      setSelectedCampus(getActiveCampus());
     };
     window.addEventListener('jipas_campus_changed', handleEvent);
     return () => window.removeEventListener('jipas_campus_changed', handleEvent);
   }, []);
 
+  // Listen for attendance scanner exit to return to dashboard
+  useEffect(() => {
+    const handleExit = () => {
+      setActiveModule('dashboard');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExit);
+    return () => window.removeEventListener('jipas_exit_to_dashboard', handleExit);
+  }, []);
+
   const handleCampusChange = (campus: 'General' | 'JIPAS 1' | 'JIPAS 2') => {
     setSelectedCampus(campus);
-    localStorage.setItem('jipas_active_campus', campus);
-    localStorage.setItem('jipas_selected_campus', campus);
-    window.dispatchEvent(new Event('jipas_campus_changed'));
+    setActiveCampus(campus);
   };
 
   const students = useMemo(() => {
@@ -702,16 +708,18 @@ export default function AdminPortal({
   const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
   const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
 
-  const activeStudentBills = useMemo(() => {
-    return bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
-  }, [bills, activeStudentIds, activeAdmissionNos]);
-
   const activeStudentPayments = useMemo(() => {
     return payments.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
   }, [payments, activeStudentIds, activeAdmissionNos]);
 
-  const totalRevenue = useMemo(() => addMoney(...activeStudentPayments.map(p => p.paid || 0)), [activeStudentPayments]);
-  const totalPending = useMemo(() => addMoney(...activeStudentBills.map(b => b.balance || 0)), [activeStudentBills]);
+  const activeStudentBills = useMemo(() => {
+    const rawBills = bills.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+    return syncAllBillsWithPayments(rawBills, activeStudentPayments);
+  }, [bills, activeStudentPayments, activeStudentIds, activeAdmissionNos]);
+
+  const totalRevenue = useMemo(() => addMoney(...activeStudentPayments.map(p => p.paid ?? p.amount ?? 0)), [activeStudentPayments]);
+  const totalBilled = useMemo(() => addMoney(...activeStudentBills.map(b => b.payable ?? b.subTotal ?? 0)), [activeStudentBills]);
+  const totalPending = useMemo(() => Math.max(0, subtractMoney(totalBilled, totalRevenue)), [totalBilled, totalRevenue]);
   
   // Notification calculations
   const unreadNotifications = notifications.filter(n => !n.read).length;

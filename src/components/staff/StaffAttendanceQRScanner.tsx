@@ -17,7 +17,10 @@ import {
   X,
   Radio,
   Check,
-  ShieldAlert
+  ShieldAlert,
+  ArrowLeft,
+  Home,
+  Volume2
 } from 'lucide-react';
 import { StaffAttendanceService } from '../../services/supabase/staffAttendanceService';
 import { getActiveAcademicPeriod } from '../../services/storageService';
@@ -98,6 +101,7 @@ export default function StaffAttendanceQRScanner({
   const [scanResult, setScanResult] = useState<{ 
     status: 'SIGNED_IN' | 'SIGNED_OUT' | 'OFFLINE_QUEUED'; 
     message: string; 
+    greeting: string;
     timestamp: string;
     staffName: string;
     campusName: string;
@@ -107,6 +111,26 @@ export default function StaffAttendanceQRScanner({
   const [detectedDevicesCount, setDetectedDevicesCount] = useState<number>(0);
   const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
   const [activePeriod, setActivePeriod] = useState(() => getActiveAcademicPeriod());
+  const [countdownSec, setCountdownSec] = useState<number | null>(null);
+  const autoExitTimerRef = useRef<any>(null);
+  const countdownIntervalRef = useRef<any>(null);
+
+  // Voice announcement helper for scan events
+  const speakGreeting = useCallback((phrase: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('[StaffQRScanner] Speech error:', e);
+      }
+    }
+  }, []);
 
   // Monitor active academic period changes
   useEffect(() => {
@@ -364,16 +388,34 @@ export default function StaffAttendanceQRScanner({
           profile.campusId || ''
         );
 
+        const greetingText = result.status === 'SIGNED_OUT' ? 'Goodbye' : 'Welcome to JIPAS';
+        speakGreeting(greetingText);
+
+        stopCameraStream();
         setScanResult({
           status: result.status,
           message: result.message,
+          greeting: greetingText,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           staffName: profile.fullName || 'Staff Member',
           campusName: formattedCampusName,
           date: todayDateStr
         });
 
-        if (onSuccess) onSuccess();
+        // Trigger automatic exit back to dashboard after greeting and countdown
+        setCountdownSec(3);
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = setInterval(() => {
+          setCountdownSec(prev => {
+            if (prev !== null && prev > 1) return prev - 1;
+            return 0;
+          });
+        }, 1000);
+
+        if (autoExitTimerRef.current) clearTimeout(autoExitTimerRef.current);
+        autoExitTimerRef.current = setTimeout(() => {
+          handleExitToDashboard();
+        }, 3200);
       } else {
         // OFFLINE QUEUE SUBMISSION
         await StaffAttendanceService.queueOfflineScan(
@@ -383,14 +425,34 @@ export default function StaffAttendanceQRScanner({
           profile.fullName
         );
 
+        const greetingText = 'Welcome to JIPAS';
+        speakGreeting(greetingText);
+
+        stopCameraStream();
         setScanResult({
           status: 'OFFLINE_QUEUED',
           message: 'Connection unavailable. The attendance event will be synchronized when connectivity returns.',
+          greeting: greetingText,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           staffName: profile.fullName || 'Staff Member',
           campusName: formattedCampusName,
           date: todayDateStr
         });
+
+        // Trigger automatic exit back to dashboard after greeting and countdown
+        setCountdownSec(3);
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = setInterval(() => {
+          setCountdownSec(prev => {
+            if (prev !== null && prev > 1) return prev - 1;
+            return 0;
+          });
+        }, 1000);
+
+        if (autoExitTimerRef.current) clearTimeout(autoExitTimerRef.current);
+        autoExitTimerRef.current = setTimeout(() => {
+          handleExitToDashboard();
+        }, 3200);
       }
     } catch (err: any) {
       console.error('[StaffQRScanner] QR processing error:', err);
@@ -635,11 +697,38 @@ export default function StaffAttendanceQRScanner({
   };
 
   // Close scanner and cleanup
-  const handleCloseScanner = () => {
+  const handleExitToDashboard = useCallback(() => {
+    if (autoExitTimerRef.current) {
+      clearTimeout(autoExitTimerRef.current);
+      autoExitTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
     stopCameraStream();
     setCameraState('IDLE');
+    if (onSuccess) onSuccess();
     if (onClose) onClose();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jipas_exit_to_dashboard'));
+    }
+  }, [onSuccess, onClose, stopCameraStream]);
+
+  const handleCloseScanner = () => {
+    handleExitToDashboard();
   };
+
+  useEffect(() => {
+    return () => {
+      if (autoExitTimerRef.current) {
+        clearTimeout(autoExitTimerRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5 max-w-xl mx-auto">
@@ -650,13 +739,22 @@ export default function StaffAttendanceQRScanner({
       <div className="text-center space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleExitToDashboard}
+              className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+              title="Exit and return to dashboard"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Dashboard</span>
+            </button>
+
             {isOffline ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                <WifiOff className="w-3 h-3" /> Connection: OFFLINE
+                <WifiOff className="w-3 h-3" /> OFFLINE
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                <Wifi className="w-3 h-3" /> Connection: ONLINE
+                <Wifi className="w-3 h-3" /> ONLINE
               </span>
             )}
           </div>
@@ -722,10 +820,24 @@ export default function StaffAttendanceQRScanner({
             <div className={`p-6 rounded-3xl border text-center space-y-4 animate-in fade-in shadow-md ${
               scanResult.status === 'OFFLINE_QUEUED' 
                 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100' 
+                : scanResult.status === 'SIGNED_OUT'
+                ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100'
                 : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100'
             }`}>
               <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
+              </div>
+
+              {/* Spoken Greeting Banner */}
+              <div className="pt-1">
+                <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-2xl text-base sm:text-lg font-black tracking-wide shadow-xs ${
+                  scanResult.status === 'SIGNED_OUT'
+                    ? 'bg-blue-600 text-white shadow-blue-500/20'
+                    : 'bg-emerald-600 text-white shadow-emerald-500/20'
+                }`}>
+                  <Volume2 className="w-5 h-5 animate-pulse shrink-0" />
+                  <span>{scanResult.greeting || (scanResult.status === 'SIGNED_OUT' ? 'Goodbye' : 'Welcome to JIPAS')}</span>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -758,12 +870,34 @@ export default function StaffAttendanceQRScanner({
                 </div>
               </div>
 
-              <div className="pt-2">
+              {/* Countdown badge & Auto-Exit feedback */}
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/80 py-2 px-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 max-w-sm mx-auto shadow-xs">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>
+                  {countdownSec !== null && countdownSec > 0
+                    ? `Recorded! Returning to dashboard in ${countdownSec}s...`
+                    : 'Recorded! Exiting to dashboard...'}
+                </span>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
-                  onClick={() => startCamera(facingMode)}
-                  className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg cursor-pointer transition"
+                  onClick={handleExitToDashboard}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
                 >
-                  Scan Again
+                  <ArrowLeft className="w-4 h-4" />
+                  Exit to Dashboard Now
+                </button>
+                <button
+                  onClick={() => {
+                    if (autoExitTimerRef.current) clearTimeout(autoExitTimerRef.current);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                    setCountdownSec(null);
+                    startCamera(facingMode);
+                  }}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs uppercase tracking-wider rounded-2xl cursor-pointer transition"
+                >
+                  Scan Another
                 </button>
               </div>
             </div>

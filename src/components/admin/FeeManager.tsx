@@ -29,6 +29,7 @@ import { INITIAL_FEE_OPTIONS_DATA } from '../../data/feeDescriptions';
 import { getStoredDepartments, getStoredClasses, getStoredRefunds, saveStoredRefunds, getStoredBills, saveStoredBills, getStoredPayments, saveStoredPayments, getStoredExpenses, getStoredSettings } from '../../services/storageService';
 import { subscribeRefunds, saveRefund, deleteRefund, savePayment, saveBill } from '../../services/dbService';
 import { applyTariffMatrixToAllBills, computeStudentBill } from '../../services/billingService';
+import { syncAllBillsWithPayments } from '../../services/financialLedgerCalculationService';
 import { printContent } from '../../utils/printUtils';
 
 interface FeeManagerProps {
@@ -644,22 +645,23 @@ export default function FeeManager({
   const activeStudentIds = useMemo(() => new Set(students.map(s => s.id)), [students]);
   const activeAdmissionNos = useMemo(() => new Set(students.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean)), [students]);
 
-  const activeBillsList = useMemo(() => {
-    return billsList.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
-  }, [billsList, activeStudentIds, activeAdmissionNos]);
-
   const activePaymentsList = useMemo(() => {
     return paymentsList.filter(p => activeStudentIds.has(p.studentId) || (p.admissionNo && activeAdmissionNos.has(p.admissionNo.toLowerCase().trim())));
   }, [paymentsList, activeStudentIds, activeAdmissionNos]);
+
+  const activeBillsList = useMemo(() => {
+    const raw = billsList.filter(b => activeStudentIds.has(b.studentId) || (b.admissionNo && activeAdmissionNos.has(b.admissionNo.toLowerCase().trim())));
+    return syncAllBillsWithPayments(raw, activePaymentsList);
+  }, [billsList, activePaymentsList, activeStudentIds, activeAdmissionNos]);
 
   // Compute Totals
   const totalIncome = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Income').map(i => i.amount || 0)), [incomeExpenses]);
   const totalExpense = useMemo(() => addMoney(...incomeExpenses.filter(i => i.type === 'Expense').map(i => i.amount || 0)), [incomeExpenses]);
   const netBalance = subtractMoney(totalIncome, totalExpense);
 
-  const totalBilled = useMemo(() => addMoney(...activeBillsList.map(b => b.payable ?? b.totalAmount ?? 0)), [activeBillsList]);
+  const totalBilled = useMemo(() => addMoney(...activeBillsList.map(b => b.payable ?? b.subTotal ?? 0)), [activeBillsList]);
   const totalPaid = useMemo(() => addMoney(...activeBillsList.map(b => b.paid ?? b.paidAmount ?? 0)), [activeBillsList]);
-  const totalOutstanding = useMemo(() => addMoney(...activeBillsList.map(b => b.balance ?? 0)), [activeBillsList]);
+  const totalOutstanding = useMemo(() => Math.max(0, subtractMoney(totalBilled, totalPaid)), [totalBilled, totalPaid]);
 
   const filteredPayments = activePaymentsList.filter(p => 
     p.studentName.toLowerCase().includes(paymentSearch.toLowerCase()) ||

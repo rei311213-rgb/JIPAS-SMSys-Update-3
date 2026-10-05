@@ -181,6 +181,14 @@ export default function SecretaryPortal({
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
 
+  useEffect(() => {
+    const handleExitToDashboard = () => {
+      setActiveTab('daily_records');
+    };
+    window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+    return () => window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+  }, []);
+
   const globalSearchResults = useMemo(() => {
     const q = globalSearchQuery.trim().toLowerCase();
     if (!q) return { students: [], payments: [], expenses: [], bills: [], totalCount: 0 };
@@ -2788,7 +2796,12 @@ export default function SecretaryPortal({
       {/* ------------------------------------------------------------- */}
       {activeTab === 'staff_attendance' && (
         <div className="space-y-6">
-          <StaffAttendanceQRScanner currentUser={secretary} employee={secretary} />
+          <StaffAttendanceQRScanner 
+            currentUser={secretary} 
+            employee={secretary} 
+            onSuccess={() => setActiveTab('daily_records')}
+            onClose={() => setActiveTab('daily_records')}
+          />
         </div>
       )}
 

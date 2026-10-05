@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { idbSet, idbClear, IDB_STORE_KEYS } from './idbService';
 import { getActiveCampus } from '../lib/campusUtils';
+import { syncAllBillsWithPayments } from './financialLedgerCalculationService';
 import {
   getStoredStudents,
   saveStoredStudents,
@@ -832,6 +833,17 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
           'payments'
         );
         saveStoredPayments(mergedPayments);
+      }
+
+      // --- Authoritative Cross-Device Ledger Recalculation ---
+      // Guarantees all student bills immediately and accurately reflect any payment recorded across all computers
+      try {
+        const currentMergedBills = getStoredBills();
+        const currentMergedPayments = getStoredPayments();
+        const synchronizedBills = syncAllBillsWithPayments(currentMergedBills, currentMergedPayments);
+        saveStoredBills(synchronizedBills);
+      } catch (ledgerSyncErr) {
+        console.warn('[Supabase Cloud Sync] Ledger synchronization notice:', ledgerSyncErr);
       }
 
       // --- Merge Reports ---

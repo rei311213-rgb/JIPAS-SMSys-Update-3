@@ -4,42 +4,73 @@ export const CAMPUSES: Campus[] = ['JIPAS 1', 'JIPAS 2', 'General'];
 
 export const getActiveCampus = (): Campus => {
   if (typeof localStorage === 'undefined') return 'General';
-  const selected = localStorage.getItem('jipas_selected_campus') as Campus;
-  if (selected) return selected;
-  return (localStorage.getItem('jipas_active_campus') as Campus) || 'General';
+  const selected = localStorage.getItem('jipas_selected_campus');
+  if (selected && selected !== 'undefined' && selected !== 'null' && selected.trim() !== '') {
+    const norm = selected.toLowerCase().trim();
+    if (norm === 'jipas 2' || norm === 'jipas2') return 'JIPAS 2';
+    if (norm === 'jipas 1' || norm === 'jipas1') return 'JIPAS 1';
+    if (norm === 'general' || norm === 'all' || norm === 'all campuses') return 'General';
+  }
+  const active = localStorage.getItem('jipas_active_campus');
+  if (active && active !== 'undefined' && active !== 'null' && active.trim() !== '') {
+    const norm = active.toLowerCase().trim();
+    if (norm === 'jipas 2' || norm === 'jipas2') return 'JIPAS 2';
+    if (norm === 'jipas 1' || norm === 'jipas1') return 'JIPAS 1';
+    if (norm === 'general' || norm === 'all' || norm === 'all campuses') return 'General';
+  }
+  return 'General';
 };
 
 export const setActiveCampus = (campus: Campus): void => {
   if (typeof localStorage === 'undefined') return;
-  localStorage.setItem('jipas_active_campus', campus);
-  localStorage.setItem('jipas_selected_campus', campus);
+  const validCampus: Campus = (campus === 'JIPAS 2' ? 'JIPAS 2' : campus === 'JIPAS 1' ? 'JIPAS 1' : 'General');
+  localStorage.setItem('jipas_active_campus', validCampus);
+  localStorage.setItem('jipas_selected_campus', validCampus);
   window.dispatchEvent(new Event('jipas_campus_changed'));
 };
 
-export const isAllCampus = (c?: string): boolean => {
+export const isAllCampus = (c?: string | null): boolean => {
   if (!c) return true;
-  const norm = c.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return norm === 'general' || norm === 'all' || norm === 'allcampuses' || norm === '';
+  const norm = String(c).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (
+    norm === 'general' ||
+    norm === 'all' ||
+    norm === 'allcampuses' ||
+    norm === '' ||
+    norm === 'undefined' ||
+    norm === 'null' ||
+    (norm !== 'jipas1' && norm !== 'jipas2')
+  );
 };
 
 /**
  * Global helper to filter students by selected campus.
  * Defaults unassigned students to 'JIPAS 1'.
+ * When 'General' or all campuses is active, returns ALL students without dropping any.
  */
-export function filterStudentsByCampus<T extends { campus?: string }>(students: T[], selectedCampus: Campus | string): T[] {
+export function filterStudentsByCampus<T extends { campus?: string; campus_id?: string }>(students: T[], selectedCampus: Campus | string): T[] {
   if (!students || !Array.isArray(students)) return [];
   if (isAllCampus(selectedCampus)) return students;
-  return students.filter(s => (s.campus || 'JIPAS 1') === selectedCampus);
+  const target = selectedCampus === 'JIPAS 2' ? 'JIPAS 2' : 'JIPAS 1';
+  return students.filter(s => {
+    const sc = s.campus || s.campus_id || 'JIPAS 1';
+    return sc === target;
+  });
 }
 
 /**
  * Global helper to filter teachers/staff by selected campus.
  * Defaults unassigned staff to 'JIPAS 1'.
+ * When 'General' or all campuses is active, returns ALL teachers without dropping any.
  */
-export function filterTeachersByCampus<T extends { campus?: string }>(teachers: T[], selectedCampus: Campus | string): T[] {
+export function filterTeachersByCampus<T extends { campus?: string; campus_id?: string }>(teachers: T[], selectedCampus: Campus | string): T[] {
   if (!teachers || !Array.isArray(teachers)) return [];
   if (isAllCampus(selectedCampus)) return teachers;
-  return teachers.filter(t => (t.campus || 'JIPAS 1') === selectedCampus);
+  const target = selectedCampus === 'JIPAS 2' ? 'JIPAS 2' : 'JIPAS 1';
+  return teachers.filter(t => {
+    const tc = t.campus || t.campus_id || 'JIPAS 1';
+    return tc === target;
+  });
 }
 
 /**
