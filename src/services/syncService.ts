@@ -732,14 +732,33 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
     const remoteRevision = typeof remotePayload.revision === 'number' ? remotePayload.revision : 1;
     saveStoredRemoteRevision(remoteRevision);
 
+    const localStudents = getStoredStudents();
+    const localTeachers = getStoredTeachers();
+    const hasActiveLocalStaffOrStudents = localStudents.length > 0 || localTeachers.length > 0;
+
+    // Handle remote reset signal: ONLY purge if remote cleared demo data, remote has no students,
+    // and local device has NOT yet acknowledged this reset AND has no newly created active records!
     if (remotePayload.demoDataCleared === true) {
-      const hasLocalRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0 || getStoredBills().length > 0 || getStoredReports().length > 0;
-      if (!isDemoDataCleared() || hasLocalRecords) {
-        console.log('[Supabase Cloud Sync] Remote demo cleared signal received. Purging local cache on this device.');
+      const remoteClearedAt = remotePayload.clearedAt || 'initial_clear';
+      const lastAck = typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_demo_cleared_acknowledged_at') : null;
+
+      if (!hasActiveLocalStaffOrStudents && lastAck !== remoteClearedAt) {
+        console.log('[Supabase Cloud Sync] Remote demo cleared signal received. Purging initial demo cache on this device.');
         await clearDemoDataLocally();
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('jipas_demo_cleared_acknowledged_at', remoteClearedAt);
+        }
         setSyncSessionStatus('REMOTE_BASELINE_ESTABLISHED');
         updateCloudSyncStatus({ isSyncing: false });
         return { success: true, studentsCount: 0, revision: remoteRevision };
+      } else if (hasActiveLocalStaffOrStudents) {
+        // Active enrolled students or staff exist locally; do NOT purge!
+        // Immediately mark cleared acknowledged so it never triggers, and mark demoDataCleared = false
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('jipas_demo_cleared_acknowledged_at', remoteClearedAt);
+        }
+        setDemoDataCleared(false);
+        scheduleCloudSyncPush();
       }
     }
 
@@ -942,6 +961,14 @@ export async function pushToSupabaseCloud(): Promise<boolean> {
     const currentRevision = getStoredRemoteRevision();
     const newRevision = currentRevision + 1;
 
+    const currentStudents = getStoredStudents();
+    const currentTeachers = getStoredTeachers();
+    const hasActiveRecords = currentStudents.length > 0 || currentTeachers.length > 0;
+
+    if (hasActiveRecords && isDemoDataCleared()) {
+      setDemoDataCleared(false);
+    }
+
     const payload = {
       version: 2,
       revision: newRevision,
@@ -949,9 +976,10 @@ export async function pushToSupabaseCloud(): Promise<boolean> {
       lastModifiedSessionId: sessionId,
       lastSyncedAt: new Date().toISOString(),
       tombstones: getTombstones(),
-      demoDataCleared: isDemoDataCleared(),
-      students: getStoredStudents(),
-      teachers: getStoredTeachers(),
+      demoDataCleared: !hasActiveRecords && isDemoDataCleared(),
+      clearedAt: (!hasActiveRecords && isDemoDataCleared()) ? (typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_demo_cleared_acknowledged_at') : null) : null,
+      students: currentStudents,
+      teachers: currentTeachers,
       bills: getStoredBills(),
       payments: getStoredPayments(),
       reports: getStoredReports(),

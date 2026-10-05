@@ -129,12 +129,24 @@ export async function forceSyncCollections(userRole?: string): Promise<boolean> 
     // 2. Data Provider 2: Firebase Firestore Canonical Verification
     try {
       const demoStatusDoc = await getDoc(doc(db, 'systemSettings', 'demoStatus'));
-      if (demoStatusDoc.exists() && demoStatusDoc.data()?.demoDataCleared === true) {
-        const hasLocalRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0 || getStoredBills().length > 0 || getStoredReports().length > 0;
-        if (!isDemoDataCleared() || hasLocalRecords) {
-          console.log('[dbService] Firestore reports demoDataCleared=true. Purging local cache on this device.');
+      if (demoStatusDoc.exists()) {
+        const isRemoteCleared = demoStatusDoc.data()?.demoDataCleared === true;
+        const remoteClearedAt = demoStatusDoc.data()?.clearedAt;
+        const lastAck = typeof localStorage !== 'undefined' ? localStorage.getItem('jipas_demo_cleared_acknowledged_at') : null;
+        const hasLocalActiveRecords = getStoredStudents().length > 0 || getStoredTeachers().length > 0;
+
+        if (isRemoteCleared && !hasLocalActiveRecords && remoteClearedAt && lastAck !== remoteClearedAt) {
+          console.log('[dbService] Firestore reports demoDataCleared=true. Purging initial demo cache on this device.');
           await clearDemoDataLocally();
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('jipas_demo_cleared_acknowledged_at', remoteClearedAt);
+          }
           hasSuccess = true;
+        } else if (hasLocalActiveRecords && isRemoteCleared) {
+          // Real active records exist locally; ensure Firestore demoStatus is marked false!
+          setDemoDataCleared(false);
+          await setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+          await setDoc(doc(db, 'settings', 'general'), { demoDataCleared: false }, { merge: true }).catch(() => {});
         }
       }
     } catch (fsErr) {
@@ -1028,14 +1040,34 @@ export async function saveStudent(student: Student) {
   });
 
   saveStoredStudents(deduplicated);
+  setDemoDataCleared(false);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('jipas_demo_cleared_acknowledged_at');
+  }
+  try {
+    setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: nowIso }, { merge: true }).catch(() => {});
+    setDoc(doc(db, 'settings', 'general'), { demoDataCleared: false }, { merge: true }).catch(() => {});
+  } catch {}
+
+  // Immediately push the newly saved student to Supabase Cloud
+  scheduleCloudSyncPush();
+  pushToSupabaseCloud().catch(console.warn);
+
   console.log(`[dbService:saveStudent] Local cache updated for ${studentWithMeta.id} (${studentWithMeta.fullName}). Total stored: ${deduplicated.length}`);
   return studentWithMeta;
 }
 
 export async function saveAllStudents(studentsList: Student[]) {
-  setDemoDataCleared(false);
-  const activeCampus = getActiveCampus();
   const nowIso = new Date().toISOString();
+  setDemoDataCleared(false);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('jipas_demo_cleared_acknowledged_at');
+  }
+  try {
+    setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: nowIso }, { merge: true }).catch(() => {});
+    setDoc(doc(db, 'settings', 'general'), { demoDataCleared: false }, { merge: true }).catch(() => {});
+  } catch {}
+  const activeCampus = getActiveCampus();
 
   // Deduplicate studentsList by ID & admissionNo before saving
   const uniqueMap = new Map<string, Student>();
@@ -1070,6 +1102,8 @@ export async function saveAllStudents(studentsList: Student[]) {
 
   const cleanList = Array.from(uniqueMap.values());
   await commitInBatchChunks('students', cleanList, saveStoredStudents);
+  scheduleCloudSyncPush();
+  pushToSupabaseCloud().catch(console.warn);
   console.log(`[dbService:saveAllStudents] Bulk write completed for ${cleanList.length} student(s) in chunked writeBatch.`);
 }
 
@@ -1567,7 +1601,15 @@ export async function saveTeacher(teacher: Teacher) {
   if (!teacher.name || !teacher.name.trim()) {
     throw new Error('Teacher validation failed: Name is required.');
   }
-  return executeCloudWrite(
+  setDemoDataCleared(false);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('jipas_demo_cleared_acknowledged_at');
+  }
+  try {
+    setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+    setDoc(doc(db, 'settings', 'general'), { demoDataCleared: false }, { merge: true }).catch(() => {});
+  } catch {}
+  const res = await executeCloudWrite(
     'teachers',
     teacher.id,
     teacher,
@@ -1580,10 +1622,24 @@ export async function saveTeacher(teacher: Teacher) {
     undefined,
     `Teacher: ${teacher.name}`
   );
+  scheduleCloudSyncPush();
+  pushToSupabaseCloud().catch(console.warn);
+  return res;
 }
 
 export async function saveAllTeachers(teachersList: Teacher[]) {
-  return commitInBatchChunks('teachers', teachersList, saveStoredTeachers);
+  setDemoDataCleared(false);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('jipas_demo_cleared_acknowledged_at');
+  }
+  try {
+    setDoc(doc(db, 'systemSettings', 'demoStatus'), { demoDataCleared: false, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+    setDoc(doc(db, 'settings', 'general'), { demoDataCleared: false }, { merge: true }).catch(() => {});
+  } catch {}
+  const res = await commitInBatchChunks('teachers', teachersList, saveStoredTeachers);
+  scheduleCloudSyncPush();
+  pushToSupabaseCloud().catch(console.warn);
+  return res;
 }
 
 export async function deleteTeacher(teacherId: string) {
@@ -3068,12 +3124,17 @@ export async function clearDemoData(onProgress?: (progressPercent: number, curre
 
   // Sync cleared demo status to Firestore
   try {
+    const clearedTimestamp = new Date().toISOString();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('jipas_demo_cleared_acknowledged_at', clearedTimestamp);
+    }
     await setDoc(doc(db, 'systemSettings', 'demoStatus'), { 
       demoDataCleared: true, 
-      clearedAt: new Date().toISOString() 
+      clearedAt: clearedTimestamp 
     }, { merge: true });
     await setDoc(doc(db, 'settings', 'general'), { 
-      demoDataCleared: true 
+      demoDataCleared: true,
+      clearedAt: clearedTimestamp 
     }, { merge: true });
 
     // Push cleared state to Supabase cloud so other devices sync immediately

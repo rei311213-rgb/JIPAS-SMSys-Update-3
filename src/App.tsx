@@ -48,7 +48,8 @@ import {
   saveStoredSecretarySummaries,
   saveStoredNotifications,
   saveStoredBankDeposits,
-  saveStoredSecurityAuditLogs
+  saveStoredSecurityAuditLogs,
+  setDemoDataCleared
 } from './services/storageService';
 import {
   saveStoredPayrollRuns,
@@ -466,7 +467,13 @@ export default function App() {
       applyThemePaletteToDom(palette);
     }));
     unsubs.push(subscribeDemoStatus((cleared) => {
-      if (cleared) handleClearAllData(true);
+      const storedSt = getStoredStudents();
+      const storedTc = getStoredTeachers();
+      if (cleared && storedSt.length === 0 && storedTc.length === 0) {
+        handleClearAllData(true);
+      } else if (storedSt.length > 0 || storedTc.length > 0) {
+        setDemoDataCleared(false);
+      }
     }));
 
     // Role-protected subscriptions
