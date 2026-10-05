@@ -1234,6 +1234,7 @@ export default function App() {
                 notifications={notifications}
                 broadcasts={broadcasts}
                 onUpdateReport={handleUpdateSingleReport}
+                onUpdateReports={handleUpdateReports}
                 onUpdateBroadcasts={handleUpdateBroadcasts}
                 onAddStudent={handleAddStudent}
                 onRestoreData={handleRestoreData}

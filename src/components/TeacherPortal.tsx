@@ -120,6 +120,7 @@ interface TeacherPortalProps {
   notifications?: NotificationItem[];
   broadcasts?: ClassReportBroadcast[];
   onUpdateReport?: (updatedReport: TermReport) => void;
+  onUpdateReports?: (updatedReports: TermReport[]) => void;
   onUpdateBroadcasts?: (updatedBroadcasts: ClassReportBroadcast[]) => void;
   onAddStudent?: (newStudent: Student) => void;
   onRestoreData?: (data: {
@@ -279,6 +280,7 @@ export default function TeacherPortal({
   courses = [],
   houses = [],
   onUpdateReport,
+  onUpdateReports,
   onUpdateBroadcasts,
   onAddStudent,
   onRestoreData,
@@ -1209,14 +1211,16 @@ export default function TeacherPortal({
       };
 
       updatedReportsList.push(fullUpdatedReport);
-      if (onUpdateReport) {
-        onUpdateReport(fullUpdatedReport);
-      }
     });
 
     // Save batch reports to Supabase for persistent cross-device storage
     try {
       await saveAllReports(updatedReportsList);
+      if (onUpdateReports) {
+        onUpdateReports(updatedReportsList);
+      } else {
+        window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+      }
     } catch (err) {
       console.error('Failed to sync scores to database:', err);
     }
@@ -1448,13 +1452,15 @@ export default function TeacherPortal({
           promotionStatus: remarkData.promotionDecision
         };
         updatedReportsList.push(updated);
-        if (onUpdateReport) {
-          onUpdateReport(updated);
-        }
       }
     });
     try {
       await saveAllReports(updatedReportsList);
+      if (onUpdateReports) {
+        onUpdateReports(updatedReportsList);
+      } else {
+        window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+      }
     } catch (err) {
       console.error('Failed to sync bulk remarks to database:', err);
     }

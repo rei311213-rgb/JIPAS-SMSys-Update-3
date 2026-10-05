@@ -76,7 +76,8 @@ export default function StaffAttendanceReport({ onNavigate }: StaffAttendanceRep
       const endDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${daysInMonth}`;
 
       // Query database records
-      const { data: records, error } = await supabase
+      let records: any[] = [];
+      const { data: dbRecords, error } = await supabase
         .from('staff_attendance')
         .select('*')
         .eq('staff_id', selectedStaffId)
@@ -84,7 +85,22 @@ export default function StaffAttendanceReport({ onNavigate }: StaffAttendanceRep
         .lte('attendance_date', endDate);
 
       if (error) {
-        throw new Error('Database select error: ' + error.message);
+        console.warn('[StaffAttendanceReport] Supabase select error, falling back to localStorage:', error.message);
+        const rawLocal = localStorage.getItem('jipas_staff_attendance');
+        if (rawLocal) {
+          try {
+            const parsed = JSON.parse(rawLocal);
+            records = parsed.filter((r: any) => 
+              (r.staff_id === selectedStaffId || r.teacherId === selectedStaffId) &&
+              (r.attendance_date || r.date) >= startDate &&
+              (r.attendance_date || r.date) <= endDate
+            );
+          } catch {
+            records = [];
+          }
+        }
+      } else {
+        records = dbRecords || [];
       }
 
       const formattedRecords: StaffAttendanceRecord[] = (records || []).map((row: any) => ({

@@ -16,7 +16,10 @@ import {
   FileText,
   User,
   Calendar,
-  CreditCard
+  CreditCard,
+  Clock,
+  Check,
+  History
 } from 'lucide-react';
 import { getStoredPayments, getStoredStudents } from '../../services/storageService';
 import { formatCurrency } from '../../utils/financeUtils';
@@ -35,6 +38,15 @@ export interface VerificationResult {
   parsedData?: any;
 }
 
+export interface RecentScanItem {
+  id: string;
+  receiptNo: string;
+  studentName: string;
+  amount: number;
+  status: 'AUTHENTIC' | 'VOIDED' | 'UNVERIFIED' | 'INVALID_QR';
+  timestamp: string;
+}
+
 export default function ReceiptQRVerificationModal({
   isOpen,
   onClose,
@@ -46,12 +58,29 @@ export default function ReceiptQRVerificationModal({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [manualReceiptNo, setManualReceiptNo] = useState('');
+  
+  // Recent scans state (last 5 verified transactions)
+  const [recentScans, setRecentScans] = useState<RecentScanItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('jipas_recent_receipt_scans');
+        return saved ? JSON.parse(saved) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const [autoCloseCountdown, setAutoCloseCountdown] = useState<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Stop camera stream safely
   const stopCamera = useCallback(() => {
@@ -68,6 +97,42 @@ export default function ReceiptQRVerificationModal({
     }
     setCameraState('IDLE');
   }, []);
+
+  // Clear auto-close timers
+  const clearAutoCloseTimers = useCallback(() => {
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoCloseCountdown(null);
+  }, []);
+
+  // Handle successful auto-close flow
+  useEffect(() => {
+    if (verificationResult && verificationResult.status === 'AUTHENTIC') {
+      setAutoCloseCountdown(2);
+      
+      countdownIntervalRef.current = setInterval(() => {
+        setAutoCloseCountdown(prev => (prev !== null && prev > 1 ? prev - 1 : 0));
+      }, 1000);
+
+      autoCloseTimerRef.current = setTimeout(() => {
+        stopCamera();
+        clearAutoCloseTimers();
+        onClose();
+      }, 2000);
+    } else {
+      clearAutoCloseTimers();
+    }
+
+    return () => {
+      clearAutoCloseTimers();
+    };
+  }, [verificationResult, stopCamera, clearAutoCloseTimers, onClose]);
 
   // Perform authoritative verification of parsed QR payload or receipt number
   const verifyReceiptPayload = useCallback((rawText: string) => {
@@ -109,7 +174,7 @@ export default function ReceiptQRVerificationModal({
         }
       }
 
-      // Query local/stored payments by receiptNo or ID
+      // Query local/stored payments by receiptNo or ID cross-referencing authentic transaction records
       const normalizedTarget = targetReceiptNo.toLowerCase();
       const matchedPayment = storedPayments.find(p => 
         (p.receiptNo && p.receiptNo.toLowerCase().trim() === normalizedTarget) ||
@@ -118,19 +183,26 @@ export default function ReceiptQRVerificationModal({
         (parsed && parsed.admissionNo && p.admissionNo && p.admissionNo.toLowerCase().trim() === parsed.admissionNo.toLowerCase().trim() && p.amount === parsed.amount)
       );
 
+      let finalStatus: 'AUTHENTIC' | 'VOIDED' | 'UNVERIFIED' | 'INVALID_QR' = 'INVALID_QR';
+      let resultMessage = '';
+
       if (matchedPayment) {
         const isVoided = matchedPayment.status === 'Voided' || (matchedPayment as any).isVoided === true;
         if (isVoided) {
+          finalStatus = 'VOIDED';
+          resultMessage = 'This payment receipt was found in JIPAS database but has been VOIDED or CANCELLED.';
           setVerificationResult({
             status: 'VOIDED',
-            message: 'This payment receipt was found in JIPAS database but has been VOIDED or CANCELLED.',
+            message: resultMessage,
             paymentRecord: matchedPayment,
             parsedData: parsed
           });
         } else {
+          finalStatus = 'AUTHENTIC';
+          resultMessage = 'Official JIPAS receipt verified successfully! Authenticated with bursary records.';
           setVerificationResult({
             status: 'AUTHENTIC',
-            message: 'Official JIPAS receipt verified successfully! Authenticated with bursary records.',
+            message: resultMessage,
             paymentRecord: matchedPayment,
             parsedData: parsed
           });
@@ -139,19 +211,42 @@ export default function ReceiptQRVerificationModal({
           }
         }
       } else if (parsed && parsed.institution && parsed.receiptNo) {
-        // Has valid JIPAS QR signature structure but not in local cache
+        finalStatus = 'UNVERIFIED';
+        resultMessage = `QR signature detected for Receipt #${parsed.receiptNo} (${parsed.studentName || 'Student'}), but matching record was not found in active local bursary cache.`;
         setVerificationResult({
           status: 'UNVERIFIED',
-          message: `QR signature detected for Receipt #${parsed.receiptNo} (${parsed.studentName || 'Student'}), but matching record was not found in active local bursary cache.`,
+          message: resultMessage,
           parsedData: parsed
         });
       } else {
+        finalStatus = 'INVALID_QR';
+        resultMessage = 'Scanned QR code does not contain a recognized JIPAS payment receipt signature or matching record.';
         setVerificationResult({
           status: 'INVALID_QR',
-          message: 'Scanned QR code does not contain a recognized JIPAS payment receipt signature or matching record.',
+          message: resultMessage,
           parsedData: { raw: rawText }
         });
       }
+
+      // Add to recent scans (keeping last 5)
+      const newScanItem: RecentScanItem = {
+        id: `scan-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        receiptNo: matchedPayment?.receiptNo || parsed?.receiptNo || targetReceiptNo || 'UNKNOWN-RECEIPT',
+        studentName: matchedPayment?.studentName || parsed?.studentName || 'Unknown Student',
+        amount: matchedPayment?.paid ?? matchedPayment?.amount ?? parsed?.amount ?? 0,
+        status: finalStatus,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+
+      setRecentScans(prev => {
+        const filtered = prev.filter(item => item.receiptNo !== newScanItem.receiptNo);
+        const updated = [newScanItem, ...filtered].slice(0, 5);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('jipas_recent_receipt_scans', JSON.stringify(updated));
+        }
+        return updated;
+      });
+
     } catch (err: any) {
       setVerificationResult({
         status: 'INVALID_QR',
@@ -281,6 +376,7 @@ export default function ReceiptQRVerificationModal({
   };
 
   const handleResetVerification = () => {
+    clearAutoCloseTimers();
     setVerificationResult(null);
     setManualReceiptNo('');
     if (activeTab === 'camera') {
@@ -301,13 +397,31 @@ export default function ReceiptQRVerificationModal({
               <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900 leading-tight">Receipt Authenticity Verifier</h3>
-              <p className="text-[10.5px] text-slate-500 font-medium">Instant JIPAS Official Bursary QR Verification</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-slate-900 leading-tight">Receipt Authenticity Verifier</h3>
+                {verificationResult ? (
+                  verificationResult.status === 'AUTHENTIC' ? (
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                      <Check className="w-3 h-3" /> Valid
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                      <XCircle className="w-3 h-3" /> Invalid
+                    </span>
+                  )
+                ) : (
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                    High-Volume Desk Mode
+                  </span>
+                )}
+              </div>
+              <p className="text-[10.5px] text-slate-500 font-medium">Instant JIPAS Official Bursary QR & Ledger Verification</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => {
+              clearAutoCloseTimers();
               stopCamera();
               onClose();
             }}
@@ -322,15 +436,30 @@ export default function ReceiptQRVerificationModal({
         {verificationResult ? (
           <div className="space-y-4 animate-scale-in">
             {verificationResult.status === 'AUTHENTIC' && (
-              <div className="bg-emerald-50 border-2 border-emerald-500/40 rounded-2xl p-5 text-emerald-950 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-900/20">
-                    <ShieldCheck className="w-6 h-6" />
+              <div className="bg-emerald-50 border-2 border-emerald-500/40 rounded-2xl p-5 text-emerald-950 space-y-3 relative overflow-hidden">
+                {autoCloseCountdown !== null && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-200 overflow-hidden">
+                    <div className="h-full bg-emerald-600 animate-[pulse_1s_ease-in-out_infinite]" style={{ width: '100%' }} />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">JIPAS Authenticated</span>
-                    <h4 className="text-base font-black text-emerald-900">Official Payment Verified</h4>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-900/20">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">JIPAS Authenticated</span>
+                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-full text-[9px] font-black uppercase">Valid Signature</span>
+                      </div>
+                      <h4 className="text-base font-black text-emerald-900">Official Payment Verified</h4>
+                    </div>
                   </div>
+                  {autoCloseCountdown !== null && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full">
+                      Auto-closing in {autoCloseCountdown}s...
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-xs text-emerald-800 font-medium leading-relaxed">
@@ -383,7 +512,10 @@ export default function ReceiptQRVerificationModal({
                     <XCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 block">Security Alert</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 block">Security Alert</span>
+                      <span className="px-2 py-0.5 bg-rose-600 text-white rounded-full text-[9px] font-black uppercase">Invalid Signature</span>
+                    </div>
                     <h4 className="text-base font-black text-rose-900">Receipt Revoked / Voided</h4>
                   </div>
                 </div>
@@ -405,7 +537,10 @@ export default function ReceiptQRVerificationModal({
                     <AlertTriangle className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 block">Verification Unconfirmed</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 block">Verification Unconfirmed</span>
+                      <span className="px-2 py-0.5 bg-amber-600 text-white rounded-full text-[9px] font-black uppercase">Invalid Match</span>
+                    </div>
                     <h4 className="text-base font-black text-amber-900">No Matching Bursary Record</h4>
                   </div>
                 </div>
@@ -478,7 +613,7 @@ export default function ReceiptQRVerificationModal({
             {/* TAB 1: Live Webcam Scanner */}
             {activeTab === 'camera' && (
               <div className="space-y-3">
-                <div className="relative aspect-square max-h-72 w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-slate-800">
+                <div className="relative aspect-square max-h-64 w-full bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-slate-800">
                   <video
                     ref={videoRef}
                     className="w-full h-full object-cover"
@@ -489,7 +624,7 @@ export default function ReceiptQRVerificationModal({
                   {/* QR Target Crosshairs Overlay */}
                   {cameraState === 'SCANNING' && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                      <div className="w-48 h-48 border-2 border-dashed border-emerald-400/80 rounded-2xl relative animate-pulse shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+                      <div className="w-44 h-44 border-2 border-dashed border-emerald-400/80 rounded-2xl relative animate-pulse shadow-[0_0_20px_rgba(52,211,153,0.3)]">
                         <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-400" />
                         <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-400" />
                         <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-400" />
@@ -558,10 +693,10 @@ export default function ReceiptQRVerificationModal({
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl p-8 text-center cursor-pointer bg-slate-50 hover:bg-indigo-50/30 transition-all space-y-2.5"
+                  className="border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl p-6 text-center cursor-pointer bg-slate-50 hover:bg-indigo-50/30 transition-all space-y-2"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-                    <Upload className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                    <Upload className="w-5 h-5" />
                   </div>
                   <div>
                     <h5 className="text-xs font-black text-slate-800">Click or Drag Receipt QR Image</h5>
@@ -598,6 +733,57 @@ export default function ReceiptQRVerificationModal({
                   <span>Verify Against Ledger</span>
                 </button>
               </form>
+            )}
+
+            {/* Recent Scans Section (Last 5 verified transaction IDs) */}
+            {recentScans.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-indigo-600" />
+                    Recent Scans (Last {recentScans.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecentScans([]);
+                      if (typeof window !== 'undefined') {
+                        localStorage.removeItem('jipas_recent_receipt_scans');
+                      }
+                    }}
+                    className="text-[10px] font-bold text-slate-400 hover:text-rose-600 transition-colors"
+                  >
+                    Clear History
+                  </button>
+                </div>
+
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  {recentScans.map((scan) => (
+                    <div 
+                      key={scan.id}
+                      className="bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs transition-all"
+                    >
+                      <div className="space-y-0.5 truncate pr-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-slate-900">{scan.receiptNo}</span>
+                          {scan.status === 'AUTHENTIC' ? (
+                            <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-black uppercase">Valid</span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded text-[9px] font-black uppercase">Invalid</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          {scan.studentName} • <span className="font-mono font-bold text-slate-700">{formatCurrency(scan.amount)}</span>
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 shrink-0 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {scan.timestamp}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Quick Helper Note */}
