@@ -208,21 +208,56 @@ export const StaffAttendanceReportService = {
    * Safe list logic to retrieve all non-student profiles for reporting/dashboards.
    */
   async listStaffProfiles(campusId?: string): Promise<any[]> {
-    let query = supabase
-      .from('profiles')
-      .select('id, email, full_name, role, campus_id, staff_id, is_active')
-      .neq('role', 'student');
+    const profileMap = new Map<string, any>();
 
-    if (campusId) {
-      query = query.eq('campus_id', campusId);
+    // 1. Fetch from Supabase
+    try {
+      let query = supabase
+        .from('profiles')
+        .select('id, email, full_name, role, campus_id, staff_id, is_active')
+        .neq('role', 'student');
+
+      if (campusId && campusId !== 'all' && campusId !== 'All') {
+        query = query.eq('campus_id', campusId);
+      }
+
+      const { data, error } = await query.order('full_name');
+      if (!error && Array.isArray(data)) {
+        data.forEach(p => profileMap.set(p.id, p));
+      }
+    } catch (err) {
+      console.warn('[StaffAttendanceReportService] Error loading profiles:', err);
     }
 
-    const { data, error } = await query.order('full_name');
-    if (error) {
-      console.error('[StaffAttendanceReportService] Error loading profiles:', error.message);
-      return [];
+    // 2. Merge local teachers and staff
+    try {
+      const rawTeachers = localStorage.getItem('jipas_teachers');
+      if (rawTeachers) {
+        const teachers = JSON.parse(rawTeachers);
+        if (Array.isArray(teachers)) {
+          teachers.forEach((t: any) => {
+            const tId = t.id || t.staffId;
+            if (tId && !profileMap.has(tId)) {
+              profileMap.set(tId, {
+                id: tId,
+                email: t.email || `${t.name?.toLowerCase().replace(/\s+/g, '.')}@jipas.edu`,
+                full_name: t.name || 'Staff Member',
+                role: t.role || t.department || 'Teacher',
+                campus_id: t.campusId || campusId || 'jipas-1-kpehenou',
+                staff_id: t.staffId || 'ST-001',
+                is_active: t.status !== 'Inactive'
+              });
+            }
+          });
+        }
+      }
+    } catch {}
+
+    const allProfiles = Array.from(profileMap.values());
+    if (campusId && campusId !== 'all' && campusId !== 'All') {
+      return allProfiles.filter(p => p.campus_id === campusId || !p.campus_id || p.campus_id === 'Main');
     }
-    return data || [];
+    return allProfiles;
   },
 
   /**
@@ -250,8 +285,8 @@ export const StaffAttendanceReportService = {
 
     const calendarCheck = await SchoolCalendarService.checkDate(dateStr, campusId);
 
-    let totalStaff = profiles.length;
-    let expectedStaff = calendarCheck.isWorkingDay ? profiles.filter(p => p.is_active !== false).length : 0;
+    let totalStaff = Math.max(profiles.length, attendance.length);
+    let expectedStaff = calendarCheck.isWorkingDay ? Math.max(profiles.filter(p => p.is_active !== false).length, attendance.length) : 0;
     let signedIn = 0;
     let signedOut = 0;
     let onCampus = 0;
@@ -260,8 +295,11 @@ export const StaffAttendanceReportService = {
     let earlyDeparture = 0;
     let absent = 0;
 
+    const processedStaffIds = new Set<string>();
+
     for (const profile of profiles) {
-      const record = attendance.find(a => a.staff_id === profile.id) || null;
+      processedStaffIds.add(profile.id);
+      const record = attendance.find(a => a.staff_id === profile.id || a.staff_name === profile.full_name) || null;
       const status = this.calculateStatus(record, calendarCheck, config, dateStr);
 
       if (status === 'SIGNED_IN') {
@@ -289,12 +327,28 @@ export const StaffAttendanceReportService = {
       }
     }
 
+    // Account for any attendance records for staff not explicitly in profiles list
+    for (const att of attendance) {
+      if (!processedStaffIds.has(att.staff_id)) {
+        processedStaffIds.add(att.staff_id);
+        if (att.sign_in_at) {
+          signedIn++;
+          if (att.status === 'Late') late++;
+          if (att.sign_out_at) {
+            signedOut++;
+          } else {
+            onCampus++;
+          }
+        }
+      }
+    }
+
     const completionCount = signedOut;
-    const completionPercentage = expectedStaff > 0 ? Math.round((completionCount / expectedStaff) * 100) : 0;
+    const completionPercentage = expectedStaff > 0 ? Math.min(100, Math.round((completionCount / expectedStaff) * 100)) : (signedIn > 0 ? 100 : 0);
 
     return {
       totalStaff,
-      expectedStaff,
+      expectedStaff: Math.max(expectedStaff, signedIn),
       signedIn,
       signedOut,
       onCampus,

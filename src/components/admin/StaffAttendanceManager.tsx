@@ -111,9 +111,53 @@ export default function StaffAttendanceManager() {
 
     const handleExitToDashboard = () => {
       setActiveSubTab('today_attendance');
+      fetchAttendance();
+      fetchDashboardStats();
     };
     window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
-    return () => window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+
+    const handleRealtimeUpdate = () => {
+      fetchAttendance();
+      fetchDashboardStats();
+    };
+
+    window.addEventListener('jipas_staff_attendance_updated', handleRealtimeUpdate);
+    window.addEventListener('jipas_cloud_synced', handleRealtimeUpdate);
+    window.addEventListener('storage', handleRealtimeUpdate);
+    window.addEventListener('focus', handleRealtimeUpdate);
+
+    // Supabase Live WebSocket Subscription on staff attendance
+    const realtimeChannel = supabase
+      .channel('jipas_staff_attendance_manager_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'staff_attendance'
+        },
+        () => {
+          fetchAttendance();
+          fetchDashboardStats();
+        }
+      )
+      .subscribe();
+
+    // Auto-polling interval for multi-device sync guarantee
+    const pollInterval = setInterval(() => {
+      fetchAttendance();
+      fetchDashboardStats();
+    }, 4000);
+
+    return () => {
+      window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
+      window.removeEventListener('jipas_staff_attendance_updated', handleRealtimeUpdate);
+      window.removeEventListener('jipas_cloud_synced', handleRealtimeUpdate);
+      window.removeEventListener('storage', handleRealtimeUpdate);
+      window.removeEventListener('focus', handleRealtimeUpdate);
+      clearInterval(pollInterval);
+      supabase.removeChannel(realtimeChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -123,7 +167,7 @@ export default function StaffAttendanceManager() {
       fetchDashboardStats();
       fetchWorkingHoursSettings();
     }
-  }, [campuses, selectedCampusId, selectedFilterDate, selectedFilterStatus]);
+  }, [campuses, selectedCampusId, selectedFilterDate, selectedFilterStatus, activeSubTab]);
 
   useEffect(() => {
     if (viewingStaffDetailId) {

@@ -37,85 +37,159 @@ export const StaffAttendanceService = {
   /**
    * Retrieves staff attendance records with optional administrative filters
    */
-  async listAttendance(filters: StaffAttendanceFilter): Promise<StaffAttendanceRecord[]> {
-    let query = supabase
-      .from('staff_attendance')
-      .select(`
-        *,
-        profile:profiles (
-          id,
-          full_name,
-          staff_id,
-          role,
-          campus_id
-        ),
-        campus:campuses (
-          id,
-          name
-        )
-      `);
+  async listAttendance(filters: StaffAttendanceFilter = {}): Promise<StaffAttendanceRecord[]> {
+    // Resolve teacher/staff metadata helper
+    const teacherMap = new Map<string, any>();
+    try {
+      const rawTeachers = localStorage.getItem('jipas_teachers');
+      if (rawTeachers) {
+        const parsed = JSON.parse(rawTeachers);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((t: any) => {
+            if (t.id) teacherMap.set(t.id, t);
+            if (t.staffId) teacherMap.set(t.staffId, t);
+            if (t.name) teacherMap.set(t.name.toLowerCase().trim(), t);
+          });
+        }
+      }
+    } catch {}
 
-    if (filters.campusId) {
-      query = query.eq('campus_id', filters.campusId);
-    }
-    if (filters.date) {
-      query = query.eq('attendance_date', filters.date);
-    }
-    if (filters.staffId) {
-      query = query.eq('staff_id', filters.staffId);
-    }
-    if (filters.status) {
-      query = query.eq('status', filters.status);
+    const recordsMap = new Map<string, StaffAttendanceRecord>();
+
+    // 1. Fetch from Supabase
+    try {
+      let query = supabase
+        .from('staff_attendance')
+        .select(`
+          *,
+          profile:profiles (
+            id,
+            full_name,
+            staff_id,
+            role,
+            campus_id
+          ),
+          campus:campuses (
+            id,
+            name
+          )
+        `);
+
+      if (filters.date) {
+        query = query.eq('attendance_date', filters.date);
+      }
+      if (filters.staffId) {
+        query = query.eq('staff_id', filters.staffId);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        data.forEach((row: any) => {
+          const matchedTeacher = teacherMap.get(row.staff_id) || teacherMap.get(row.profile?.staff_id);
+          const staffName = row.profile?.full_name || matchedTeacher?.name || row.staff_name || 'Staff Member';
+          const staffNumber = row.profile?.staff_id || matchedTeacher?.staffId || row.staff_number || 'ST-001';
+          const department = row.profile?.role || matchedTeacher?.department || row.department || 'Staff';
+          const campusName = row.campus?.name || matchedTeacher?.campus || row.campus_name || 'Main Campus';
+
+          const rec: StaffAttendanceRecord = {
+            id: row.id,
+            staff_id: row.staff_id,
+            campus_id: row.campus_id || 'jipas-1-kpehenou',
+            attendance_date: row.attendance_date,
+            sign_in_at: row.sign_in_at,
+            sign_out_at: row.sign_out_at,
+            status: row.status,
+            source: row.source,
+            review_status: row.review_status || 'REVIEWED',
+            qr_code_id: row.qr_code_id,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            staff_name: staffName,
+            staff_number: staffNumber,
+            department: department,
+            campus_name: campusName
+          };
+          recordsMap.set(rec.id, rec);
+        });
+      }
+    } catch (sbErr) {
+      console.warn('[StaffAttendanceService] Supabase query notice:', sbErr);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) {
-      console.warn('[StaffAttendanceService] Supabase list error, falling back to localStorage:', error.message);
+    // 2. Merge local storage records
+    try {
       const rawLocal = localStorage.getItem('jipas_staff_attendance');
       if (rawLocal) {
-        try {
-          const parsed = JSON.parse(rawLocal);
-          return parsed.map((row: any) => ({
-            id: row.id,
-            staff_id: row.staff_id || row.teacherId,
-            campus_id: row.campus_id || 'Main',
-            attendance_date: row.attendance_date || row.date,
-            sign_in_at: row.sign_in_at || null,
-            sign_out_at: row.sign_out_at || null,
-            status: row.status,
-            source: 'ONLINE_QR' as const,
-            review_status: 'REVIEWED' as const,
-            qr_code_id: null,
-            created_at: row.created_at || new Date().toISOString(),
-            updated_at: row.updated_at || new Date().toISOString(),
-            staff_name: row.staff_name || row.teacherName || 'Staff Member',
-            staff_number: 'ST-001',
-            department: row.department || 'Staff',
-            campus_name: 'Main Campus'
-          }));
-        } catch {}
+        const localList = JSON.parse(rawLocal);
+        if (Array.isArray(localList)) {
+          localList.forEach((row: any) => {
+            const rowId = row.id || `local_${row.staff_id || row.teacherId}_${row.attendance_date || row.date}`;
+            const staffId = row.staff_id || row.teacherId || 'unknown';
+            const matchedTeacher = teacherMap.get(staffId) || teacherMap.get(row.staff_number);
+            const staffName = row.staff_name || row.teacherName || matchedTeacher?.name || 'Staff Member';
+            const staffNumber = row.staff_number || matchedTeacher?.staffId || 'ST-001';
+            const department = row.department || matchedTeacher?.department || 'Staff';
+            const campusName = row.campus_name || matchedTeacher?.campus || 'Main Campus';
+            const attDate = row.attendance_date || row.date || new Date().toISOString().split('T')[0];
+
+            const existing = recordsMap.get(rowId);
+            if (!existing) {
+              recordsMap.set(rowId, {
+                id: rowId,
+                staff_id: staffId,
+                campus_id: row.campus_id || 'jipas-1-kpehenou',
+                attendance_date: attDate,
+                sign_in_at: row.sign_in_at || null,
+                sign_out_at: row.sign_out_at || null,
+                status: row.status || 'Present',
+                source: row.source || 'ONLINE_QR',
+                review_status: row.review_status || 'REVIEWED',
+                qr_code_id: row.qr_code_id || null,
+                created_at: row.created_at || new Date().toISOString(),
+                updated_at: row.updated_at || new Date().toISOString(),
+                staff_name: staffName,
+                staff_number: staffNumber,
+                department: department,
+                campus_name: campusName
+              });
+            } else {
+              // Update with any newer fields
+              if (!existing.sign_out_at && row.sign_out_at) {
+                existing.sign_out_at = row.sign_out_at;
+              }
+            }
+          });
+        }
       }
-      return [];
+    } catch {}
+
+    let allRecords = Array.from(recordsMap.values());
+
+    // Apply filters
+    if (filters.campusId && filters.campusId !== 'all' && filters.campusId !== 'All') {
+      allRecords = allRecords.filter(r => 
+        r.campus_id === filters.campusId || 
+        r.campus_name?.toLowerCase().includes(filters.campusId!.toLowerCase())
+      );
+    }
+    if (filters.date) {
+      allRecords = allRecords.filter(r => r.attendance_date === filters.date);
+    }
+    if (filters.staffId) {
+      allRecords = allRecords.filter(r => r.staff_id === filters.staffId);
+    }
+    if (filters.status) {
+      allRecords = allRecords.filter(r => r.status === filters.status);
     }
 
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      staff_id: row.staff_id,
-      campus_id: row.campus_id,
-      attendance_date: row.attendance_date,
-      sign_in_at: row.sign_in_at,
-      sign_out_at: row.sign_out_at,
-      status: row.status,
-      source: row.source,
-      review_status: row.review_status || 'REVIEWED',
-      qr_code_id: row.qr_code_id,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      staff_name: row.profile?.full_name || 'Staff Member',
-      staff_number: row.profile?.staff_id || 'ST-000',
-      department: row.profile?.role || 'Staff',
-      campus_name: row.campus?.name || 'Main Campus'
-    }));
+    return allRecords.sort((a, b) => {
+      const timeA = a.sign_in_at ? new Date(a.sign_in_at).getTime() : 0;
+      const timeB = b.sign_in_at ? new Date(b.sign_in_at).getTime() : 0;
+      return timeB - timeA;
+    });
   },
 
   /**
@@ -203,6 +277,25 @@ export const StaffAttendanceService = {
       }
 
       const formattedTime = new Date(nowIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Update local storage and broadcast
+      try {
+        const rawLocal = localStorage.getItem('jipas_staff_attendance');
+        const localList = rawLocal ? JSON.parse(rawLocal) : [];
+        const filtered = localList.filter((r: any) => r.id !== insertedRecord.id && !(r.staff_id === profileId && r.attendance_date === todayStr));
+        filtered.unshift({
+          ...insertedRecord,
+          staff_name: profile?.full_name || 'Staff Member',
+          teacherName: profile?.full_name || 'Staff Member',
+          teacherId: profileId
+        });
+        localStorage.setItem('jipas_staff_attendance', JSON.stringify(filtered));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: insertedRecord, status: 'SIGNED_IN' } }));
+          window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+        }
+      } catch {}
+
       return {
         status: 'SIGNED_IN',
         record: insertedRecord,
@@ -244,6 +337,24 @@ export const StaffAttendanceService = {
       }
 
       const formattedOut = new Date(nowIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Update local storage and broadcast
+      try {
+        const rawLocal = localStorage.getItem('jipas_staff_attendance');
+        const localList = rawLocal ? JSON.parse(rawLocal) : [];
+        const updatedList = localList.map((r: any) => {
+          if (r.id === updatedRecord.id || (r.staff_id === profileId && (r.attendance_date === todayStr || r.date === todayStr))) {
+            return { ...r, ...updatedRecord, sign_out_at: nowIso, clockOutTime: formattedOut };
+          }
+          return r;
+        });
+        localStorage.setItem('jipas_staff_attendance', JSON.stringify(updatedList));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: updatedRecord, status: 'SIGNED_OUT' } }));
+          window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+        }
+      } catch {}
+
       return {
         status: 'SIGNED_OUT',
         record: updatedRecord,
@@ -425,6 +536,10 @@ export const StaffAttendanceService = {
       };
       localRecords.unshift(newRec);
       localStorage.setItem('jipas_staff_attendance', JSON.stringify(localRecords));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: newRec, status: 'SIGNED_IN' } }));
+        window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+      }
 
       return {
         status: 'SIGNED_IN',
@@ -441,6 +556,10 @@ export const StaffAttendanceService = {
       existing.updated_at = nowIso;
       localRecords[existingIdx] = existing;
       localStorage.setItem('jipas_staff_attendance', JSON.stringify(localRecords));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: existing, status: 'SIGNED_OUT' } }));
+        window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+      }
 
       return {
         status: 'SIGNED_OUT',

@@ -425,6 +425,11 @@ export default function StaffAttendanceQRScanner({
           profile.fullName
         );
 
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated'));
+          window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+        }
+
         const greetingText = 'Welcome to JIPAS';
         speakGreeting(greetingText);
 

@@ -799,23 +799,11 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
         saveStoredTeachers(mergedTeachers);
       }
 
-      // --- Student Alive Checking for Dependent Records ---
-      const aliveStudents = getStoredStudents();
-      const aliveStudentIds = new Set(aliveStudents.map(s => s.id));
-      const aliveAdmissionNos = new Set(aliveStudents.map(s => (s.admissionNo || '').toLowerCase().trim()).filter(Boolean));
-
-      const isStudentAlive = (studentId?: string, admissionNo?: string) => {
-        if (aliveStudents.length === 0) return false;
-        if (studentId && aliveStudentIds.has(studentId)) return true;
-        if (admissionNo && aliveAdmissionNos.has(admissionNo.toLowerCase().trim())) return true;
-        return false;
-      };
-
       // --- Merge Bills ---
       if (Array.isArray(remotePayload.bills)) {
         const mergedBills = reconcileCanonicalEntities(
-          getStoredBills().filter(b => isStudentAlive(b.studentId, b.admissionNo)),
-          remotePayload.bills.filter((b: any) => isStudentAlive(b?.studentId, b?.admissionNo)),
+          getStoredBills(),
+          remotePayload.bills,
           pendingMutations,
           tombstones,
           'bills'
@@ -826,13 +814,44 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       // --- Merge Payments ---
       if (Array.isArray(remotePayload.payments)) {
         const mergedPayments = reconcileCanonicalEntities(
-          getStoredPayments().filter(p => isStudentAlive(p.studentId, p.admissionNo)),
-          remotePayload.payments.filter((p: any) => isStudentAlive(p?.studentId, p?.admissionNo)),
+          getStoredPayments(),
+          remotePayload.payments,
           pendingMutations,
           tombstones,
           'payments'
         );
         saveStoredPayments(mergedPayments);
+      }
+
+      // --- Merge Staff Attendance Records ---
+      if (Array.isArray(remotePayload.staffAttendance)) {
+        try {
+          const rawLocalAtt = localStorage.getItem('jipas_staff_attendance');
+          const localAtt = rawLocalAtt ? JSON.parse(rawLocalAtt) : [];
+          const attMap = new Map();
+          localAtt.forEach((a: any) => { if (a && a.id) attMap.set(a.id, a); });
+          remotePayload.staffAttendance.forEach((a: any) => {
+            if (a && a.id) {
+              const existing = attMap.get(a.id);
+              if (!existing) {
+                attMap.set(a.id, a);
+              } else {
+                const exTime = new Date(existing.updated_at || existing.created_at || 0).getTime();
+                const remTime = new Date(a.updated_at || a.created_at || 0).getTime();
+                if (remTime >= exTime) {
+                  attMap.set(a.id, { ...existing, ...a });
+                }
+              }
+            }
+          });
+          const mergedAtt = Array.from(attMap.values());
+          localStorage.setItem('jipas_staff_attendance', JSON.stringify(mergedAtt));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated'));
+          }
+        } catch (attErr) {
+          console.warn('[Supabase Cloud Sync] Staff attendance sync notice:', attErr);
+        }
       }
 
       // --- Authoritative Cross-Device Ledger Recalculation ---
@@ -849,8 +868,8 @@ export async function pullFromSupabaseCloud(): Promise<{ success: boolean; stude
       // --- Merge Reports ---
       if (Array.isArray(remotePayload.reports)) {
         const mergedReports = reconcileCanonicalEntities(
-          getStoredReports().filter(r => isStudentAlive(r.studentId, r.admissionNo)),
-          remotePayload.reports.filter((r: any) => isStudentAlive(r?.studentId, r?.admissionNo)),
+          getStoredReports(),
+          remotePayload.reports,
           pendingMutations,
           tombstones,
           'reports'
@@ -1008,6 +1027,13 @@ export async function pushToSupabaseCloud(): Promise<boolean> {
       classBroadcasts: getStoredClassBroadcasts(),
       expenses: getStoredExpenses(),
       users: getStoredUsers(),
+      staffAttendance: (function() {
+        try {
+          return JSON.parse(localStorage.getItem('jipas_staff_attendance') || '[]');
+        } catch {
+          return [];
+        }
+      })(),
       settings: getStoredSettings(),
       themePalette: getStoredThemePalette(),
       paymentSettings: getStoredPaymentSettings(),
@@ -1263,14 +1289,30 @@ export function initBackgroundSync(): () => void {
     setSyncSessionStatus('READY');
   }).catch(console.warn);
 
-  const intervalId = setInterval(() => {
+  const handleSyncTrigger = () => {
     if (typeof navigator !== 'undefined' && navigator.onLine) {
       pullFromSupabaseCloud().catch(console.warn);
     }
-  }, 30000);
+  };
+
+  const intervalId = setInterval(handleSyncTrigger, 6000);
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', handleSyncTrigger);
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleSyncTrigger();
+      }
+    });
+  }
 
   return () => {
     clearInterval(intervalId);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', handleSyncTrigger);
+    }
   };
 }
 
