@@ -23,6 +23,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { StaffAttendanceService } from '../../services/supabase/staffAttendanceService';
+import RecentQrScansLogView, { logRecentScanAttempt } from '../common/RecentQrScansLogView';
 import { getActiveAcademicPeriod } from '../../services/storageService';
 
 interface StaffAttendanceQRScannerProps {
@@ -387,6 +388,15 @@ export default function StaffAttendanceQRScanner({
           profile.id,
           profile.campusId || ''
         );
+
+        logRecentScanAttempt({
+          staffId: profile.id,
+          staffName: profile.fullName || 'Staff Member',
+          campusName: formattedCampusName,
+          status: result.status === 'SIGNED_OUT' ? 'SUCCESS_SIGN_OUT' : 'SUCCESS_SIGN_IN',
+          resultMessage: result.message,
+          rawTokenSummary: decodedToken ? decodedToken.substring(0, 16) + '...' : undefined
+        });
 
         const greetingText = result.status === 'SIGNED_OUT' ? 'Goodbye' : 'Welcome to JIPAS';
         speakGreeting(greetingText);
@@ -1155,6 +1165,15 @@ export default function StaffAttendanceQRScanner({
                 </div>
               </div>
             )}
+
+            {/* RECENT SCAN LOGS & DIAGNOSTICS VIEW */}
+            <div className="pt-4">
+              <RecentQrScansLogView 
+                staffId={profile?.id} 
+                limit={10} 
+                title="Recent Gate Scans & Diagnostic Log (Last 10 Attempts)"
+              />
+            </div>
           </div>
         </>
       )}

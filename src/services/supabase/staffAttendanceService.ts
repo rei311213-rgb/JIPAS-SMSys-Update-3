@@ -1,7 +1,9 @@
 import { supabase } from '../../lib/supabase';
 import { SchoolCalendarService } from './schoolCalendarService';
 import { EntranceQrService, EntranceQrCode } from './entranceQrService';
+import { StaffAttendanceReportService } from './staffAttendanceReportService';
 import { idbGet, idbSet } from '../idbService';
+import { logRecentScanAttempt } from '../../components/common/RecentQrScansLogView';
 
 export interface StaffAttendanceRecord {
   id: string;
@@ -204,25 +206,67 @@ export const StaffAttendanceService = {
     // 1. Verify user profile and employee role authorization
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, role, full_name, campus_id')
+      .select('id, role, full_name, campus_id, department')
       .eq('id', profileId)
       .maybeSingle();
 
     if (profile) {
       const normalizedRole = (profile.role || '').toLowerCase().trim();
       if (normalizedRole === 'ceo' || normalizedRole === 'director') {
-        throw new Error('Executive leadership (CEO / Director) are exempt from daily entrance QR attendance scanning.');
+        const msg = 'Executive leadership (CEO / Director) are exempt from daily entrance QR attendance scanning.';
+        logRecentScanAttempt({
+          staffId: profileId,
+          staffName: profile.full_name || 'Executive',
+          campusName: staffCampusId,
+          status: 'FAILED',
+          resultMessage: msg,
+          rawTokenSummary: rawToken.substring(0, 16) + '...',
+          debugReason: 'Role CEO/Director exempt from gate scanner.'
+        });
+        throw new Error(msg);
       }
       if (normalizedRole === 'student' || normalizedRole === 'parent') {
-        throw new Error('Only school staff and employees are authorized to record attendance.');
+        const msg = 'Only school staff and employees are authorized to record attendance.';
+        logRecentScanAttempt({
+          staffId: profileId,
+          staffName: profile.full_name || 'User',
+          campusName: staffCampusId,
+          status: 'FAILED',
+          resultMessage: msg,
+          rawTokenSummary: rawToken.substring(0, 16) + '...',
+          debugReason: `Unauthorized role: ${profile.role}`
+        });
+        throw new Error(msg);
       }
     }
 
-    // 2. Verify and authenticate the token (Token Authenticity Check)
-    const qrCode = await EntranceQrService.verifyQrToken(rawToken);
+    // Resolve department for schedule lookup
+    let staffDept = profile?.department || '';
+    if (!staffDept && typeof localStorage !== 'undefined') {
+      try {
+        const teachers = JSON.parse(localStorage.getItem('jipas_teachers') || '[]');
+        const found = teachers.find((t: any) => t.id === profileId || t.staffId === profileId);
+        if (found) staffDept = found.department || found.assignedDepartment || '';
+      } catch {}
+    }
 
-    // 3. Ignore campus matching checks: allow universal school-wide token authentication.
-    // Verify only the authenticity of the token instead of forcing a match between the QR origin and scanning device's campus.
+    // 2. Verify and authenticate the token (Token Authenticity Check)
+    let qrCode: EntranceQrCode;
+    try {
+      qrCode = await EntranceQrService.verifyQrToken(rawToken);
+    } catch (err: any) {
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profile?.full_name || 'Staff Member',
+        campusName: staffCampusId,
+        status: 'FAILED',
+        resultMessage: err.message || 'Invalid or unverified entrance QR token.',
+        rawTokenSummary: rawToken.substring(0, 16) + '...',
+        debugReason: 'QR token signature verification failed or token expired.'
+      });
+      throw err;
+    }
+
     const targetCampusId = profile?.campus_id || staffCampusId || qrCode.campus_id || 'jipas-1-kpehenou';
 
     // 3. Date & calendar validation
@@ -231,7 +275,17 @@ export const StaffAttendanceService = {
     if (!calendarCheck.isWorkingDay) {
       const reason = calendarCheck.reason || 'Weekend';
       const eventInfo = calendarCheck.eventName ? `: ${calendarCheck.eventName}` : '';
-      throw new Error(`Staff attendance is not available today. ${reason}${eventInfo}.`);
+      const msg = `Staff attendance is not available today. ${reason}${eventInfo}.`;
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profile?.full_name || 'Staff Member',
+        campusName: qrCode.name || 'Main Gate',
+        status: 'FAILED',
+        resultMessage: msg,
+        rawTokenSummary: qrCode.name || rawToken.substring(0, 16) + '...',
+        debugReason: `School calendar day marked closed/holiday (${reason}).`
+      });
+      throw new Error(msg);
     }
 
     // 4. Fetch today's existing attendance record for the staff member
@@ -245,17 +299,31 @@ export const StaffAttendanceService = {
 
     if (error) {
       console.warn('[StaffAttendanceService] Supabase check error, falling back to local attendance cache:', error.message);
-      return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name);
+      return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name, staffDept);
     }
 
     const nowIso = new Date().toISOString();
 
     if (!existingRecord) {
       // --- SIGN IN FLOW ---
-      // Determine if Late (e.g. after 08:30 AM)
-      const nowHours = new Date().getHours();
-      const nowMins = new Date().getMinutes();
-      const isLate = nowHours > 8 || (nowHours === 8 && nowMins > 30);
+      let isLate = false;
+      try {
+        const hoursConfig = await StaffAttendanceReportService.getWorkingHours(targetCampusId, staffDept);
+        const dayOfWeek = new Date().getDay();
+        const daySched = hoursConfig.daySchedules?.find(ds => ds.dayOfWeek === dayOfWeek);
+        const expectedSignInStr = daySched?.expectedSignIn || hoursConfig.expectedSignIn || '08:00';
+        const lateThresholdMins = hoursConfig.lateThresholdMins ?? 30;
+
+        const [expHour, expMin] = expectedSignInStr.split(':').map(Number);
+        const expInTotalMins = (expHour * 60) + expMin + lateThresholdMins;
+        const nowTotalMins = (new Date().getHours() * 60) + new Date().getMinutes();
+
+        isLate = nowTotalMins > expInTotalMins;
+      } catch {
+        const nowHours = new Date().getHours();
+        const nowMins = new Date().getMinutes();
+        isLate = nowHours > 8 || (nowHours === 8 && nowMins > 30);
+      }
 
       const { data: insertedRecord, error: insertError } = await supabase
         .from('staff_attendance')
@@ -273,11 +341,22 @@ export const StaffAttendanceService = {
 
       if (insertError) {
         console.warn('[StaffAttendanceService] Error recording sign-in, falling back to local:', insertError.message);
-        return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name);
+        return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name, staffDept);
       }
 
       const formattedTime = new Date(nowIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const msg = `Signed in successfully at ${formattedTime}${isLate ? ' (Marked Late)' : ''}.`;
       
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profile?.full_name || 'Staff Member',
+        campusName: qrCode.name || 'Main Gate',
+        status: 'SUCCESS_SIGN_IN',
+        resultMessage: msg,
+        rawTokenSummary: qrCode.name,
+        debugReason: `Sign in verified. Department: ${staffDept || 'Default'}. Status: ${isLate ? 'Late' : 'Present'}.`
+      });
+
       // Update local storage and broadcast
       try {
         const rawLocal = localStorage.getItem('jipas_staff_attendance');
@@ -287,7 +366,8 @@ export const StaffAttendanceService = {
           ...insertedRecord,
           staff_name: profile?.full_name || 'Staff Member',
           teacherName: profile?.full_name || 'Staff Member',
-          teacherId: profileId
+          teacherId: profileId,
+          department: staffDept
         });
         localStorage.setItem('jipas_staff_attendance', JSON.stringify(filtered));
         if (typeof window !== 'undefined') {
@@ -299,25 +379,43 @@ export const StaffAttendanceService = {
       return {
         status: 'SIGNED_IN',
         record: insertedRecord,
-        message: `Signed in successfully at ${formattedTime}.`
+        message: msg
       };
     } else {
       // --- SIGN OUT FLOW ---
-      // 1. Check duplicate scan safety window (e.g., within 2 minutes)
       const lastScanTime = new Date(existingRecord.updated_at).getTime();
       const secondsSinceLastScan = (Date.now() - lastScanTime) / 1000;
       if (secondsSinceLastScan < 120) {
         const formattedIn = new Date(existingRecord.sign_in_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msg = `Already signed in today at ${formattedIn}.`;
+        logRecentScanAttempt({
+          staffId: profileId,
+          staffName: profile?.full_name || 'Staff Member',
+          campusName: qrCode.name || 'Main Gate',
+          status: 'SUCCESS_SIGN_IN',
+          resultMessage: msg,
+          rawTokenSummary: qrCode.name,
+          debugReason: 'Duplicate scan ignored within 120s safety threshold.'
+        });
         return {
           status: 'SIGNED_IN',
           record: existingRecord,
-          message: `Already signed in today at ${formattedIn}.`
+          message: msg
         };
       }
 
-      // 2. Check if already signed out
       if (existingRecord.sign_out_at) {
-        throw new Error('Attendance already completed for today.');
+        const msg = 'Attendance already completed for today.';
+        logRecentScanAttempt({
+          staffId: profileId,
+          staffName: profile?.full_name || 'Staff Member',
+          campusName: qrCode.name || 'Main Gate',
+          status: 'FAILED',
+          resultMessage: msg,
+          rawTokenSummary: qrCode.name,
+          debugReason: 'Staff member has already signed out for this date.'
+        });
+        throw new Error(msg);
       }
 
       // Update record with sign_out timestamp
@@ -333,22 +431,39 @@ export const StaffAttendanceService = {
 
       if (updateError) {
         console.warn('[StaffAttendanceService] Error recording sign-out, falling back to local:', updateError.message);
-        return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name);
+        return this.scanEntranceQrLocalFallback(profileId, targetCampusId, todayStr, qrCode, profile?.full_name, staffDept);
       }
 
       const formattedOut = new Date(nowIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
+      const msg = `Signed out successfully at ${formattedOut}.`;
+
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profile?.full_name || 'Staff Member',
+        campusName: qrCode.name || 'Main Gate',
+        status: 'SUCCESS_SIGN_OUT',
+        resultMessage: msg,
+        rawTokenSummary: qrCode.name,
+        debugReason: `Sign out recorded at ${formattedOut}.`
+      });
+
       // Update local storage and broadcast
       try {
         const rawLocal = localStorage.getItem('jipas_staff_attendance');
         const localList = rawLocal ? JSON.parse(rawLocal) : [];
-        const updatedList = localList.map((r: any) => {
-          if (r.id === updatedRecord.id || (r.staff_id === profileId && (r.attendance_date === todayStr || r.date === todayStr))) {
-            return { ...r, ...updatedRecord, sign_out_at: nowIso, clockOutTime: formattedOut };
-          }
-          return r;
-        });
-        localStorage.setItem('jipas_staff_attendance', JSON.stringify(updatedList));
+        const idx = localList.findIndex((r: any) => r.id === updatedRecord.id || (r.staff_id === profileId && r.attendance_date === todayStr));
+        if (idx !== -1) {
+          localList[idx] = { ...localList[idx], ...updatedRecord };
+        } else {
+          localList.unshift({
+            ...updatedRecord,
+            staff_name: profile?.full_name || 'Staff Member',
+            teacherName: profile?.full_name || 'Staff Member',
+            teacherId: profileId,
+            department: staffDept
+          });
+        }
+        localStorage.setItem('jipas_staff_attendance', JSON.stringify(localList));
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: updatedRecord, status: 'SIGNED_OUT' } }));
           window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
@@ -358,7 +473,7 @@ export const StaffAttendanceService = {
       return {
         status: 'SIGNED_OUT',
         record: updatedRecord,
-        message: `Signed out successfully at ${formattedOut}.`
+        message: msg
       };
     }
   },
@@ -496,7 +611,8 @@ export const StaffAttendanceService = {
     targetCampusId: string,
     todayStr: string,
     qrCode: EntranceQrCode,
-    profileName?: string
+    profileName?: string,
+    staffDept?: string
   ): Promise<{ status: 'SIGNED_IN' | 'SIGNED_OUT'; record: StaffAttendanceRecord; message: string }> {
     const rawLocal = localStorage.getItem('jipas_staff_attendance');
     let localRecords: any[] = [];
@@ -531,11 +647,23 @@ export const StaffAttendanceService = {
         qr_code_id: qrCode.id,
         created_at: nowIso,
         updated_at: nowIso,
-        department: 'Staff',
+        department: staffDept || 'Staff',
         campus_name: 'Main Campus'
       };
       localRecords.unshift(newRec);
       localStorage.setItem('jipas_staff_attendance', JSON.stringify(localRecords));
+
+      const msg = `Signed in successfully at ${nowTime} (Local Mode).`;
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profileName || 'Staff Member',
+        campusName: qrCode.name || 'Main Gate',
+        status: 'SUCCESS_SIGN_IN',
+        resultMessage: msg,
+        rawTokenSummary: qrCode.name,
+        debugReason: `Recorded locally. Status: ${isLate ? 'Late' : 'Present'}.`
+      });
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: newRec, status: 'SIGNED_IN' } }));
         window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
@@ -544,18 +672,40 @@ export const StaffAttendanceService = {
       return {
         status: 'SIGNED_IN',
         record: newRec as any,
-        message: `Signed in successfully at ${nowTime} (Local Fallback Mode).`
+        message: msg
       };
     } else {
       const existing = localRecords[existingIdx];
       if (existing.sign_out_at || existing.clockOutTime) {
-        throw new Error('Attendance already completed for today.');
+        const msg = 'Attendance already completed for today.';
+        logRecentScanAttempt({
+          staffId: profileId,
+          staffName: profileName || 'Staff Member',
+          campusName: qrCode.name || 'Main Gate',
+          status: 'FAILED',
+          resultMessage: msg,
+          rawTokenSummary: qrCode.name,
+          debugReason: 'Staff member already signed out for today.'
+        });
+        throw new Error(msg);
       }
       existing.sign_out_at = nowIso;
       existing.clockOutTime = nowTime;
       existing.updated_at = nowIso;
       localRecords[existingIdx] = existing;
       localStorage.setItem('jipas_staff_attendance', JSON.stringify(localRecords));
+
+      const msg = `Signed out successfully at ${nowTime} (Local Mode).`;
+      logRecentScanAttempt({
+        staffId: profileId,
+        staffName: profileName || 'Staff Member',
+        campusName: qrCode.name || 'Main Gate',
+        status: 'SUCCESS_SIGN_OUT',
+        resultMessage: msg,
+        rawTokenSummary: qrCode.name,
+        debugReason: `Signed out locally at ${nowTime}.`
+      });
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated', { detail: { record: existing, status: 'SIGNED_OUT' } }));
         window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
@@ -564,7 +714,7 @@ export const StaffAttendanceService = {
       return {
         status: 'SIGNED_OUT',
         record: existing as any,
-        message: `Signed out successfully at ${nowTime} (Local Fallback Mode).`
+        message: msg
       };
     }
   }

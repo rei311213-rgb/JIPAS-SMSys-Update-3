@@ -13,12 +13,48 @@ export type AttendanceStatusType =
   | 'WEEKEND'
   | 'EXCUSED';
 
+export interface DayScheduleConfig {
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
+  dayName: string;
+  isWorkingDay: boolean;
+  expectedSignIn: string;
+  expectedSignOut: string;
+}
+
+export interface DepartmentWorkingHoursConfig {
+  departmentId: string;
+  departmentName: string;
+  expectedSignIn: string;
+  expectedSignOut: string;
+  lateThresholdMins?: number;
+  workingDays?: number[];
+  daySchedules?: DayScheduleConfig[];
+}
+
 export interface WorkingHoursConfig {
   expectedSignIn: string; // e.g. "08:00"
   expectedSignOut: string; // e.g. "17:00"
   lateThresholdMins: number; // e.g. 30
   earlyDepartureThresholdMins: number; // e.g. 30
   workingDays: number[]; // e.g. [1, 2, 3, 4, 5] (Monday to Friday)
+  daySchedules?: DayScheduleConfig[];
+  departmentSchedules?: DepartmentWorkingHoursConfig[];
+}
+
+export const DAYS_OF_WEEK_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function createDefaultDaySchedules(
+  workingDays: number[] = [1, 2, 3, 4, 5],
+  expectedSignIn: string = '08:00',
+  expectedSignOut: string = '17:00'
+): DayScheduleConfig[] {
+  return DAYS_OF_WEEK_NAMES.map((name, idx) => ({
+    dayOfWeek: idx,
+    dayName: name,
+    isWorkingDay: workingDays.includes(idx),
+    expectedSignIn: expectedSignIn,
+    expectedSignOut: expectedSignOut
+  }));
 }
 
 export const DEFAULT_WORKING_HOURS: WorkingHoursConfig = {
@@ -26,16 +62,19 @@ export const DEFAULT_WORKING_HOURS: WorkingHoursConfig = {
   expectedSignOut: '17:00',
   lateThresholdMins: 30,
   earlyDepartureThresholdMins: 30,
-  workingDays: [1, 2, 3, 4, 5]
+  workingDays: [1, 2, 3, 4, 5],
+  daySchedules: createDefaultDaySchedules([1, 2, 3, 4, 5], '08:00', '17:00')
 };
 
 export const StaffAttendanceReportService = {
   /**
-   * Fetches the working hours configuration for a given campus from system_settings table.
-   * If not configured, returns DEFAULT_WORKING_HOURS.
+   * Fetches the working hours configuration for a given campus (and optional department) from system_settings table.
+   * If departmentName is specified and a department override exists, returns department-specific working hours.
    */
-  async getWorkingHours(campusId: string): Promise<WorkingHoursConfig> {
+  async getWorkingHours(campusId: string, departmentName?: string): Promise<WorkingHoursConfig> {
     try {
+      let val: any = null;
+
       const { data, error } = await supabase
         .from('system_settings')
         .select('setting_value')
@@ -43,20 +82,76 @@ export const StaffAttendanceReportService = {
         .eq('setting_key', 'staff_attendance_hours')
         .maybeSingle();
 
-      if (error) {
-        console.warn('[StaffAttendanceReportService] Error fetching working hours settings:', error.message);
-        return DEFAULT_WORKING_HOURS;
+      if (!error && data && data.setting_value) {
+        val = data.setting_value;
+      } else if (typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem(`jipas_working_hours_${campusId}`) || localStorage.getItem('jipas_working_hours');
+        if (cached) {
+          try { val = JSON.parse(cached); } catch {}
+        }
       }
 
-      if (data && data.setting_value) {
-        const val = data.setting_value as any;
-        return {
-          expectedSignIn: val.expected_signin_time || DEFAULT_WORKING_HOURS.expectedSignIn,
-          expectedSignOut: val.expected_signout_time || DEFAULT_WORKING_HOURS.expectedSignOut,
+      if (val) {
+        const workingDays = Array.isArray(val.working_days) ? val.working_days : DEFAULT_WORKING_HOURS.workingDays;
+        const expectedSignIn = val.expected_signin_time || DEFAULT_WORKING_HOURS.expectedSignIn;
+        const expectedSignOut = val.expected_signout_time || DEFAULT_WORKING_HOURS.expectedSignOut;
+
+        let daySchedules: DayScheduleConfig[] = [];
+        if (Array.isArray(val.day_schedules) && val.day_schedules.length === 7) {
+          daySchedules = val.day_schedules.map((ds: any, idx: number) => ({
+            dayOfWeek: typeof ds.dayOfWeek === 'number' ? ds.dayOfWeek : idx,
+            dayName: ds.dayName || DAYS_OF_WEEK_NAMES[idx],
+            isWorkingDay: typeof ds.isWorkingDay === 'boolean' ? ds.isWorkingDay : workingDays.includes(idx),
+            expectedSignIn: ds.expectedSignIn || expectedSignIn,
+            expectedSignOut: ds.expectedSignOut || expectedSignOut
+          }));
+        } else {
+          daySchedules = createDefaultDaySchedules(workingDays, expectedSignIn, expectedSignOut);
+        }
+
+        const departmentSchedules: DepartmentWorkingHoursConfig[] = Array.isArray(val.department_schedules) 
+          ? val.department_schedules 
+          : (Array.isArray(val.departmentSchedules) ? val.departmentSchedules : []);
+
+        const baseConfig: WorkingHoursConfig = {
+          expectedSignIn,
+          expectedSignOut,
           lateThresholdMins: typeof val.late_threshold_mins === 'number' ? val.late_threshold_mins : DEFAULT_WORKING_HOURS.lateThresholdMins,
           earlyDepartureThresholdMins: typeof val.early_departure_threshold_mins === 'number' ? val.early_departure_threshold_mins : DEFAULT_WORKING_HOURS.earlyDepartureThresholdMins,
-          workingDays: Array.isArray(val.working_days) ? val.working_days : DEFAULT_WORKING_HOURS.workingDays
+          workingDays: daySchedules.filter(d => d.isWorkingDay).map(d => d.dayOfWeek),
+          daySchedules,
+          departmentSchedules
         };
+
+        // If a specific department is requested, try matching its custom schedule
+        if (departmentName && departmentSchedules.length > 0) {
+          const normDept = departmentName.trim().toLowerCase();
+          const deptMatch = departmentSchedules.find(ds => 
+            (ds.departmentName && ds.departmentName.trim().toLowerCase() === normDept) ||
+            (ds.departmentId && ds.departmentId.trim().toLowerCase() === normDept) ||
+            normDept.includes((ds.departmentName || '').trim().toLowerCase())
+          );
+
+          if (deptMatch) {
+            const deptWorkingDays = deptMatch.workingDays || baseConfig.workingDays;
+            const deptSignIn = deptMatch.expectedSignIn || baseConfig.expectedSignIn;
+            const deptSignOut = deptMatch.expectedSignOut || baseConfig.expectedSignOut;
+            const deptDaySchedules = deptMatch.daySchedules && deptMatch.daySchedules.length === 7
+              ? deptMatch.daySchedules
+              : createDefaultDaySchedules(deptWorkingDays, deptSignIn, deptSignOut);
+
+            return {
+              ...baseConfig,
+              expectedSignIn: deptSignIn,
+              expectedSignOut: deptSignOut,
+              lateThresholdMins: deptMatch.lateThresholdMins ?? baseConfig.lateThresholdMins,
+              workingDays: deptWorkingDays,
+              daySchedules: deptDaySchedules
+            };
+          }
+        }
+
+        return baseConfig;
       }
     } catch (err) {
       console.warn('[StaffAttendanceReportService] Exception in getWorkingHours:', err);
@@ -68,13 +163,25 @@ export const StaffAttendanceReportService = {
    * Saves or updates the working hours configuration for a given campus under system_settings table.
    */
   async saveWorkingHours(campusId: string, config: WorkingHoursConfig, actorId: string): Promise<void> {
+    const daySchedules = config.daySchedules || createDefaultDaySchedules(config.workingDays, config.expectedSignIn, config.expectedSignOut);
+    const activeWorkingDays = daySchedules.filter(d => d.isWorkingDay).map(d => d.dayOfWeek);
+
     const payload = {
       expected_signin_time: config.expectedSignIn,
       expected_signout_time: config.expectedSignOut,
       late_threshold_mins: config.lateThresholdMins,
       early_departure_threshold_mins: config.earlyDepartureThresholdMins,
-      working_days: config.workingDays
+      working_days: activeWorkingDays,
+      day_schedules: daySchedules,
+      department_schedules: config.departmentSchedules || []
     };
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(`jipas_working_hours_${campusId}`, JSON.stringify(payload));
+        localStorage.setItem('jipas_working_hours', JSON.stringify(payload));
+      } catch {}
+    }
 
     // Check if setting already exists
     const { data, error: selectErr } = await supabase
@@ -108,7 +215,7 @@ export const StaffAttendanceReportService = {
           campus_id: campusId,
           setting_key: 'staff_attendance_hours',
           setting_value: payload,
-          description: 'Configured working hours and thresholds for staff attendance checks',
+          description: 'Configured working hours, thresholds, and per-day schedules for staff attendance checks',
           updated_by: actorId
         });
 
@@ -123,8 +230,8 @@ export const StaffAttendanceReportService = {
       user_id: actorId,
       action: 'SETTINGS_CONFIGURED',
       module: 'Staff Attendance',
-      description: `Configured staff working hours: Sign-In=${config.expectedSignIn}, Sign-Out=${config.expectedSignOut}`,
-      metadata: { config }
+      description: `Configured staff working hours and per-day schedules for campus [${campusId}]`,
+      metadata: { config: payload }
     });
   },
 
@@ -175,8 +282,12 @@ export const StaffAttendanceReportService = {
 
     // 7. Check Sign-In details
     if (record.sign_in_at) {
+      const daySched = config.daySchedules?.find(ds => ds.dayOfWeek === dayOfWeek);
+      const targetSignIn = daySched?.expectedSignIn || config.expectedSignIn || '08:00';
+      const targetSignOut = daySched?.expectedSignOut || config.expectedSignOut || '17:00';
+
       const signInTime = new Date(record.sign_in_at);
-      const [expInHour, expInMin] = config.expectedSignIn.split(':').map(Number);
+      const [expInHour, expInMin] = targetSignIn.split(':').map(Number);
       const expectedInDate = new Date(record.sign_in_at);
       expectedInDate.setHours(expInHour, expInMin, 0, 0);
 
@@ -186,7 +297,7 @@ export const StaffAttendanceReportService = {
       // Check Sign-Out details
       if (record.sign_out_at) {
         const signOutTime = new Date(record.sign_out_at);
-        const [expOutHour, expOutMin] = config.expectedSignOut.split(':').map(Number);
+        const [expOutHour, expOutMin] = targetSignOut.split(':').map(Number);
         const expectedOutDate = new Date(record.sign_out_at);
         expectedOutDate.setHours(expOutHour, expOutMin, 0, 0);
 

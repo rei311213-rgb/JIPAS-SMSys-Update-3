@@ -22,6 +22,7 @@ import { saveStudent, saveReport, saveAllReports, subscribeSettings, saveNotific
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
+import RecentQrScansLogView from './common/RecentQrScansLogView';
 import { StaffAttendanceService, StaffAttendanceRecord as SupaStaffAttendanceRecord } from '../services/supabase/staffAttendanceService';
 import ClassPerformanceOverview from './teacher/ClassPerformanceOverview';
 import ExamTimetableManager from './admin/ExamTimetableManager';
@@ -259,6 +260,11 @@ function MyPersonalAttendanceLogsView({ teacherId }: { teacherId: string }) {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* RECENT SCAN DIAGNOSTICS & DEBUG LOG VIEW */}
+      <div className="pt-2">
+        <RecentQrScansLogView staffId={teacherId} limit={10} title="My Recent Gate Scan Diagnostic Log" />
       </div>
     </div>
   );

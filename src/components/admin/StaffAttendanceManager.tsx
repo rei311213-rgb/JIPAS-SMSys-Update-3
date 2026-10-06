@@ -3,12 +3,12 @@ import {
   Clock, ShieldCheck, AlertCircle, Calendar, RefreshCw, Sparkles, Plus, 
   Trash2, Download, Printer, Search, Filter, Edit, CheckCircle2, UserCheck, 
   Play, Power, Lock, AlertTriangle, QrCode, FileText, BarChart3, Settings, 
-  Save, ArrowLeft, ArrowRight, User
+  Save, ArrowLeft, ArrowRight, User, X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { EntranceQrService, EntranceQrCode } from '../../services/supabase/entranceQrService';
 import { StaffAttendanceService, StaffAttendanceRecord } from '../../services/supabase/staffAttendanceService';
-import { StaffAttendanceReportService, WorkingHoursConfig } from '../../services/supabase/staffAttendanceReportService';
+import { StaffAttendanceReportService, WorkingHoursConfig, DayScheduleConfig, DepartmentWorkingHoursConfig, createDefaultDaySchedules } from '../../services/supabase/staffAttendanceReportService';
 import { StaffAttendanceExportService } from '../../services/supabase/staffAttendanceExportService';
 import EntranceQRPrintPage from './EntranceQRPrintPage';
 import StaffAttendanceReport from './StaffAttendanceReport';
@@ -58,6 +58,11 @@ export default function StaffAttendanceManager() {
   const [lateThresholdMins, setLateThresholdMins] = useState<number>(30);
   const [earlyDepartureThresholdMins, setEarlyDepartureThresholdMins] = useState<number>(30);
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [daySchedules, setDaySchedules] = useState<DayScheduleConfig[]>(() =>
+    createDefaultDaySchedules([1, 2, 3, 4, 5], '08:00', '17:00')
+  );
+  const [departmentSchedules, setDepartmentSchedules] = useState<DepartmentWorkingHoursConfig[]>([]);
+  const [selectedDeptForSchedule, setSelectedDeptForSchedule] = useState<string>('DEFAULT');
 
   // Daily Dashboard statistics State
   const [dashboardStats, setDashboardStats] = useState<{
@@ -200,15 +205,49 @@ export default function StaffAttendanceManager() {
       setLateThresholdMins(config.lateThresholdMins);
       setEarlyDepartureThresholdMins(config.earlyDepartureThresholdMins);
       setWorkingDays(config.workingDays);
+      setDepartmentSchedules(config.departmentSchedules || []);
+      if (config.daySchedules && config.daySchedules.length === 7) {
+        setDaySchedules(config.daySchedules);
+      } else {
+        setDaySchedules(createDefaultDaySchedules(config.workingDays, config.expectedSignIn, config.expectedSignOut));
+      }
     } catch (err) {
       console.warn('Error retrieving hours config:', err);
     }
   };
 
-  const handleSaveWorkingHours = async () => {
-    if (!selectedCampusId) return;
-    setIsLoading(true);
-    try {
+  const handleSelectDepartmentForSchedule = (deptName: string) => {
+    setSelectedDeptForSchedule(deptName);
+    if (deptName === 'DEFAULT') {
+      fetchWorkingHoursSettings();
+    } else {
+      const match = departmentSchedules.find(d => d.departmentName === deptName || d.departmentId === deptName);
+      if (match) {
+        setExpectedSignIn(match.expectedSignIn);
+        setExpectedSignOut(match.expectedSignOut);
+        if (match.lateThresholdMins !== undefined) setLateThresholdMins(match.lateThresholdMins);
+        if (match.daySchedules && match.daySchedules.length === 7) {
+          setDaySchedules(match.daySchedules);
+        } else {
+          setDaySchedules(createDefaultDaySchedules(match.workingDays || [1, 2, 3, 4, 5], match.expectedSignIn, match.expectedSignOut));
+        }
+      } else {
+        setExpectedSignIn('08:00');
+        setExpectedSignOut('16:00');
+        setDaySchedules(createDefaultDaySchedules([1, 2, 3, 4, 5], '08:00', '16:00'));
+      }
+    }
+  };
+
+  const handleRemoveDepartmentSchedule = async (deptName: string) => {
+    if (!window.confirm(`Remove custom working hours schedule for ${deptName}? It will fallback to campus default.`)) return;
+    const updated = departmentSchedules.filter(d => d.departmentName !== deptName && d.departmentId !== deptName);
+    setDepartmentSchedules(updated);
+    if (selectedDeptForSchedule === deptName) {
+      setSelectedDeptForSchedule('DEFAULT');
+      fetchWorkingHoursSettings();
+    }
+    if (selectedCampusId) {
       await StaffAttendanceReportService.saveWorkingHours(
         selectedCampusId,
         {
@@ -216,11 +255,105 @@ export default function StaffAttendanceManager() {
           expectedSignOut,
           lateThresholdMins,
           earlyDepartureThresholdMins,
-          workingDays
+          workingDays,
+          daySchedules,
+          departmentSchedules: updated
         },
         profile?.id || ''
       );
-      setActionSuccessMsg('Working hours parameters updated for this campus.');
+    }
+  };
+
+  const handleUpdateDaySchedule = (dayIndex: number, field: 'isWorkingDay' | 'expectedSignIn' | 'expectedSignOut', value: any) => {
+    setDaySchedules(prev => prev.map((ds, idx) => {
+      if (idx === dayIndex) {
+        return { ...ds, [field]: value };
+      }
+      return ds;
+    }));
+  };
+
+  const handleApplyPresetSchedule = (preset: 'standard' | 'early_friday' | 'saturday_shift' | 'copy_monday') => {
+    setDaySchedules(prev => {
+      if (preset === 'standard') {
+        return prev.map((ds, idx) => ({
+          ...ds,
+          isWorkingDay: idx >= 1 && idx <= 5,
+          expectedSignIn: '08:00',
+          expectedSignOut: '17:00'
+        }));
+      } else if (preset === 'early_friday') {
+        return prev.map((ds, idx) => ({
+          ...ds,
+          isWorkingDay: idx >= 1 && idx <= 5,
+          expectedSignIn: '08:00',
+          expectedSignOut: idx === 5 ? '13:00' : '17:00'
+        }));
+      } else if (preset === 'saturday_shift') {
+        return prev.map((ds, idx) => ({
+          ...ds,
+          isWorkingDay: idx >= 1 && idx <= 6,
+          expectedSignIn: idx === 6 ? '08:30' : '08:00',
+          expectedSignOut: idx === 6 ? '12:30' : '17:00'
+        }));
+      } else if (preset === 'copy_monday') {
+        const monday = prev.find(d => d.dayOfWeek === 1) || { expectedSignIn: '08:00', expectedSignOut: '17:00' };
+        return prev.map(ds => {
+          if (ds.isWorkingDay) {
+            return {
+              ...ds,
+              expectedSignIn: monday.expectedSignIn,
+              expectedSignOut: monday.expectedSignOut
+            };
+          }
+          return ds;
+        });
+      }
+      return prev;
+    });
+  };
+
+  const handleSaveWorkingHours = async () => {
+    if (!selectedCampusId) return;
+    setIsLoading(true);
+    try {
+      const activeWorkingDays = daySchedules.filter(d => d.isWorkingDay).map(d => d.dayOfWeek);
+      setWorkingDays(activeWorkingDays);
+
+      let updatedDeptSchedules = [...departmentSchedules];
+      if (selectedDeptForSchedule !== 'DEFAULT') {
+        const idx = updatedDeptSchedules.findIndex(d => d.departmentName === selectedDeptForSchedule || d.departmentId === selectedDeptForSchedule);
+        const newEntry: DepartmentWorkingHoursConfig = {
+          departmentId: selectedDeptForSchedule,
+          departmentName: selectedDeptForSchedule,
+          expectedSignIn,
+          expectedSignOut,
+          lateThresholdMins,
+          workingDays: activeWorkingDays,
+          daySchedules
+        };
+        if (idx !== -1) {
+          updatedDeptSchedules[idx] = newEntry;
+        } else {
+          updatedDeptSchedules.push(newEntry);
+        }
+        setDepartmentSchedules(updatedDeptSchedules);
+      }
+
+      await StaffAttendanceReportService.saveWorkingHours(
+        selectedCampusId,
+        {
+          expectedSignIn: selectedDeptForSchedule === 'DEFAULT' ? expectedSignIn : (departmentSchedules.length > 0 ? expectedSignIn : '08:00'),
+          expectedSignOut: selectedDeptForSchedule === 'DEFAULT' ? expectedSignOut : '17:00',
+          lateThresholdMins,
+          earlyDepartureThresholdMins,
+          workingDays: activeWorkingDays,
+          daySchedules,
+          departmentSchedules: updatedDeptSchedules
+        },
+        profile?.id || ''
+      );
+      setActionSuccessMsg(`Working hours and shift schedules updated for ${selectedDeptForSchedule === 'DEFAULT' ? 'School-Wide Campus' : selectedDeptForSchedule}.`);
       setTimeout(() => setActionSuccessMsg(null), 4000);
     } catch (err: any) {
       alert('Error updating schedule config: ' + err.message);
@@ -912,71 +1045,231 @@ export default function StaffAttendanceManager() {
 
       {/* CONFIGURATION TAB */}
       {activeSubTab === 'hours_configuration' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6 max-w-xl mx-auto shadow-sm">
-          <div className="border-b border-slate-100 pb-3 flex items-center gap-2">
-            <Settings className="w-5 h-5 text-indigo-600" />
-            <div>
-              <h3 className="font-extrabold text-sm text-slate-900">Working Hours & Scheduling parameters</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Configure campus gates expected entry times.</p>
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6 max-w-2xl mx-auto shadow-sm">
+          <div className="border-b border-slate-100 pb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-indigo-600" />
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Working Hours & Per-Day Scheduling Parameters</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Configure custom entry/exit times for each day of the week.</p>
+              </div>
             </div>
+            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-[10px] uppercase rounded-full border border-indigo-100">
+              Campus Schedules
+            </span>
           </div>
 
-          <div className="space-y-4 text-xs font-bold text-slate-700">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label>Expected Sign-In Time:</label>
-                <input
-                  type="time"
-                  value={expectedSignIn}
-                  onChange={(e) => setExpectedSignIn(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                />
+          <div className="space-y-5 text-xs font-bold text-slate-700">
+            {/* DEPARTMENT-BASED SCHEDULE SELECTION BAR */}
+            <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <label className="block text-xs font-black text-indigo-950 uppercase tracking-wider">
+                    Target Schedule Scope / Department:
+                  </label>
+                  <p className="text-[10px] text-indigo-700/90 font-medium mt-0.5">
+                    Configure expected sign-in/out times & working days for specific departments or the default campus baseline.
+                  </p>
+                </div>
+                <select
+                  value={selectedDeptForSchedule}
+                  onChange={(e) => handleSelectDepartmentForSchedule(e.target.value)}
+                  className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs shrink-0"
+                >
+                  <option value="DEFAULT">🏫 Default Campus Baseline (All Staff)</option>
+                  <option value="Pre-School">👶 Pre-School Department</option>
+                  <option value="Primary Department">📚 Primary Department</option>
+                  <option value="Junior High School">🎓 Junior High School (JHS)</option>
+                  <option value="Senior High School">🏛️ Senior High School (SHS)</option>
+                  <option value="Administrative & Support Staff">💼 Administrative & Support Staff</option>
+                </select>
               </div>
-              <div className="space-y-1">
-                <label>Expected Sign-Out Time:</label>
-                <input
-                  type="time"
-                  value={expectedSignOut}
-                  onChange={(e) => setExpectedSignOut(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                />
-              </div>
+
+              {/* Active Department Overrides Summary Badges */}
+              {departmentSchedules.length > 0 && (
+                <div className="pt-2 border-t border-indigo-150 flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] font-black uppercase text-indigo-900">Custom Dept Schedules:</span>
+                  {departmentSchedules.map(ds => (
+                    <div 
+                      key={ds.departmentName}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[10px] font-extrabold transition-all ${
+                        selectedDeptForSchedule === ds.departmentName
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-indigo-200 hover:border-indigo-400'
+                      }`}
+                    >
+                      <button 
+                        type="button"
+                        onClick={() => handleSelectDepartmentForSchedule(ds.departmentName)}
+                        className="cursor-pointer flex items-center gap-1"
+                      >
+                        <span>{ds.departmentName}</span>
+                        <span className="opacity-80">({ds.expectedSignIn} - {ds.expectedSignOut})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDepartmentSchedule(ds.departmentName)}
+                        className="text-rose-400 hover:text-rose-600 p-0.5 rounded cursor-pointer ml-1"
+                        title={`Remove ${ds.departmentName} schedule`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Thresholds */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
               <div className="space-y-1">
-                <label>Late threshold (Mins):</label>
+                <label className="text-slate-800 font-black">Late Threshold Buffer (Minutes):</label>
                 <input
                   type="number"
                   value={lateThresholdMins}
                   onChange={(e) => setLateThresholdMins(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  placeholder="30"
                 />
+                <span className="text-[9px] text-slate-400 font-medium block">Scans after expected time + buffer are marked "Late".</span>
               </div>
+
               <div className="space-y-1">
-                <label>Early Departure threshold (Mins):</label>
+                <label className="text-slate-800 font-black">Early Departure Buffer (Minutes):</label>
                 <input
                   type="number"
                   value={earlyDepartureThresholdMins}
                   onChange={(e) => setEarlyDepartureThresholdMins(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  placeholder="30"
+                />
+                <span className="text-[9px] text-slate-400 font-medium block">Check-outs before expected exit - buffer are marked "Early Departure".</span>
+              </div>
+            </div>
+
+            {/* Base Sign-In and Sign-Out Times */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-slate-700 font-extrabold">
+                  {selectedDeptForSchedule === 'DEFAULT' ? 'Default Base Sign-In Time:' : `Expected Sign-In Time (${selectedDeptForSchedule}):`}
+                </label>
+                <input
+                  type="time"
+                  value={expectedSignIn}
+                  onChange={(e) => setExpectedSignIn(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-slate-700 font-extrabold">
+                  {selectedDeptForSchedule === 'DEFAULT' ? 'Default Base Sign-Out Time:' : `Expected Sign-Out Time (${selectedDeptForSchedule}):`}
+                </label>
+                <input
+                  type="time"
+                  value={expectedSignOut}
+                  onChange={(e) => setExpectedSignOut(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-bold">Configured Working Days:</label>
-              <div className="grid grid-cols-4 gap-2">
-                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((dayName, idx) => (
-                  <label key={idx} className="flex items-center gap-1.5 p-2 bg-slate-50 border border-slate-150 rounded-xl text-[10px] cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={workingDays.includes(idx)}
-                      onChange={() => toggleWorkingDayCheckbox(idx)}
-                      className="rounded text-indigo-600 focus:ring-0"
-                    />
-                    <span>{dayName}</span>
-                  </label>
+            {/* PER-DAY SCHEDULE CONFIGURATION MATRIX */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div>
+                  <label className="block text-xs font-black text-slate-900">Per-Day Custom Times & Shift Schedules:</label>
+                  <p className="text-[10px] text-slate-400 font-medium">Customize exact sign-in and sign-out times for each day of the week.</p>
+                </div>
+                
+                {/* Presets */}
+                <div className="flex flex-wrap gap-1.5 pt-1 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetSchedule('standard')}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg text-[10px] font-extrabold text-slate-600 transition-colors cursor-pointer"
+                    title="Mon-Fri 08:00 - 17:00"
+                  >
+                    Standard Mon-Fri
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetSchedule('early_friday')}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg text-[10px] font-extrabold text-slate-600 transition-colors cursor-pointer"
+                    title="Mon-Thu 08:00 - 17:00, Fri 08:00 - 13:00"
+                  >
+                    Early Friday
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetSchedule('saturday_shift')}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg text-[10px] font-extrabold text-slate-600 transition-colors cursor-pointer"
+                    title="Include Saturday half-day"
+                  >
+                    Sat Shift
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetSchedule('copy_monday')}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg text-[10px] font-extrabold text-slate-600 transition-colors cursor-pointer"
+                    title="Copy Monday times to all active working days"
+                  >
+                    Copy Mon
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {daySchedules.map((ds, idx) => (
+                  <div 
+                    key={ds.dayOfWeek}
+                    className={`p-3 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                      ds.isWorkingDay 
+                        ? 'bg-slate-50/80 border-slate-200' 
+                        : 'bg-slate-100/40 border-slate-150 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 shrink-0 min-w-[130px]">
+                      <input
+                        type="checkbox"
+                        id={`working_day_${ds.dayOfWeek}`}
+                        checked={ds.isWorkingDay}
+                        onChange={(e) => handleUpdateDaySchedule(idx, 'isWorkingDay', e.target.checked)}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-0 cursor-pointer"
+                      />
+                      <label htmlFor={`working_day_${ds.dayOfWeek}`} className="cursor-pointer flex flex-col">
+                        <span className="font-extrabold text-xs text-slate-900">{ds.dayName}</span>
+                        <span className={`text-[9px] font-black uppercase ${ds.isWorkingDay ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {ds.isWorkingDay ? 'Working Day' : 'Day Off / Closed'}
+                        </span>
+                      </label>
+                    </div>
+
+                    {ds.isWorkingDay ? (
+                      <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                        <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                          <span className="text-[10px] text-slate-400 uppercase font-black shrink-0">In:</span>
+                          <input
+                            type="time"
+                            value={ds.expectedSignIn}
+                            onChange={(e) => handleUpdateDaySchedule(idx, 'expectedSignIn', e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer w-full"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                          <span className="text-[10px] text-slate-400 uppercase font-black shrink-0">Out:</span>
+                          <input
+                            type="time"
+                            value={ds.expectedSignOut}
+                            onChange={(e) => handleUpdateDaySchedule(idx, 'expectedSignOut', e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer w-full"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] font-bold text-slate-400 italic py-1">No check-in expected</span>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -984,10 +1277,10 @@ export default function StaffAttendanceManager() {
             <button
               onClick={handleSaveWorkingHours}
               disabled={isLoading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer pt-3"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-black uppercase tracking-wider rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              <span>Save & Audit parameters</span>
+              <span>Save & Apply Per-Day Schedule</span>
             </button>
           </div>
         </div>
