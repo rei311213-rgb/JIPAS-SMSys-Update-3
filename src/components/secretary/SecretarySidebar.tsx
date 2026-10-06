@@ -31,6 +31,7 @@ interface SecretarySidebarProps {
   studentsCount?: number;
   overdueCount?: number;
   expensesCount?: number;
+  secretary?: any;
 }
 
 interface SecretaryNavItem {
@@ -50,7 +51,8 @@ export default function SecretarySidebar({
   collectionsCount = 0,
   studentsCount = 0,
   overdueCount = 0,
-  expensesCount = 0
+  expensesCount = 0,
+  secretary
 }: SecretarySidebarProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState<boolean>(() => {
@@ -359,17 +361,27 @@ export default function SecretarySidebar({
           </div>
         )}
 
-        {isExpanded && (
-          <div className="px-3.5 py-2.5 mx-3 mt-1 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-2.5 animate-fadeIn">
-            <div className="w-9 h-9 rounded-xl bg-pink-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              AO
+        {isExpanded && (() => {
+          const secName = secretary?.name || 'Abena Osei';
+          const secInitials = (function() {
+            const parts = secName.trim().toUpperCase().split(/\s+/);
+            if (parts.length >= 2) {
+              return parts[0].charAt(0) + parts[1].charAt(0);
+            }
+            return secName.slice(0, 2).toUpperCase();
+          })();
+          return (
+            <div className="px-3.5 py-2.5 mx-3 mt-1 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-2.5 animate-fadeIn">
+              <div className="w-9 h-9 rounded-xl bg-pink-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                {secInitials}
+              </div>
+              <div className="overflow-hidden whitespace-nowrap">
+                <span className="text-xs font-bold text-slate-900 block truncate">{secName}</span>
+                <span className="text-[10px] text-slate-500 font-medium block truncate">School Secretary</span>
+              </div>
             </div>
-            <div className="overflow-hidden whitespace-nowrap">
-              <span className="text-xs font-bold text-slate-900 block truncate">Abena Osei</span>
-              <span className="text-[10px] text-slate-500 font-medium block truncate">School Secretary</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         <nav className="flex-1 p-3 overflow-y-auto space-y-3 mt-1">
           {navItems.map((item) => {

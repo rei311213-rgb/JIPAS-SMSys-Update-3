@@ -355,6 +355,10 @@ export default function TeacherPortal({
       alert('Please provide a reason for requesting this credential update.');
       return;
     }
+    if (editReqPassword.trim().toLowerCase() === 'livinus@23') {
+      alert('Security Violation: The administrator password cannot be used for staff or teacher logins.');
+      return;
+    }
     setIsSubmittingEditReq(true);
     try {
       const newReq: StaffLoginUpdateRequest = {
@@ -1251,6 +1255,10 @@ export default function TeacherPortal({
     }
     if (newPassword.length < 6) {
       setPasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword.toLowerCase() === 'livinus@23') {
+      setPasswordError('Security Violation: The administrator password cannot be used for staff or teacher logins.');
       return;
     }
     if (newPassword !== confirmPassword) {

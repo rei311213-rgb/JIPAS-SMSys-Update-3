@@ -551,7 +551,7 @@ select[class*="bg-[#"]:disabled {
     input[type="submit"],
     iframe[title*="Intercom"],
     .Toastify,
-    .fixed,
+    .fixed:not(.secretary-receipt-screen-wrapper, .printable-container, [class*="printable"], [class*="receipt"]),
     .toast,
     /* Hide Sidebars and Headers specifically by element/class signatures */
     [class*="sidebar"],
@@ -623,6 +623,53 @@ select[class*="bg-[#"]:disabled {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
+    }
+
+    /* Strict document-only printing enforcement */
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) * {
+      visibility: hidden !important;
+    }
+
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-terminal-report,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-receipt,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-fee-history,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #official-secretary-receipt,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-document,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-card,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-content,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-only-container,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-batch-only-wrapper,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) [id^="printable-"],
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-terminal-report *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-receipt *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-fee-history *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #official-secretary-receipt *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-document *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-card *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-content *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-only-container *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-batch-only-wrapper *,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) [id^="printable-"] * {
+      visibility: visible !important;
+    }
+
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-terminal-report,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-receipt,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #printable-fee-history,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) #official-secretary-receipt,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-document,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .printable-card,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-content,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-only-container,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) .print-batch-only-wrapper,
+    body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) [id^="printable-"] {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      z-index: 99999 !important;
     }
 
     /* Page size margins resets */

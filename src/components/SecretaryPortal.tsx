@@ -20,7 +20,8 @@ import {
   getStoredClasses,
   getStoredBills,
   saveStoredBills,
-  getStoredSettings
+  getStoredSettings,
+  getStoredUsers
 } from '../services/storageService';
 import { saveStudent, saveBill, generateUniqueAdmissionNo } from '../services/dbService';
 import { generateNextReceiptSerialNumber } from '../services/receiptSerialService';
@@ -133,7 +134,24 @@ export default function SecretaryPortal({
   onUpdateBills,
   onLogout
 }: SecretaryPortalProps) {
-  const secretary = rawSecretary || { name: 'Secretary', role: 'secretary', campus: 'JIPAS 1' } as any;
+  // Look up the actual logged-in user details to prevent falling back to generic placeholders or hardcoded names
+  const loggedInUser = useMemo(() => {
+    try {
+      const storedUsers = getStoredUsers();
+      // Match by ID, email, or username
+      const matched = storedUsers.find(u => 
+        (rawSecretary?.id && u.id === rawSecretary.id) ||
+        (rawSecretary?.email && u.email?.toLowerCase() === rawSecretary.email.toLowerCase()) ||
+        ((rawSecretary as any)?.username && u.username?.toLowerCase() === (rawSecretary as any).username.toLowerCase()) ||
+        (u.role === 'clerk' || u.role === 'secretary')
+      );
+      return matched || rawSecretary;
+    } catch {
+      return rawSecretary;
+    }
+  }, [rawSecretary]);
+
+  const secretary = loggedInUser || { name: 'Secretary', role: 'secretary', campus: 'JIPAS 1' } as any;
   const [activeTab, setActiveTab] = useState<SecretaryActiveTab>('fee_collection');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -952,6 +970,7 @@ export default function SecretaryPortal({
         studentsCount={students.length}
         overdueCount={bills.filter(b => (b.balance || 0) > 0).length}
         expensesCount={expenses.length}
+        secretary={secretary}
       />
 
       {/* Main Content Workspace Panel */}
@@ -1392,9 +1411,9 @@ export default function SecretaryPortal({
                     const stId = st.id;
                     const studentBills = bills.filter(b => b.studentId === stId);
                     const totalBilled = addMoney(...studentBills.map(b => b.payable ?? b.totalAmount ?? 0));
-                    const studentPayments = payments.filter(p => p.studentId === stId && p.status === 'Completed');
+                    const studentPayments = payments.filter(p => p.studentId === stId && p.status !== 'Rejected');
                     const totalPaid = addMoney(...studentPayments.map(p => p.amount ?? p.paid ?? 0));
-                    const balance = Math.max(0, subtractMoney(totalBilled, totalPaid));
+                    const balance = addMoney(...studentBills.map(b => b.balance ?? 0));
                     const isSelected = st.id === selectedStudent?.id;
                     const hasArrears = balance > 0;
 
@@ -2846,7 +2865,11 @@ export default function SecretaryPortal({
         const studentDept = lastIssuedReceipt.department || receiptStudent?.department || 'General Academic';
         const admissionNumber = lastIssuedReceipt.admissionNo || receiptStudent?.admissionNo || 'N/A';
         const className = lastIssuedReceipt.className || lastIssuedReceipt.classAssigned || receiptStudent?.className || 'Assigned Class';
-        const currentBalance = receiptBill ? (receiptBill.balance || 0) : 0;
+        
+        // Sum all outstanding balances of all active bills of the student for accurate remaining student balance
+        const studentBillsList = bills.filter(b => (b.studentId === lastIssuedReceipt.studentId || b.admissionNo === lastIssuedReceipt.admissionNo) && b.status !== 'Voided' && b.status !== 'VOIDED');
+        const currentBalance = addMoney(...studentBillsList.map(b => b.balance || 0));
+        
         const amountPaidVal = Number(lastIssuedReceipt.amount || lastIssuedReceipt.paid || 0);
         const verificationCode = `SEC-VERIFY-${(lastIssuedReceipt.id || 'RC').slice(-8).toUpperCase()}`;
 

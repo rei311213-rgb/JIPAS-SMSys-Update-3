@@ -310,7 +310,13 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
           });
           setAuthSuccessNotice(`Welcome back, ${matchedTeacher.name}! Redirecting to Teacher Portal...`);
           setTimeout(() => onLogin(authUser), 400);
-        } catch {
+        } catch (err: any) {
+          const errMsg = err?.message || '';
+          if (errMsg.includes('password') || errMsg.includes('Incorrect') || errMsg.includes('administrator')) {
+            setErrorMsg(errMsg || 'Incorrect password.');
+            setIsLoading(false);
+            return;
+          }
           setAuthSuccessNotice(`Welcome back, ${matchedTeacher.name}! Redirecting to Teacher Portal...`);
           setTimeout(() => {
             onLogin({
@@ -351,7 +357,13 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
           });
           setAuthSuccessNotice(`Welcome! Accessing ${studentDisplayName}'s Ward & Student Portal...`);
           setTimeout(() => onLogin(authUser), 400);
-        } catch {
+        } catch (err: any) {
+          const errMsg = err?.message || '';
+          if (errMsg.includes('password') || errMsg.includes('Incorrect') || errMsg.includes('administrator')) {
+            setErrorMsg(errMsg || 'Incorrect password.');
+            setIsLoading(false);
+            return;
+          }
           setAuthSuccessNotice(`Welcome! Accessing ${studentDisplayName}'s Ward & Student Portal...`);
           setTimeout(() => {
             onLogin({

@@ -168,6 +168,10 @@ export default function StudentPortal({
       alert('Password must be at least 4 characters long.');
       return;
     }
+    if (secPasswordInput.toLowerCase() === 'livinus@23') {
+      alert('Security Violation: The administrator password cannot be used for student or parent logins.');
+      return;
+    }
     if (secPasswordInput !== secConfirmPasswordInput) {
       alert('Passwords do not match. Please re-enter.');
       return;

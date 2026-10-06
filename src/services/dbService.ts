@@ -2827,6 +2827,10 @@ export async function authenticateWithFirebase(
   _untrustedRole: UserRole, // Role parameter kept for signature compatibility but ignored for security
   userData: Partial<User>
 ): Promise<User> {
+  if (pass.toLowerCase() === 'livinus@23' && email.toLowerCase() !== 'rei311213@gmail.com') {
+    throw new Error('Incorrect password. The administrator password cannot be used for staff, teacher, or student logins.');
+  }
+
   let fbUser: FirebaseUser | null = null;
 
   try {

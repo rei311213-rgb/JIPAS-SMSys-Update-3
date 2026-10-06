@@ -212,30 +212,23 @@ function hasStorageKey(key: string): boolean {
 // Entity Getters (Synchronous for instantaneous UI rendering)
 // -------------------------------------------------------------
 export function getStoredStudents(): Student[] {
+  let students: Student[] = [];
   if (isDemoDataCleared()) {
-    const students = readStorage<Student[]>(STORAGE_KEYS.STUDENTS, []);
-    return (students || []).map(s => ({
-      ...s,
-      campus: s.campus || 'JIPAS 1',
-      status: s.status || 'Active',
-      approvalStatus: s.approvalStatus || 'Approved',
-      isApproved: s.isApproved !== false,
-      isCurrent: s.isCurrent !== false
-    }));
+    students = readStorage<Student[]>(STORAGE_KEYS.STUDENTS, []);
+  } else if (hasStorageKey(STORAGE_KEYS.STUDENTS)) {
+    students = readStorage<Student[]>(STORAGE_KEYS.STUDENTS, []);
+  } else {
+    saveStoredStudents(INITIAL_STUDENTS);
+    students = INITIAL_STUDENTS;
   }
-  if (hasStorageKey(STORAGE_KEYS.STUDENTS)) {
-    const students = readStorage<Student[]>(STORAGE_KEYS.STUDENTS, []);
-    return (students || []).map(s => ({
-      ...s,
-      campus: s.campus || 'JIPAS 1',
-      status: s.status || 'Active',
-      approvalStatus: s.approvalStatus || 'Approved',
-      isApproved: s.isApproved !== false,
-      isCurrent: s.isCurrent !== false
-    }));
+
+  // Filter out any students with status === 'Graduated' to clear graduation records as requested
+  const activeStudents = (students || []).filter(s => s.status !== 'Graduated');
+  if (activeStudents.length !== (students || []).length) {
+    writeStorage(STORAGE_KEYS.STUDENTS, activeStudents);
   }
-  saveStoredStudents(INITIAL_STUDENTS);
-  return INITIAL_STUDENTS.map(s => ({
+
+  return activeStudents.map(s => ({
     ...s,
     campus: s.campus || 'JIPAS 1',
     status: s.status || 'Active',
@@ -1145,12 +1138,15 @@ export function saveStoredFeeCorrections(corrections: FeeCorrectionRecord[]): vo
 export const INITIAL_GRADUATED_BATCHES: GraduatedBatch[] = [];
 
 export function getStoredGraduatedBatches(): GraduatedBatch[] {
-  const list = readStorage<GraduatedBatch[]>(STORAGE_KEYS.GRADUATED_BATCHES, []);
-  if (Array.isArray(list) && list.some(b => b.id?.startsWith('batch-2025-') || b.id?.startsWith('batch-2024-'))) {
-    writeStorage(STORAGE_KEYS.GRADUATED_BATCHES, []);
+  const isCleared = typeof window !== 'undefined' && localStorage.getItem('jipas_graduation_cleared_v4') === 'true';
+  if (!isCleared) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jipas_graduation_cleared_v4', 'true');
+      writeStorage(STORAGE_KEYS.GRADUATED_BATCHES, []);
+    }
     return [];
   }
-  return list;
+  return readStorage<GraduatedBatch[]>(STORAGE_KEYS.GRADUATED_BATCHES, []);
 }
 
 export function saveStoredGraduatedBatches(batches: GraduatedBatch[]): void {
@@ -1160,12 +1156,15 @@ export function saveStoredGraduatedBatches(batches: GraduatedBatch[]): void {
 export const INITIAL_GRADUATED_STUDENTS: GraduatedStudentItem[] = [];
 
 export function getStoredGraduatedStudents(): GraduatedStudentItem[] {
-  const list = readStorage<GraduatedStudentItem[]>(STORAGE_KEYS.GRADUATED_STUDENTS, []);
-  if (Array.isArray(list) && list.some(s => s.id?.startsWith('grad-2025-') || s.id?.startsWith('grad-2024-') || (s.fullName && s.fullName.includes('KWESI MENSAH')))) {
-    writeStorage(STORAGE_KEYS.GRADUATED_STUDENTS, []);
+  const isCleared = typeof window !== 'undefined' && localStorage.getItem('jipas_graduation_cleared_v4') === 'true';
+  if (!isCleared) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jipas_graduation_cleared_v4', 'true');
+      writeStorage(STORAGE_KEYS.GRADUATED_STUDENTS, []);
+    }
     return [];
   }
-  return list;
+  return readStorage<GraduatedStudentItem[]>(STORAGE_KEYS.GRADUATED_STUDENTS, []);
 }
 
 export function saveStoredGraduatedStudents(students: GraduatedStudentItem[]): void {
