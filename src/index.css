@@ -665,10 +665,13 @@ select[class*="bg-[#"]:disabled {
     body:has(#printable-terminal-report, #printable-receipt, #printable-fee-history, #official-secretary-receipt, .printable-document, .printable-card, .print-content, .print-only-container, .print-batch-only-wrapper, [id^="printable-"]) [id^="printable-"] {
       position: absolute !important;
       left: 0 !important;
+      right: 0 !important;
       top: 0 !important;
-      width: 100% !important;
+      width: auto !important;
+      max-width: 100% !important;
       margin: 0 !important;
-      padding: 0 !important;
+      padding: 6mm !important;
+      box-sizing: border-box !important;
       z-index: 99999 !important;
     }
 

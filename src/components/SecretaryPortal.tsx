@@ -142,10 +142,12 @@ export default function SecretaryPortal({
       const matched = storedUsers.find(u => 
         (rawSecretary?.id && u.id === rawSecretary.id) ||
         (rawSecretary?.email && u.email?.toLowerCase() === rawSecretary.email.toLowerCase()) ||
-        ((rawSecretary as any)?.username && u.username?.toLowerCase() === (rawSecretary as any).username.toLowerCase()) ||
-        (u.role === 'clerk' || u.role === 'secretary')
+        ((rawSecretary as any)?.username && u.username?.toLowerCase() === (rawSecretary as any).username.toLowerCase())
       );
-      return matched || rawSecretary;
+      if (matched) return matched;
+      
+      const fallback = storedUsers.find(u => u.role === 'clerk' || u.role === 'secretary');
+      return fallback || rawSecretary;
     } catch {
       return rawSecretary;
     }
@@ -1413,7 +1415,7 @@ export default function SecretaryPortal({
                     const totalBilled = addMoney(...studentBills.map(b => b.payable ?? b.totalAmount ?? 0));
                     const studentPayments = payments.filter(p => p.studentId === stId && p.status !== 'Rejected');
                     const totalPaid = addMoney(...studentPayments.map(p => p.amount ?? p.paid ?? 0));
-                    const balance = addMoney(...studentBills.map(b => b.balance ?? 0));
+                    const balance = Math.max(0, subtractMoney(totalBilled, totalPaid));
                     const isSelected = st.id === selectedStudent?.id;
                     const hasArrears = balance > 0;
 
@@ -2868,7 +2870,10 @@ export default function SecretaryPortal({
         
         // Sum all outstanding balances of all active bills of the student for accurate remaining student balance
         const studentBillsList = bills.filter(b => (b.studentId === lastIssuedReceipt.studentId || b.admissionNo === lastIssuedReceipt.admissionNo) && b.status !== 'Voided' && b.status !== 'VOIDED');
-        const currentBalance = addMoney(...studentBillsList.map(b => b.balance || 0));
+        const totalBilledVal = addMoney(...studentBillsList.map(b => b.payable ?? b.totalAmount ?? 0));
+        const studentPaymentsVal = payments.filter(p => (p.studentId === lastIssuedReceipt.studentId || p.admissionNo === lastIssuedReceipt.admissionNo) && p.status !== 'Rejected');
+        const totalPaidVal = addMoney(...studentPaymentsVal.map(p => p.amount ?? p.paid ?? 0));
+        const currentBalance = Math.max(0, subtractMoney(totalBilledVal, totalPaidVal));
         
         const amountPaidVal = Number(lastIssuedReceipt.amount || lastIssuedReceipt.paid || 0);
         const verificationCode = `SEC-VERIFY-${(lastIssuedReceipt.id || 'RC').slice(-8).toUpperCase()}`;
