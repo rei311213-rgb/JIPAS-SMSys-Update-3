@@ -20,6 +20,7 @@ import {
   saveTeacher, 
   deleteTeacher, 
   subscribeTeacherAttendance, 
+  getStoredTeacherAttendance,
   saveTeacherAttendanceRecord, 
   saveNotification, 
   subscribeDepartments,
@@ -177,15 +178,35 @@ export default function TeacherManager({
   const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
+    // Initial fetch
+    setAttendanceRecords(getStoredTeacherAttendance());
+
     const unsub = subscribeTeacherAttendance((records) => {
       setAttendanceRecords(records);
     });
     const unsubDept = subscribeDepartments((data) => {
       setDepartments(data);
     });
+
+    const handleLiveAttendanceUpdate = () => {
+      setAttendanceRecords(getStoredTeacherAttendance());
+    };
+
+    window.addEventListener('jipas_staff_attendance_updated', handleLiveAttendanceUpdate);
+    window.addEventListener('jipas_cloud_synced', handleLiveAttendanceUpdate);
+    window.addEventListener('storage', handleLiveAttendanceUpdate);
+    window.addEventListener('focus', handleLiveAttendanceUpdate);
+
+    const pollTimer = setInterval(handleLiveAttendanceUpdate, 4000);
+
     return () => {
       unsub();
       unsubDept();
+      window.removeEventListener('jipas_staff_attendance_updated', handleLiveAttendanceUpdate);
+      window.removeEventListener('jipas_cloud_synced', handleLiveAttendanceUpdate);
+      window.removeEventListener('storage', handleLiveAttendanceUpdate);
+      window.removeEventListener('focus', handleLiveAttendanceUpdate);
+      clearInterval(pollTimer);
     };
   }, []);
 

@@ -27,7 +27,11 @@ export default function TeacherAttendanceStats({
   // Aggregate stats per teacher based strictly on actual attendance
   const teacherStats = useMemo(() => {
     return teachers.map(teacher => {
-      const tRecords = records.filter(r => r.teacherId === teacher.id);
+      const tRecords = records.filter(r => 
+        r.teacherId === teacher.id || 
+        (teacher.staffId && (r.teacherId === teacher.staffId || (r as any).staff_number === teacher.staffId)) ||
+        (r.teacherName && teacher.name && r.teacherName.toLowerCase().trim() === teacher.name.toLowerCase().trim())
+      );
       const totalDays = tRecords.length;
       const presentDays = tRecords.filter(r => r.status === 'Present').length;
       const lateDays = tRecords.filter(r => r.status === 'Late').length;
@@ -61,7 +65,7 @@ export default function TeacherAttendanceStats({
 
   const overallStats = useMemo(() => {
     const totalRecords = records.length;
-    if (totalRecords === 0) return { avgAttendance: 100, avgPunctuality: 95, totalAbsent: 0, totalLate: 0 };
+    if (totalRecords === 0) return { avgAttendance: 0, avgPunctuality: 0, totalAbsent: 0, totalLate: 0 };
     const present = records.filter(r => r.status === 'Present').length;
     const late = records.filter(r => r.status === 'Late').length;
     const absent = records.filter(r => r.status === 'Absent').length;

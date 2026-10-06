@@ -399,7 +399,9 @@ export {
   INITIAL_GRADUATED_STUDENTS,
   getStoredPastEmployees,
   saveStoredPastEmployees,
-  INITIAL_PAST_EMPLOYEES
+  INITIAL_PAST_EMPLOYEES,
+  getStoredTeacherAttendance,
+  saveStoredTeacherAttendance
 };
 
 export { 

@@ -406,7 +406,76 @@ export function getStoredUsers(): UserAccountItem[] {
 }
 
 export function getStoredTeacherAttendance(): TeacherAttendanceRecord[] {
-  return readStorage<TeacherAttendanceRecord[]>(STORAGE_KEYS.TEACHER_ATTENDANCE, []);
+  const localTeacherAtt = readStorage<TeacherAttendanceRecord[]>(STORAGE_KEYS.TEACHER_ATTENDANCE, []);
+  let staffAtt: any[] = [];
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const rawStaffAtt = localStorage.getItem('jipas_staff_attendance');
+      if (rawStaffAtt) {
+        staffAtt = JSON.parse(rawStaffAtt);
+      }
+    }
+  } catch {}
+
+  if (!Array.isArray(staffAtt) || staffAtt.length === 0) {
+    return Array.isArray(localTeacherAtt) ? localTeacherAtt : [];
+  }
+
+  const map = new Map<string, TeacherAttendanceRecord>();
+
+  // Teachers lookup for names
+  let teachers: Teacher[] = [];
+  try {
+    teachers = readStorage<Teacher[]>(STORAGE_KEYS.TEACHERS, []);
+  } catch {}
+
+  const teacherMap = new Map<string, Teacher>();
+  teachers.forEach(t => {
+    if (t.id) teacherMap.set(t.id, t);
+    if (t.staffId) teacherMap.set(t.staffId, t);
+    if (t.name) teacherMap.set(t.name.toLowerCase().trim(), t);
+  });
+
+  (localTeacherAtt || []).forEach(r => {
+    if (r && (r.id || r.teacherId)) {
+      const key = r.id || `${r.teacherId}_${r.date}`;
+      map.set(key, r);
+    }
+  });
+
+  staffAtt.forEach(s => {
+    if (!s) return;
+    const tId = s.staff_id || s.teacherId || 'unknown';
+    const teacher = teacherMap.get(tId) || teacherMap.get(s.staff_number) || (s.staff_name ? teacherMap.get(s.staff_name.toLowerCase().trim()) : null);
+    const tName = s.staff_name || s.teacherName || teacher?.name || 'Staff Member';
+    const dateStr = s.attendance_date || s.date || (s.created_at ? s.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+    const key = s.id || `${teacher?.id || tId}_${dateStr}`;
+
+    const timeIn = s.timeIn || s.clockInTime || (s.sign_in_at ? new Date(s.sign_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined);
+    const timeOut = s.timeOut || s.clockOutTime || (s.sign_out_at ? new Date(s.sign_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined);
+
+    const converted: TeacherAttendanceRecord = {
+      id: s.id || key,
+      date: dateStr,
+      teacherId: teacher?.id || tId,
+      teacherName: tName,
+      status: s.status || 'Present',
+      campus: s.campus_name || s.campus_id || teacher?.campus || 'Main Campus',
+      timeIn,
+      timeOut,
+      clockInMethod: s.source || 'ONLINE_QR',
+      verified: true
+    };
+
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, converted);
+    } else {
+      map.set(key, { ...existing, ...converted });
+    }
+  });
+
+  return Array.from(map.values());
 }
 
 export function getStoredStudentAttendance(): StudentAttendanceRecord[] {
@@ -535,6 +604,10 @@ export function saveStoredNotifications(notifications: NotificationItem[]): void
 
 export function saveStoredTeacherAttendance(records: TeacherAttendanceRecord[]): void {
   writeStorage(STORAGE_KEYS.TEACHER_ATTENDANCE, records);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jipas_staff_attendance_updated'));
+    window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+  }
 }
 
 export function saveStoredStudentAttendance(records: StudentAttendanceRecord[]): void {
