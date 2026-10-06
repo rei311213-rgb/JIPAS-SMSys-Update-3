@@ -155,6 +155,8 @@ export default function SecretaryPortal({
 
   const secretary = loggedInUser || { name: 'Secretary', role: 'secretary', campus: 'JIPAS 1' } as any;
   const [activeTab, setActiveTab] = useState<SecretaryActiveTab>('fee_collection');
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<Set<string>>(new Set());
+  const [isBatchPrintModalOpen, setIsBatchPrintModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -2405,6 +2407,14 @@ export default function SecretaryPortal({
                 <span className="bg-cyan-100 text-cyan-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                   {filteredCollectionsPayments.length} Receipts
                 </span>
+                {selectedPaymentIds.size > 0 && (
+                  <button
+                    onClick={() => setIsBatchPrintModalOpen(true)}
+                    className="ml-2 px-3 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-emerald-700 transition-colors"
+                  >
+                    Batch Print ({selectedPaymentIds.size})
+                  </button>
+                )}
               </div>
               <p className="text-xs text-slate-500">Repository of all issued receipts and collected tuition/fee payments.</p>
             </div>
@@ -2678,7 +2688,21 @@ export default function SecretaryPortal({
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
                 <tr className="bg-slate-900 text-white font-bold uppercase text-[10px]">
-                  <th className="p-3 w-12">#</th>
+                  <th className="p-3 w-12">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-700 bg-slate-800"
+                      checked={selectedPaymentIds.size === filteredCollectionsPayments.length && filteredCollectionsPayments.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPaymentIds(new Set(filteredCollectionsPayments.map(p => p.id)));
+                        } else {
+                          setSelectedPaymentIds(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="p-3">#</th>
                   <th className="p-3">Receipt No</th>
                   <th className="p-3">Date / Time</th>
                   <th className="p-3">Student Name</th>
@@ -2695,7 +2719,7 @@ export default function SecretaryPortal({
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredCollectionsPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="p-8 text-center text-slate-400 font-medium">
+                    <td colSpan={13} className="p-8 text-center text-slate-400 font-medium">
                       No payment collection records found matching your selected filters.
                     </td>
                   </tr>
@@ -2707,6 +2731,19 @@ export default function SecretaryPortal({
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300"
+                            checked={selectedPaymentIds.has(p.id)}
+                            onChange={(e) => {
+                              const newSelection = new Set(selectedPaymentIds);
+                              if (e.target.checked) newSelection.add(p.id);
+                              else newSelection.delete(p.id);
+                              setSelectedPaymentIds(newSelection);
+                            }}
+                          />
+                        </td>
                         <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
                         <td className="p-3 font-mono font-bold text-blue-600">{p.receiptNo}</td>
                         <td className="p-3 text-slate-500 font-mono">{p.date}</td>
@@ -2964,7 +3001,7 @@ export default function SecretaryPortal({
               {/* Printable Official Receipt Document */}
               <div
                 id="official-secretary-receipt"
-                className="print-a4-page print-no-break bg-white border-2 border-slate-900 rounded-2xl p-5 sm:p-7 space-y-4 text-slate-900 print:m-0 print:border-2 print:border-slate-900 print:p-6 print:rounded-none"
+                className="print-multi-receipt-container print-a6-receipt-item bg-white border-2 border-slate-900 rounded-2xl p-5 sm:p-7 space-y-4 text-slate-900 print:m-0 print:border-2 print:border-slate-900 print:p-6 print:rounded-none"
               >
                 {/* Institutional Header & Crest */}
                 <div className="flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
@@ -3245,6 +3282,56 @@ export default function SecretaryPortal({
           />
         );
       })()}
+
+      {/* Batch Print Modal */}
+      {isBatchPrintModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:hidden">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-4">
+            <div className="flex justify-between items-center border-b pb-4">
+              <h3 className="font-black text-slate-900">Batch Print Receipts ({selectedPaymentIds.size})</h3>
+              <button onClick={() => setIsBatchPrintModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-4 bg-slate-100 rounded-xl space-y-4">
+              {Array.from(selectedPaymentIds).map(pid => {
+                const p = filteredCollectionsPayments.find(pay => pay.id === pid);
+                if (!p) return null;
+                return (
+                  <div key={pid} className="p-4 bg-white border rounded-lg shadow-sm flex justify-between items-center">
+                    <div>{p.receiptNo} - {p.studentName}</div>
+                    <div className="font-bold">CFA {p.amount?.toFixed(2)}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button onClick={() => setIsBatchPrintModalOpen(false)} className="px-4 py-2 bg-slate-200 rounded-xl font-bold text-xs">Cancel</button>
+              <button 
+                onClick={() => {
+                  window.print();
+                }}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs">Print All Selected</button>
+            </div>
+            
+            {/* Hidden container for actual printing */}
+            <div className="hidden print:block print-multi-receipt-container">
+                {Array.from(selectedPaymentIds).map(pid => {
+                  const p = filteredCollectionsPayments.find(pay => pay.id === pid);
+                  if (!p) return null;
+                  return (
+                    <div key={pid} className="print-a6-receipt-item p-2">
+                      <h4 className="font-bold text-xs">JIPAS Receipt</h4>
+                      <p className="text-[10px]">{p.receiptNo}</p>
+                      <p className="text-[10px] font-bold">{p.studentName}</p>
+                      <p className="text-[10px] font-mono">CFA {p.amount?.toFixed(2)}</p>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Code Authenticity Verification Scanner Modal */}
       <ReceiptQRVerificationModal
