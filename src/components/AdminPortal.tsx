@@ -129,6 +129,7 @@ interface AdminPortalProps {
   onUpdateBroadcasts?: (broadcasts: ClassReportBroadcast[]) => void;
   onAddNotification?: (notif: NotificationItem) => void;
   onRestoreData?: (data: any) => void;
+  onUpdateNotifications?: (notifs: NotificationItem[]) => void;
   onLogout?: () => void;
   onCleanOrphaned?: () => Promise<{ cleanedBillsCount: number, cleanedReportsCount: number }>;
   onClearAllData?: () => void;
@@ -442,6 +443,7 @@ export default function AdminPortal({
   onUpdateReports,
   onUpdateBroadcasts,
   onAddNotification,
+  onUpdateNotifications,
   onRestoreData,
   onLogout,
   onCleanOrphaned,
@@ -934,6 +936,13 @@ export default function AdminPortal({
         break;
       default:
         break;
+    }
+  };
+
+  const markAllNotificationsAsRead = () => {
+    if (onUpdateNotifications) {
+      const updated = notifications.map(n => ({ ...n, read: true }));
+      onUpdateNotifications(updated);
     }
   };
 
@@ -1468,6 +1477,14 @@ export default function AdminPortal({
                   <p className="text-xs font-bold uppercase tracking-wider text-rose-200">{t('dashboard.newNotifications', 'New Notifications')}</p>
                   <h3 className="text-3xl font-black mt-1">{unreadNotifications}</h3>
                   <p className="text-xs text-rose-100 font-semibold mt-1">{t('dashboard.unreadAlerts', 'Unread Alerts')}</p>
+                  {unreadNotifications > 0 && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); markAllNotificationsAsRead(); }}
+                      className="mt-2 text-[10px] font-bold text-white bg-rose-900/40 hover:bg-rose-900/60 px-2 py-1 rounded cursor-pointer"
+                    >
+                      Mark All As Read
+                    </button>
+                  )}
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
                   <Bell className="w-6 h-6" />

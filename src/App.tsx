@@ -297,6 +297,11 @@ export default function App() {
     }
   };
 
+  const handleUpdateNotifications = (notifs: NotificationItem[]) => {
+    setNotifications(notifs);
+    saveStoredNotifications(notifs);
+  };
+
   useEffect(() => {
     // Listen for cloud sync events to refresh local React state across collections
     const handleCloudSync = () => {
@@ -1201,6 +1206,7 @@ export default function App() {
                 onUpdateReports={handleUpdateReports}
                 onUpdateBroadcasts={handleUpdateBroadcasts}
                 onAddNotification={handleAddNotification}
+                onUpdateNotifications={handleUpdateNotifications}
                 onRestoreData={handleRestoreData}
                 onLogout={handleLogout}
                 onCleanOrphaned={handleCleanOrphanedRecords}
