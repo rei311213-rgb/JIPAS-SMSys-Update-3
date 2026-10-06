@@ -1285,6 +1285,14 @@ export default function AdminPortal({
               </button>
 
               <button
+                onClick={() => setActiveModule('staff_attendance')}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black shadow-lg transition-all cursor-pointer border border-emerald-500"
+              >
+                <QrCode className="w-4 h-4 text-white" />
+                <span>Scan Entrance</span>
+              </button>
+
+              <button
                 onClick={handleForceFullCloudSync}
                 disabled={isFullSyncing}
                 id="admin-banner-force-cloud-sync-btn"

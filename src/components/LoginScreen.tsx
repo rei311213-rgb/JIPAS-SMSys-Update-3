@@ -130,34 +130,41 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
           return;
         }
 
+        // Explicitly reject administrator password for non-admin accounts
+        if (password.toLowerCase() === 'livinus@23' && matchedUserAccount.role !== 'admin') {
+          setErrorMsg('Incorrect password. The administrator password cannot be used for staff or teacher logins.');
+          setIsLoading(false);
+          return;
+        }
+
         // Validate password based on account type
         const isStudentOrParentAccount = matchedUserAccount.role === 'student' || (matchedUserAccount as any).registrationType === 'student';
         const isExecutiveAccount = matchedUserAccount.role === 'ceo' || matchedUserAccount.role === 'director' || (matchedUserAccount as any).registrationType === 'executive';
         const isStaffAccount = matchedUserAccount.role === 'accountant' || matchedUserAccount.role === 'secretary' || matchedUserAccount.role === 'teacher' || matchedUserAccount.role === 'admin';
         
         const isPasswordValid = 
-          !matchedUserAccount.password ||
-          matchedUserAccount.password === password ||
-          (isExecutiveAccount && (
-            password === 'CEO@2026' ||
-            password === 'Director@2026' ||
-            password === '123456' ||
-            password.toLowerCase() === 'password'
-          )) ||
-          (isStudentOrParentAccount && (
-            password.toLowerCase() === (matchedUserAccount.admissionNo || '').toLowerCase() ||
-            password.toLowerCase() === (matchedUserAccount.id || '').toLowerCase() ||
-            password === (matchedUserAccount.phone || (matchedUserAccount as any).parentPhone) ||
-            password.toLowerCase() === 'student' ||
-            password.toLowerCase() === 'parent' ||
-            password === '123456'
-          )) ||
-          (isStaffAccount && (
-            password === '123456' ||
-            password.toLowerCase() === 'password' ||
-            password.toLowerCase() === (matchedUserAccount.username || '').toLowerCase() ||
-            password.toLowerCase() === (matchedUserAccount.role || '').toLowerCase() ||
-            password.toLowerCase() === 'livinus@23'
+          (matchedUserAccount.password && matchedUserAccount.password === password) ||
+          (!matchedUserAccount.password && (
+            (isExecutiveAccount && (
+              password === 'CEO@2026' ||
+              password === 'Director@2026' ||
+              password === '123456' ||
+              password.toLowerCase() === 'password'
+            )) ||
+            (isStudentOrParentAccount && (
+              password.toLowerCase() === (matchedUserAccount.admissionNo || '').toLowerCase() ||
+              password.toLowerCase() === (matchedUserAccount.id || '').toLowerCase() ||
+              password === (matchedUserAccount.phone || (matchedUserAccount as any).parentPhone) ||
+              password.toLowerCase() === 'student' ||
+              password.toLowerCase() === 'parent' ||
+              password === '123456'
+            )) ||
+            (isStaffAccount && (
+              password === '123456' ||
+              password.toLowerCase() === 'password' ||
+              password.toLowerCase() === (matchedUserAccount.username || '').toLowerCase() ||
+              password.toLowerCase() === (matchedUserAccount.role || '').toLowerCase()
+            ))
           ));
 
         if (!isPasswordValid) {
@@ -289,6 +296,11 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
       );
 
       if (matchedTeacher) {
+        if (password.toLowerCase() === 'livinus@23') {
+          setErrorMsg('Incorrect password. The administrator password cannot be used for staff or teacher logins.');
+          setIsLoading(false);
+          return;
+        }
         try {
           const authUser = await authenticateWithFirebase(matchedTeacher.email, password, 'teacher', {
             id: matchedTeacher.id,

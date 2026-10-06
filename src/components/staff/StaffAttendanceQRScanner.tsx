@@ -1075,15 +1075,16 @@ export default function StaffAttendanceQRScanner({
               </div>
             </div>
           )}
-          {/* MOBILE CAMERA DIAGNOSTICS FOR STAFF / ADMIN TROUBLESHOOTING */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setShowDiagnostics(!showDiagnostics)}
-              className="text-[11px] font-extrabold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 flex items-center justify-center gap-1.5 mx-auto cursor-pointer transition py-1"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>{showDiagnostics ? 'Hide Scanner Diagnostics' : 'Show Camera & Hardware Diagnostics'}</span>
-            </button>
+          {/* MOBILE CAMERA DIAGNOSTICS FOR ADMIN TROUBLESHOOTING ONLY */}
+          {(userRole === 'admin' || userRole === 'administrator' || userRole === 'superadmin') && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="text-[11px] font-extrabold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 flex items-center justify-center gap-1.5 mx-auto cursor-pointer transition py-1"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>{showDiagnostics ? 'Hide Scanner Diagnostics' : 'Show Camera & Hardware Diagnostics'}</span>
+              </button>
 
             {showDiagnostics && (
               <div className="mt-3 bg-slate-900 text-slate-200 p-4 rounded-2xl border border-slate-800 text-xs font-mono space-y-2 animate-in fade-in">
@@ -1165,6 +1166,8 @@ export default function StaffAttendanceQRScanner({
                 </div>
               </div>
             )}
+          </div>
+        )}
 
             {/* RECENT SCAN LOGS & DIAGNOSTICS VIEW */}
             <div className="pt-4">
@@ -1174,9 +1177,8 @@ export default function StaffAttendanceQRScanner({
                 title="Recent Gate Scans & Diagnostic Log (Last 10 Attempts)"
               />
             </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+          </>
+        )}
+      </div>
+    );
+  }

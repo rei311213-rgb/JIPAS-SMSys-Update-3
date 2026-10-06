@@ -12,7 +12,7 @@ import {
 import JIPASLogo from './common/JIPASLogo';
 import SidebarToggleButton from './common/SidebarToggleButton';
 import PhotoUploader from './common/PhotoUploader';
-import BackupRecoveryManager from './admin/BackupRecoveryManager';
+import UserLocalDataBackup from './common/UserLocalDataBackup';
 import GlobalSearchHeader from './common/GlobalSearchHeader';
 import SyncNowButton from './common/SyncNowButton';
 import { useStudentFormDraft } from '../hooks/useStudentFormDraft';
@@ -23,6 +23,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
 import RecentQrScansLogView from './common/RecentQrScansLogView';
+import MyClassManager from './teacher/MyClassManager';
 import { StaffAttendanceService, StaffAttendanceRecord as SupaStaffAttendanceRecord } from '../services/supabase/staffAttendanceService';
 import ClassPerformanceOverview from './teacher/ClassPerformanceOverview';
 import ExamTimetableManager from './admin/ExamTimetableManager';
@@ -136,19 +137,19 @@ interface TeacherPortalProps {
 
 export const VALID_TEACHER_VIEWS = new Set<string>([
   'dashboard',
+  'my_classes',
   'enter_results',
   'attendance_comment',
   'profile',
   'change_password',
   'review_reports',
-  'backup_recovery',
   'performance_overview',
   'exam_timetable',
   'scan_entrance_qr',
   'my_attendance'
 ]);
 
-export type TeacherViewType = 'dashboard' | 'enter_results' | 'attendance_comment' | 'profile' | 'change_password' | 'review_reports' | 'backup_recovery' | 'performance_overview' | 'exam_timetable' | 'scan_entrance_qr' | 'my_attendance';
+export type TeacherViewType = 'dashboard' | 'my_classes' | 'enter_results' | 'attendance_comment' | 'profile' | 'change_password' | 'review_reports' | 'performance_overview' | 'exam_timetable' | 'scan_entrance_qr' | 'my_attendance';
 
 export const getInitialTeacherView = (): TeacherViewType => {
   if (typeof window !== 'undefined') {
@@ -1591,6 +1592,24 @@ export default function TeacherPortal({
               )}
             </button>
 
+            {/* 1b. My Class & Assigned Students Menu Item */}
+            <button
+              onClick={() => handleNavigate('my_classes')}
+              title="My Class Roster, Exam Marks & Class Attendance"
+              className={`w-full flex flex-col items-center justify-center p-3 rounded-2xl transition-all cursor-pointer text-center ${
+                activeView === 'my_classes' 
+                  ? 'bg-indigo-600 text-white font-bold shadow-md border border-indigo-400' 
+                  : 'bg-[#1a222f] hover:bg-slate-700/60 border border-slate-700/60 text-slate-200 hover:text-white'
+              }`}
+            >
+              <Users className={`w-5 h-5 mb-1 ${activeView === 'my_classes' ? 'text-white' : 'text-indigo-400'}`} />
+              {isSidebarOpen ? (
+                <span className="text-xs font-extrabold">My Class & Assigned Students</span>
+              ) : (
+                <span className="text-[9px] font-bold">My Class</span>
+              )}
+            </button>
+
             {/* 2. EXAMINATION MANAGEMENT Category */}
             <div className="space-y-1.5">
               <div className="bg-[#007bff]/90 text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider text-center shadow-xs">
@@ -1702,22 +1721,6 @@ export default function TeacherPortal({
                     {isSidebarOpen ? 'Security Passcode' : 'Security'}
                   </span>
                 </button>
-
-                {/* 6. Backup & Recovery */}
-                <button
-                  onClick={() => handleNavigate('backup_recovery')}
-                  title="Data Backup & CSV Records"
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer text-center min-h-[66px] ${
-                    activeView === 'backup_recovery' 
-                      ? 'bg-cyan-600 text-white font-bold shadow-md border border-cyan-400' 
-                      : 'bg-[#1e2837] hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/60'
-                  }`}
-                >
-                  <HardDrive className={`w-5 h-5 mb-1 ${activeView === 'backup_recovery' ? 'text-white' : 'text-cyan-400'}`} />
-                  <span className="text-[10px] font-extrabold text-center leading-tight">
-                    {isSidebarOpen ? 'Backup & CSV' : 'Backup'}
-                  </span>
-                </button>
               </div>
             </div>
 
@@ -1823,6 +1826,7 @@ export default function TeacherPortal({
         <div className="px-4 sm:px-6 pt-5 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             {activeView === 'dashboard' && 'Teacher Dashboard'}
+            {activeView === 'my_classes' && 'My Class & Assigned Students'}
             {activeView === 'enter_results' && 'Enter Results'}
             {activeView === 'attendance_comment' && 'Attendance & Comment'}
             {activeView === 'profile' && 'My Profile'}
@@ -2039,6 +2043,12 @@ export default function TeacherPortal({
 
                 <div className="relative z-10 flex items-center gap-2 w-full sm:w-auto">
                   <button
+                    onClick={() => setActiveView('scan_entrance_qr')}
+                    className="flex-1 sm:flex-none px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-black flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5" /> Scan Entrance
+                  </button>
+                  <button
                     onClick={() => setActiveView('profile')}
                     className="flex-1 sm:flex-none px-3.5 py-1.5 bg-[#007bff] hover:bg-blue-700 text-white rounded-md text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                   >
@@ -2108,6 +2118,54 @@ export default function TeacherPortal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pt-1">
+                  {/* Menu Quick Scan: Scan Entrance QR */}
+                  <button
+                    onClick={() => setActiveView('scan_entrance_qr')}
+                    className="group p-4 bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-600 hover:to-teal-700 border border-emerald-200 hover:border-emerald-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white uppercase tracking-wider transition-colors">
+                        Quick Entrance
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
+                        Scan Entrance
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      </h4>
+                      <p className="text-[11px] text-slate-500 group-hover:text-emerald-100 transition-colors mt-0.5 line-clamp-2">
+                        Scan entrance QR code via live camera to record attendance.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Menu 0: My Class */}
+                  <button
+                    onClick={() => setActiveView('my_classes')}
+                    className="group p-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/50 hover:from-indigo-600 hover:to-purple-700 border border-indigo-100 hover:border-indigo-600 rounded-2xl text-left transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-between space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 bg-indigo-600 group-hover:bg-white text-white group-hover:text-indigo-600 rounded-xl flex items-center justify-center transition-colors shadow-xs">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white uppercase tracking-wider transition-colors">
+                        Assigned Class
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-white transition-colors flex items-center gap-1">
+                        My Class
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      </h4>
+                      <p className="text-[11px] text-slate-500 group-hover:text-indigo-100 transition-colors mt-0.5 line-clamp-2">
+                        Roster, CSV exam marks upload & daily attendance.
+                      </p>
+                    </div>
+                  </button>
+
                   {/* Menu 1: Enter Exam Scores */}
                   <button
                     onClick={() => setActiveView('enter_results')}
@@ -5140,6 +5198,15 @@ export default function TeacherPortal({
                   )}
                 </div>
               </div>
+
+              {/* USER LOCAL DATA BACKUP & RECOVERY SECTION */}
+              <div className="pt-2">
+                <UserLocalDataBackup
+                  currentUser={teacher}
+                  userReports={reports}
+                  userAttendance={studentAttendanceRecords}
+                />
+              </div>
             </div>
           )}
 
@@ -5220,6 +5287,18 @@ export default function TeacherPortal({
             </div>
           )}
 
+          {activeView === 'my_classes' && (
+            <div className="space-y-4">
+              <MyClassManager
+                teacher={teacher}
+                students={students}
+                reports={reports}
+                academicYear={academicYear}
+                term={academicTerm}
+              />
+            </div>
+          )}
+
           {/* =================================================================== */}
           {/* VIEW 7: EXAM TIMETABLE & SCHEDULE */}
           {/* =================================================================== */}
@@ -5230,20 +5309,6 @@ export default function TeacherPortal({
                 subjects={subjects || []}
                 currentUserRole="teacher"
                 currentUserName={teacher.name}
-              />
-            </div>
-          )}
-          {activeView === 'backup_recovery' && (
-            <div className="space-y-4">
-              <BackupRecoveryManager
-                students={students}
-                teachers={teachers}
-                reports={reports}
-                bills={bills}
-                payments={payments}
-                calendarEvents={calendarEvents}
-                notifications={notifications}
-                onRestoreData={onRestoreData}
               />
             </div>
           )}

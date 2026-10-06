@@ -1032,6 +1032,13 @@ export default function SecretaryPortal({
                 </div>
 
                 <div className="hidden sm:flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('staff_attendance')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>Scan Entrance</span>
+                  </button>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200">
                     <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Campus: {selectedCampus}</span>

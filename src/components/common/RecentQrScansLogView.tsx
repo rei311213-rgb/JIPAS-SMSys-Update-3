@@ -69,15 +69,84 @@ export default function RecentQrScansLogView({
   const loadLogs = () => {
     try {
       if (typeof localStorage === 'undefined') return;
+
+      let scanLogs: RecentScanLogItem[] = [];
       const raw = localStorage.getItem('jipas_recent_qr_scans');
       if (raw) {
-        let parsed: RecentScanLogItem[] = JSON.parse(raw);
-        if (staffId) {
-          parsed = parsed.filter(l => l.staffId === staffId || l.staffName?.toLowerCase().includes(staffId.toLowerCase()));
-        }
-        setLogs(parsed);
+        try { 
+          const parsed = JSON.parse(raw); 
+          if (Array.isArray(parsed)) scanLogs = parsed;
+        } catch {}
+      }
+
+      // Synthesize logs from jipas_staff_attendance records as well
+      const rawAtt = localStorage.getItem('jipas_staff_attendance');
+      if (rawAtt) {
+        try {
+          const attList: any[] = JSON.parse(rawAtt);
+          if (Array.isArray(attList)) {
+            attList.forEach(rec => {
+              const sId = rec.staff_id || rec.teacherId || rec.staffId || '';
+              const sName = rec.staff_name || rec.teacherName || rec.fullName || 'Staff Member';
+              const dateStr = rec.attendance_date || rec.date || new Date().toISOString().split('T')[0];
+
+              if (rec.sign_in_at) {
+                const inTime = new Date(rec.sign_in_at);
+                const inId = `syn_in_${rec.id || sId}_${inTime.getTime()}`;
+                if (!scanLogs.some(l => l.id === inId || (l.staffId === sId && Math.abs(new Date(l.timestamp).getTime() - inTime.getTime()) < 5000))) {
+                  scanLogs.push({
+                    id: inId,
+                    timestamp: rec.sign_in_at,
+                    timeFormatted: isNaN(inTime.getTime()) ? '--:--' : inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                    dateFormatted: dateStr,
+                    staffId: sId,
+                    staffName: sName,
+                    campusName: rec.campus_name || rec.campusName || 'Main Gate',
+                    status: 'SUCCESS_SIGN_IN',
+                    resultMessage: `Signed in successfully at ${isNaN(inTime.getTime()) ? '--:--' : inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${rec.status === 'Late' ? ' (Marked Late)' : ''}.`,
+                    rawTokenSummary: 'Main Gate QR',
+                    debugReason: `Recorded timestamp in roster database. Status: ${rec.status || 'Present'}.`
+                  });
+                }
+              }
+
+              if (rec.sign_out_at) {
+                const outTime = new Date(rec.sign_out_at);
+                const outId = `syn_out_${rec.id || sId}_${outTime.getTime()}`;
+                if (!scanLogs.some(l => l.id === outId || (l.staffId === sId && Math.abs(new Date(l.timestamp).getTime() - outTime.getTime()) < 5000))) {
+                  scanLogs.push({
+                    id: outId,
+                    timestamp: rec.sign_out_at,
+                    timeFormatted: isNaN(outTime.getTime()) ? '--:--' : outTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                    dateFormatted: dateStr,
+                    staffId: sId,
+                    staffName: sName,
+                    campusName: rec.campus_name || rec.campusName || 'Main Gate',
+                    status: 'SUCCESS_SIGN_OUT',
+                    resultMessage: `Signed out successfully at ${isNaN(outTime.getTime()) ? '--:--' : outTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+                    rawTokenSummary: 'Main Gate QR',
+                    debugReason: `Recorded sign-out timestamp in roster database.`
+                  });
+                }
+              }
+            });
+          }
+        } catch {}
+      }
+
+      // Sort by timestamp descending
+      scanLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      if (staffId && staffId.trim()) {
+        const q = staffId.trim().toLowerCase();
+        const filtered = scanLogs.filter(l => 
+          (l.staffId && l.staffId.toLowerCase() === q) || 
+          (l.staffName && l.staffName.toLowerCase().includes(q)) ||
+          q.includes((l.staffId || '').toLowerCase())
+        );
+        setLogs(filtered.length > 0 ? filtered : scanLogs);
       } else {
-        setLogs([]);
+        setLogs(scanLogs);
       }
     } catch {
       setLogs([]);

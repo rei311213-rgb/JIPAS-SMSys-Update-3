@@ -7,7 +7,7 @@ import {
   Users, BookOpen, FileText, ClipboardList, CheckCircle2, Award, 
   Send, AlertCircle, Search, Filter, Check, X, Clock, Printer, 
   ChevronRight, Calendar, Layers, ShieldCheck, Download, BarChart3,
-  TrendingUp, RefreshCw, UserCheck, MessageSquare, Star, Sparkles
+  TrendingUp, RefreshCw, UserCheck, MessageSquare, Star, Sparkles, QrCode
 } from 'lucide-react';
 import JIPASLogo from './common/JIPASLogo';
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
@@ -397,7 +397,25 @@ export default function HeadmasterPortal({
           </div>
 
           {/* Quick Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-slate-900 text-sm">Scan School Entrance QR</h4>
+                <p className="text-xs text-slate-500">
+                  Scan entrance QR code via live camera to record daily gate check-in or check-out.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('attendance')}
+                className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs"
+              >
+                Scan Entrance QR <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -405,7 +423,7 @@ export default function HeadmasterPortal({
                 </div>
                 <h4 className="font-bold text-slate-900 text-sm">Review Submitted Class Scores</h4>
                 <p className="text-xs text-slate-500">
-                  Verify 30% Continuous Assessment and 70% Terminal Examination scores submitted by class & subject teachers.
+                  Verify 30% Continuous Assessment and 70% Terminal Examination scores submitted by class teachers.
                 </p>
               </div>
               <button
