@@ -515,6 +515,122 @@ select[class*="bg-[#"]:disabled {
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  /* ========================================================================= */
+  /* GLOBAL PRINT-MEDIA LAYOUT ENFORCEMENT ENGINE                               */
+  /* Enforces that only the document content prints, not the portal layouts    */
+  /* ========================================================================= */
+  @media print {
+    /* 1. Global Reset for Clean Black-on-White Output */
+    html, body {
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      background-image: none !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      font-size: 11pt !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      overflow: visible !important;
+    }
+
+    /* 2. Hide Portal Layouts, Navigation, Menus, Filters, Sidebars, Actions, Buttons */
+    header,
+    footer,
+    aside,
+    nav,
+    .no-print,
+    .print-hide,
+    .print-hidden,
+    button,
+    select,
+    input[type="button"],
+    input[type="submit"],
+    iframe[title*="Intercom"],
+    .Toastify,
+    .fixed,
+    .toast,
+    /* Hide Sidebars and Headers specifically by element/class signatures */
+    [class*="sidebar"],
+    [class*="Sidebar"],
+    [class*="navigation"],
+    [class*="HeaderNavigation"],
+    [class*="SidebarToggleButton"],
+    [class*="GlobalSearchHeader"],
+    [class*="CampusSelector"],
+    [class*="LanguageSwitcher"],
+    [class*="SyncNowButton"],
+    [class*="PWAInstallButton"],
+    [class*="Breadcrumb"],
+    [class*="actions-bar"],
+    [class*="filters-bar"],
+    [class*="search-bar"],
+    [id*="sidebar"],
+    [id*="header"],
+    [id*="menu"] {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      width: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      opacity: 0 !important;
+    }
+
+    /* 3. Re-align and Expand Container Layouts to Fill the Printed Page */
+    .print-content,
+    .printable-card,
+    .print-only-container,
+    .print-batch-only-wrapper,
+    main,
+    #main-content,
+    /* Common page card/dashboard grid wrappers */
+    .bg-white,
+    .rounded-3xl,
+    .rounded-2xl,
+    .rounded-xl,
+    .border {
+      display: block !important;
+      visibility: visible !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      position: static !important;
+      overflow: visible !important;
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    /* High-contrast and crisp visibility for printed text elements */
+    span, p, h1, h2, h3, h4, h5, h6, td, th, div {
+      color: #000000 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Keep exact colors for badges and table borders when printed */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    /* Page size margins resets */
+    @page {
+      size: auto;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+  }
 }
 
 /* Screen visibility for batch print container */

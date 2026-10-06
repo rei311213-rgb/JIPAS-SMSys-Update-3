@@ -13,6 +13,27 @@ export default function SyncNowButton({ className = '', variant = 'header', onSy
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
+  // Safeguard: Only allow Admin users to see and trigger Cloud Sync button
+  const isUserAdmin = (function() {
+    try {
+      if (typeof localStorage === 'undefined') return true;
+      const stored = localStorage.getItem('jipas_current_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        const r = (u.role || '').toLowerCase().trim();
+        return r === 'admin' || r === 'administrator' || r === 'superadmin';
+      }
+      const sessionRole = (localStorage.getItem('jipas_session_role') || '').toLowerCase().trim();
+      return sessionRole === 'admin' || sessionRole === 'administrator' || sessionRole === 'superadmin';
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!isUserAdmin) {
+    return null;
+  }
+
   const handleSyncNow = async () => {
     if (isSyncing) return;
     setIsSyncing(true);

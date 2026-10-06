@@ -661,23 +661,7 @@ export const INITIAL_PAYMENT_SETTINGS: PaymentSettingsConfig = {
   ]
 };
 
-export const INITIAL_FEE_SUBMISSIONS: FeeSubmissionItem[] = [
-  {
-    id: 'sub-101',
-    studentId: 'st-001',
-    studentName: 'Kofi Mensah',
-    admissionNo: 'ADM/26/0001',
-    className: 'Basic 1',
-    amount: 350,
-    feeType: 'Tuition Fee (Full Term Payment)',
-    paymentMethod: 'Paiement Marchand Mobile Money (JIPAS 1)',
-    transactionId: 'MOM-8842109',
-    datePaid: '2026-09-06',
-    submissionDate: '2026-09-06 10:15 AM',
-    status: 'Pending Verification',
-    notes: 'Paid via Mobile Money Marchand (*145*5*1083411#).'
-  }
-];
+export const INITIAL_FEE_SUBMISSIONS: FeeSubmissionItem[] = [];
 
 export function getStoredPaymentSettings(): PaymentSettingsConfig {
   const settings = readStorage<PaymentSettingsConfig>(STORAGE_KEYS.PAYMENT_SETTINGS, INITIAL_PAYMENT_SETTINGS);
@@ -1081,42 +1065,16 @@ export function saveStoredPayrollRuns(runs: any[]): void {
   writeStorage('jipas_payroll_runs', runs);
 }
 
-export const INITIAL_BANK_DEPOSITS: BankDepositRecord[] = [
-  {
-    id: 'BANK-DEP-001',
-    bankName: 'Ecobank the region',
-    accountNumber: '1441002981201',
-    amount: 15000,
-    bankReceiptNo: 'ECO-TEL-98214',
-    date: new Date().toISOString().split('T')[0],
-    depositedBy: 'Denis Mawutor (Accountant)',
-    depositedByRole: 'accountant',
-    purpose: 'Daily Tuition Fee Collection Banking',
-    referenceNo: 'DEP-2026-001',
-    notes: 'Direct branch counter cash deposit to school operating account.',
-    status: 'Completed',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'BANK-DEP-002',
-    bankName: 'GCB Bank',
-    accountNumber: '2019485710001',
-    amount: 8500,
-    bankReceiptNo: 'GCB-SLIP-40192',
-    date: new Date().toISOString().split('T')[0],
-    depositedBy: 'Abena Osei (Secretary)',
-    depositedByRole: 'secretary',
-    purpose: 'Secretarial Front-Desk Cash Banking',
-    referenceNo: 'DEP-2026-002',
-    notes: 'End-of-day desk cash sent to bank.',
-    status: 'Completed',
-    createdAt: new Date().toISOString()
-  }
-];
+export const INITIAL_BANK_DEPOSITS: BankDepositRecord[] = [];
 
 // Bank Deposits Getters & Setters
 export function getStoredBankDeposits(): BankDepositRecord[] {
-  return readStorage<BankDepositRecord[]>(STORAGE_KEYS.BANK_DEPOSITS, INITIAL_BANK_DEPOSITS);
+  const list = readStorage<BankDepositRecord[]>(STORAGE_KEYS.BANK_DEPOSITS, []);
+  if (Array.isArray(list) && list.some(d => d.id?.startsWith('BANK-DEP-'))) {
+    writeStorage(STORAGE_KEYS.BANK_DEPOSITS, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredBankDeposits(deposits: BankDepositRecord[]): void {
@@ -1132,41 +1090,15 @@ export function saveStoredAccountantPrivileges(config: AccountantPrivilegesConfi
   writeStorage(STORAGE_KEYS.ACCOUNTANT_PRIVILEGES, config);
 }
 
-export const INITIAL_SECURITY_AUDIT_LOGS: SecurityAuditLog[] = [
-  {
-    id: 'SEC-LOG-001',
-    timestamp: new Date(Date.now() - 3600000 * 4).toLocaleString('sv').replace(' ', ' '),
-    performedBy: 'Super Administrator',
-    performedByRole: 'admin',
-    targetUser: 'Kofi Mensah (Sub-Accountant)',
-    targetUserRole: 'sub_accountant',
-    actionType: 'Privilege Modification',
-    details: 'Granted privilege: canRunPayroll, canApproveExpenses. Revoked: canVoidPayments'
-  },
-  {
-    id: 'SEC-LOG-002',
-    timestamp: new Date(Date.now() - 3600000 * 24).toLocaleString('sv').replace(' ', ' '),
-    performedBy: 'Super Administrator',
-    performedByRole: 'admin',
-    targetUser: 'Ama Serwaa (Secretary)',
-    targetUserRole: 'secretary',
-    actionType: 'Access Level Change',
-    details: 'Updated assigned modules: Student Enrollment, Fee Receipts, Attendance'
-  },
-  {
-    id: 'SEC-LOG-003',
-    timestamp: new Date(Date.now() - 3600000 * 48).toLocaleString('sv').replace(' ', ' '),
-    performedBy: 'Headmaster / Admin',
-    performedByRole: 'admin',
-    targetUser: 'Bernard Ofori (Sub-Admin)',
-    targetUserRole: 'sub_admin',
-    actionType: 'Role Update',
-    details: 'Assigned system sub_admin role with elevated academic publishing rights'
-  }
-];
+export const INITIAL_SECURITY_AUDIT_LOGS: SecurityAuditLog[] = [];
 
 export function getStoredSecurityAuditLogs(): SecurityAuditLog[] {
-  return readStorage<SecurityAuditLog[]>(STORAGE_KEYS.SECURITY_AUDIT_LOGS, INITIAL_SECURITY_AUDIT_LOGS);
+  const list = readStorage<SecurityAuditLog[]>(STORAGE_KEYS.SECURITY_AUDIT_LOGS, []);
+  if (Array.isArray(list) && list.some(l => l.id?.startsWith('SEC-LOG-001') || l.id?.startsWith('SEC-LOG-002') || l.id?.startsWith('SEC-LOG-003'))) {
+    writeStorage(STORAGE_KEYS.SECURITY_AUDIT_LOGS, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredSecurityAuditLogs(logs: SecurityAuditLog[]): void {
@@ -1210,237 +1142,45 @@ export function saveStoredFeeCorrections(corrections: FeeCorrectionRecord[]): vo
   writeStorage(STORAGE_KEYS.FEE_CORRECTIONS, corrections);
 }
 
-export const INITIAL_GRADUATED_BATCHES: GraduatedBatch[] = [
-  {
-    id: 'batch-2025-jhs',
-    batchName: 'Class of 2025 (Basic 9 / JHS)',
-    graduationYear: '2025',
-    academicYear: '2024/2025',
-    department: 'Junior High School',
-    classGraduated: 'Basic 9',
-    totalStudents: 42,
-    graduationDate: '2025-07-25',
-    status: 'Active',
-    notes: 'Successfully completed BECE 2025 Examinations and graduated.'
-  },
-  {
-    id: 'batch-2025-shs',
-    batchName: 'Class of 2025 (SHS 3 / WASSCE)',
-    graduationYear: '2025',
-    academicYear: '2024/2025',
-    department: 'Senior High School',
-    classGraduated: 'SHS 3',
-    totalStudents: 38,
-    graduationDate: '2025-08-15',
-    status: 'Active',
-    notes: 'Graduated SHS WASSCE Candidates.'
-  }
-];
+export const INITIAL_GRADUATED_BATCHES: GraduatedBatch[] = [];
 
 export function getStoredGraduatedBatches(): GraduatedBatch[] {
-  return readStorage<GraduatedBatch[]>(STORAGE_KEYS.GRADUATED_BATCHES, INITIAL_GRADUATED_BATCHES);
+  const list = readStorage<GraduatedBatch[]>(STORAGE_KEYS.GRADUATED_BATCHES, []);
+  if (Array.isArray(list) && list.some(b => b.id?.startsWith('batch-2025-') || b.id?.startsWith('batch-2024-'))) {
+    writeStorage(STORAGE_KEYS.GRADUATED_BATCHES, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredGraduatedBatches(batches: GraduatedBatch[]): void {
   writeStorage(STORAGE_KEYS.GRADUATED_BATCHES, batches);
 }
 
-export const INITIAL_GRADUATED_STUDENTS: GraduatedStudentItem[] = [
-  {
-    id: 'grad-2025-001',
-    admissionNo: 'JIPAS/2022/014',
-    fullName: 'KWESI MENSAH AGYAPONG',
-    gender: 'Male',
-    dob: '2009-04-12',
-    completionYear: '2025',
-    examType: 'BECE',
-    candidateIndexNo: '1010203001',
-    becePlacementStatus: 'Placement',
-    placedSchool: "Presbyterian Boys' Secondary School (PRESEC Legon)",
-    placedProgramme: 'General Science',
-    classGraduatedFrom: 'Basic 9 A',
-    department: 'Junior High School',
-    aggregate: 6,
-    parentName: 'Mr. Emmanuel Agyapong',
-    parentPhone: '0244112233',
-    campus: 'JIPAS 1',
-    status: 'Placed',
-    remarks: 'Distinction in all 9 BECE subjects. Placed in First Choice school.'
-  },
-  {
-    id: 'grad-2025-002',
-    admissionNo: 'JIPAS/2022/038',
-    fullName: 'AKOSUA SERWAA BOATENG',
-    gender: 'Female',
-    dob: '2009-08-25',
-    completionYear: '2025',
-    examType: 'BECE',
-    candidateIndexNo: '1010203002',
-    becePlacementStatus: 'Placement',
-    placedSchool: "Wesley Girls' High School, Cape Coast",
-    placedProgramme: 'General Science',
-    classGraduatedFrom: 'Basic 9 B',
-    department: 'Junior High School',
-    aggregate: 7,
-    parentName: 'Dr. Serwaa Boateng',
-    parentPhone: '0208990011',
-    campus: 'JIPAS 1',
-    status: 'Placed',
-    remarks: 'Grade 1 in Integrated Science and Core Mathematics.'
-  },
-  {
-    id: 'grad-2025-003',
-    admissionNo: 'JIPAS/2022/059',
-    fullName: 'KOFI OWUSU ANSAH',
-    gender: 'Male',
-    dob: '2009-11-03',
-    completionYear: '2025',
-    examType: 'BECE',
-    candidateIndexNo: '1010203003',
-    becePlacementStatus: 'Non-placement',
-    classGraduatedFrom: 'Basic 9 A',
-    department: 'Junior High School',
-    aggregate: 28,
-    parentName: 'Madam Grace Ansah',
-    parentPhone: '0277334455',
-    campus: 'JIPAS 1',
-    status: 'Pending Placement',
-    remarks: 'Awaiting CSSPS self-placement system round 2.'
-  },
-  {
-    id: 'grad-2025-004',
-    admissionNo: 'JIPAS/SHS/2022/008',
-    fullName: 'EMMANUEL KOJO ABBEY',
-    gender: 'Male',
-    dob: '2006-03-17',
-    completionYear: '2025',
-    examType: 'WASSCE',
-    candidateIndexNo: '0010203045',
-    wassceProgramme: 'General Science',
-    classGraduatedFrom: 'SHS 3 Science',
-    department: 'Senior High School',
-    aggregate: 8,
-    parentName: 'Rev. Abbey',
-    parentPhone: '0555889922',
-    campus: 'JIPAS 1',
-    status: 'Higher Education',
-    remarks: 'Passed all 8 WASSCE papers with 6 A1s and 2 B2s. Enrolled in KNUST Medical School.'
-  },
-  {
-    id: 'grad-2025-005',
-    admissionNo: 'JIPAS/SHS/2022/021',
-    fullName: 'PRISCILLA OSEI TUTU',
-    gender: 'Female',
-    dob: '2006-09-09',
-    completionYear: '2025',
-    examType: 'WASSCE',
-    candidateIndexNo: '0010203046',
-    wassceProgramme: 'Business',
-    classGraduatedFrom: 'SHS 3 Business',
-    department: 'Senior High School',
-    aggregate: 9,
-    parentName: 'Mrs. Abigail Osei Tutu',
-    parentPhone: '0245667788',
-    campus: 'JIPAS 2',
-    status: 'Higher Education',
-    remarks: 'A1 in Financial Accounting and Cost Accounting.'
-  },
-  {
-    id: 'grad-2024-006',
-    admissionNo: 'JIPAS/2021/019',
-    fullName: 'DAVID DARKO ADDO',
-    gender: 'Male',
-    dob: '2008-01-30',
-    completionYear: '2024',
-    examType: 'BECE',
-    candidateIndexNo: '1010192004',
-    becePlacementStatus: 'Placement',
-    placedSchool: 'Achimota School',
-    placedProgramme: 'General Arts',
-    classGraduatedFrom: 'Basic 9',
-    department: 'Junior High School',
-    aggregate: 8,
-    parentName: 'Mr. Richard Addo',
-    parentPhone: '0201122445',
-    campus: 'JIPAS 1',
-    status: 'Placed',
-    remarks: 'Class of 2024 graduate.'
-  }
-];
+export const INITIAL_GRADUATED_STUDENTS: GraduatedStudentItem[] = [];
 
 export function getStoredGraduatedStudents(): GraduatedStudentItem[] {
-  return readStorage<GraduatedStudentItem[]>(STORAGE_KEYS.GRADUATED_STUDENTS, INITIAL_GRADUATED_STUDENTS);
+  const list = readStorage<GraduatedStudentItem[]>(STORAGE_KEYS.GRADUATED_STUDENTS, []);
+  if (Array.isArray(list) && list.some(s => s.id?.startsWith('grad-2025-') || s.id?.startsWith('grad-2024-') || (s.fullName && s.fullName.includes('KWESI MENSAH')))) {
+    writeStorage(STORAGE_KEYS.GRADUATED_STUDENTS, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredGraduatedStudents(students: GraduatedStudentItem[]): void {
   writeStorage(STORAGE_KEYS.GRADUATED_STUDENTS, students);
 }
 
-export const INITIAL_PAST_EMPLOYEES: PastEmployeeRecord[] = [
-  {
-    id: 'emp-past-001',
-    fullName: 'MICHAEL KWABENA APPIAH',
-    staffId: 'JIPAS/STAFF/2018/012',
-    gender: 'Male',
-    phone: '0244556677',
-    email: 'm.appiah@gmail.com',
-    department: 'Senior High School',
-    role: 'Head of Science / Physics Teacher',
-    durationOfService: '2018 - 2024 (6 Years)',
-    startDate: '2018-09-01',
-    endDate: '2024-08-31',
-    classesHandled: ['SHS 1 Science', 'SHS 2 Science', 'SHS 3 Science'],
-    subjectsHandled: ['Physics', 'Integrated Science', 'Elective Mathematics'],
-    exitReason: 'Further Studies',
-    serviceRating: 'Outstanding',
-    remarks: 'Proceeded on Master of Science scholarship study leave abroad. Excellent work ethics.',
-    certificateIssued: true,
-    campus: 'JIPAS 1'
-  },
-  {
-    id: 'emp-past-002',
-    fullName: 'FAUSTINA ADDO-KUFUOR',
-    staffId: 'JIPAS/STAFF/2019/024',
-    gender: 'Female',
-    phone: '0208112233',
-    email: 'f.addokufuor@yahoo.com',
-    department: 'Junior High School',
-    role: 'Senior English Language Teacher',
-    durationOfService: '2019 - 2024 (5 Years)',
-    startDate: '2019-01-15',
-    endDate: '2024-06-30',
-    classesHandled: ['Basic 7', 'Basic 8', 'Basic 9'],
-    subjectsHandled: ['English Language', 'Literature in English'],
-    exitReason: 'Relocated',
-    serviceRating: 'Very Good',
-    remarks: 'Relocated to Kumasi with family. Highly commendable discipline and classroom management.',
-    certificateIssued: true,
-    campus: 'JIPAS 1'
-  },
-  {
-    id: 'emp-past-003',
-    fullName: 'JOSEPH TAWIAH',
-    staffId: 'JIPAS/STAFF/2017/005',
-    gender: 'Male',
-    phone: '0277889900',
-    email: 'j.tawiah@outlook.com',
-    department: 'Accounts & Finance',
-    role: 'Bursar / Senior Accountant',
-    durationOfService: '2017 - 2023 (6 Years)',
-    startDate: '2017-03-01',
-    endDate: '2023-11-30',
-    classesHandled: [],
-    subjectsHandled: ['Financial Accounting', 'Cost Accounting'],
-    exitReason: 'Resigned',
-    serviceRating: 'Very Good',
-    remarks: 'Transitioned to the commercial banking sector. All school books and audit reconciliations handed over accurately.',
-    certificateIssued: true,
-    campus: 'JIPAS 1'
-  }
-];
+export const INITIAL_PAST_EMPLOYEES: PastEmployeeRecord[] = [];
 
 export function getStoredPastEmployees(): PastEmployeeRecord[] {
-  return readStorage<PastEmployeeRecord[]>(STORAGE_KEYS.PAST_EMPLOYEES, INITIAL_PAST_EMPLOYEES);
+  const list = readStorage<PastEmployeeRecord[]>(STORAGE_KEYS.PAST_EMPLOYEES, []);
+  if (Array.isArray(list) && list.some(e => e.id?.startsWith('emp-past-') || (e.fullName && e.fullName.includes('MICHAEL KWABENA')))) {
+    writeStorage(STORAGE_KEYS.PAST_EMPLOYEES, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredPastEmployees(employees: PastEmployeeRecord[]): void {
@@ -1489,37 +1229,15 @@ export function saveStoredScoreApprovals(approvals: ScoreApprovalRecord[]): void
 // ---------------------------------------------------------------------------
 // Transport Routes Storage
 // ---------------------------------------------------------------------------
-export const INITIAL_TRANSPORT_ROUTES: TransportRouteItem[] = [
-  {
-    id: 'tr-01',
-    routeName: 'Route 1: Hedzranawoe – Lomé Central – JIPAS Campus 1',
-    driverName: 'Kwami Agbedor',
-    driverPhone: '+228 90 12 34 56',
-    busNumber: 'TG-4819-AZ',
-    capacity: 35,
-    enrolledStudentsCount: 22,
-    stops: ['Radio Maria Junction', 'Hedzranawoe Market', 'Bvd du 13 Janvier', 'Campus 1 Main Gate'],
-    farePerTerm: 15000,
-    status: 'Active',
-    campus: 'JIPAS 1'
-  },
-  {
-    id: 'tr-02',
-    routeName: 'Route 2: Kpéhénou – T-Oil – Campus 2 Express',
-    driverName: 'Messan Lawson',
-    driverPhone: '+228 91 88 77 66',
-    busNumber: 'TG-9921-AY',
-    capacity: 30,
-    enrolledStudentsCount: 18,
-    stops: ['T-Oil Station Junction', 'Kpéhénou Total', 'Agoè Roundabout', 'Campus 2 Gate'],
-    farePerTerm: 18000,
-    status: 'Active',
-    campus: 'JIPAS 2'
-  }
-];
+export const INITIAL_TRANSPORT_ROUTES: TransportRouteItem[] = [];
 
 export function getStoredTransportRoutes(): TransportRouteItem[] {
-  return readStorage<TransportRouteItem[]>(STORAGE_KEYS.TRANSPORT_ROUTES, INITIAL_TRANSPORT_ROUTES);
+  const list = readStorage<TransportRouteItem[]>(STORAGE_KEYS.TRANSPORT_ROUTES, []);
+  if (Array.isArray(list) && list.some(r => r.id === 'tr-01' || r.id === 'tr-02')) {
+    writeStorage(STORAGE_KEYS.TRANSPORT_ROUTES, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredTransportRoutes(routes: TransportRouteItem[]): void {
@@ -1529,33 +1247,15 @@ export function saveStoredTransportRoutes(routes: TransportRouteItem[]): void {
 // ---------------------------------------------------------------------------
 // Boarding Rooms Storage
 // ---------------------------------------------------------------------------
-export const INITIAL_BOARDING_ROOMS: BoardingRoomItem[] = [
-  {
-    id: 'br-01',
-    hallName: 'Excellence Hall (Boys Wing)',
-    roomNumber: 'Room B-101',
-    gender: 'Boys',
-    houseMaster: 'Mr. Emmanuel Tetteh',
-    capacity: 8,
-    occupied: 6,
-    status: 'Available',
-    campus: 'JIPAS 1'
-  },
-  {
-    id: 'br-02',
-    hallName: 'Grace Hall (Girls Wing)',
-    roomNumber: 'Room G-201',
-    gender: 'Girls',
-    houseMaster: 'Mrs. Grace Tetteh',
-    capacity: 8,
-    occupied: 7,
-    status: 'Available',
-    campus: 'JIPAS 1'
-  }
-];
+export const INITIAL_BOARDING_ROOMS: BoardingRoomItem[] = [];
 
 export function getStoredBoardingRooms(): BoardingRoomItem[] {
-  return readStorage<BoardingRoomItem[]>(STORAGE_KEYS.BOARDING_ROOMS, INITIAL_BOARDING_ROOMS);
+  const list = readStorage<BoardingRoomItem[]>(STORAGE_KEYS.BOARDING_ROOMS, []);
+  if (Array.isArray(list) && list.some(br => br.id === 'br-01' || br.id === 'br-02')) {
+    writeStorage(STORAGE_KEYS.BOARDING_ROOMS, []);
+    return [];
+  }
+  return list;
 }
 
 export function saveStoredBoardingRooms(rooms: BoardingRoomItem[]): void {

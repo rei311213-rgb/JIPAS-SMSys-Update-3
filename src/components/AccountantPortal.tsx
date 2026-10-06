@@ -1022,7 +1022,6 @@ export default function AccountantPortal({
           </div>
 
           <div className="relative z-10 flex flex-wrap gap-2">
-            <SyncNowButton variant="portal" />
             <button
               type="button"
               onClick={() => setActiveTab('bank-deposits')}

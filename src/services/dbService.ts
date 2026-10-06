@@ -397,6 +397,8 @@ export {
   getStoredGraduatedStudents,
   saveStoredGraduatedStudents,
   INITIAL_GRADUATED_STUDENTS,
+  getStoredGraduatedBatches,
+  saveStoredGraduatedBatches,
   getStoredPastEmployees,
   saveStoredPastEmployees,
   INITIAL_PAST_EMPLOYEES,

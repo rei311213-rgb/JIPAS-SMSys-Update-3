@@ -81,8 +81,8 @@ export default function HeaderNavigation({
           {/* Real-time Authoritative Server Clock Indicator */}
           <ServerClockIndicator />
 
-          {/* Sync Now Button */}
-          {currentUser.role !== 'student' && (
+          {/* Sync Now Button - Admin Only */}
+          {(currentUser.role === 'admin' || sessionRole === 'admin') && (
             <SyncNowButton variant="compact" />
           )}
 
@@ -171,7 +171,7 @@ export default function HeaderNavigation({
           <div className="flex flex-wrap items-center gap-2">
             <ServerClockIndicator variant="compact" />
 
-            {currentUser.role !== 'student' && (
+            {(currentUser.role === 'admin' || sessionRole === 'admin') && (
               <SyncNowButton variant="compact" />
             )}
 

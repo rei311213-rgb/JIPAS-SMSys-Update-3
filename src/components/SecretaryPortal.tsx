@@ -1002,7 +1002,6 @@ export default function SecretaryPortal({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <SyncNowButton variant="portal" />
                 {/* Global Portal Search Input */}
                 <div className="relative w-48 sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

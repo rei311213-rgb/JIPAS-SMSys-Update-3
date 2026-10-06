@@ -1811,8 +1811,6 @@ export default function TeacherPortal({
               placeholder="Search students, classes, records..."
             />
 
-            <SyncNowButton variant="compact" />
-
             <button
               onClick={onLogout}
               className="bg-[#dc3545] hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"

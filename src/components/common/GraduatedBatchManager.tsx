@@ -31,7 +31,9 @@ import {
   getStoredGraduatedStudents, 
   saveGraduatedStudent, 
   deleteGraduatedStudent,
-  subscribeGraduatedStudents 
+  subscribeGraduatedStudents,
+  saveStoredGraduatedStudents,
+  saveStoredGraduatedBatches
 } from '../../services/dbService';
 import BulkGraduatedImportModal from './BulkGraduatedImportModal';
 
@@ -299,6 +301,23 @@ export default function GraduatedBatchManager({
     }
   };
 
+  const handleClearAllGraduatedRecords = async () => {
+    if (!isEditable) return;
+    const confirmClear = window.confirm('Are you sure you want to PERMANENTLY clear all graduated candidate records? This action cannot be undone.');
+    if (!confirmClear) return;
+
+    try {
+      saveStoredGraduatedStudents([]);
+      saveStoredGraduatedBatches([]);
+      setStudents([]);
+      setSuccessMessage('All graduated candidate records have been permanently cleared.');
+      setTimeout(() => setSuccessMessage(''), 4000);
+    } catch (err) {
+      console.error('Error clearing graduated records:', err);
+      alert('Failed to clear graduated candidate records.');
+    }
+  };
+
   // Export CSV
   const handleExportCSV = () => {
     if (filteredStudents.length === 0) {
@@ -555,13 +574,23 @@ export default function GraduatedBatchManager({
             </button>
 
             {isEditable && (
-              <button
-                onClick={handleOpenAddModal}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/25 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Graduated Student</span>
-              </button>
+              <>
+                <button
+                  onClick={handleClearAllGraduatedRecords}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-500/50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer"
+                  title="Clear all graduated candidate records"
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                  <span>Clear All Records</span>
+                </button>
+                <button
+                  onClick={handleOpenAddModal}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/25 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Graduated Student</span>
+                </button>
+              </>
             )}
           </div>
         </div>
