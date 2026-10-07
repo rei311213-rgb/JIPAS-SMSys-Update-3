@@ -149,7 +149,7 @@ export const VALID_TEACHER_VIEWS = new Set<string>([
   'my_attendance'
 ]);
 
-export type TeacherViewType = 'dashboard' | 'my_classes' | 'enter_results' | 'attendance_comment' | 'profile' | 'change_password' | 'review_reports' | 'performance_overview' | 'exam_timetable' | 'scan_entrance_qr' | 'my_attendance';
+export type TeacherViewType = 'dashboard' | 'my_classes' | 'enter_results' | 'attendance_comment' | 'profile' | 'change_password' | 'review_reports' | 'performance_overview' | 'exam_timetable' | 'scan_entrance_qr' | 'my_attendance' | 'backup_recovery' | 'enroll_student';
 
 export const getInitialTeacherView = (): TeacherViewType => {
   if (typeof window !== 'undefined') {

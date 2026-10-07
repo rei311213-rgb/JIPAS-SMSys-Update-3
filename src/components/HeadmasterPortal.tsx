@@ -68,7 +68,7 @@ export default function HeadmasterPortal({
       setScoreApprovals(items);
     });
     const handleExitToDashboard = () => {
-      setActiveTab('overview');
+      setActiveTab('dashboard');
     };
     window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
     return () => {
@@ -720,8 +720,8 @@ export default function HeadmasterPortal({
           <StaffAttendanceQRScanner 
             currentUser={currentUser} 
             employee={currentUser} 
-            onSuccess={() => setActiveTab('overview')}
-            onClose={() => setActiveTab('overview')}
+            onSuccess={() => setActiveTab('dashboard')}
+            onClose={() => setActiveTab('dashboard')}
           />
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">

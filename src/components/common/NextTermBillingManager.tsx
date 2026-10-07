@@ -713,7 +713,7 @@ export default function NextTermBillingManager({
                   </div>
 
                   <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
-                    {studentMatchedSetup?.setup.items.map(it => {
+                    {(studentMatchedSetup?.setup?.items || []).map(it => {
                       const isChecked = selectedItemIds.includes(it.id);
                       return (
                         <label

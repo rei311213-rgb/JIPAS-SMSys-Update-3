@@ -22,12 +22,12 @@ export default function BoardingManager({ students }: BoardingManagerProps) {
   // Form State
   const [hallName, setHallName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
-  const [gender, setGender] = useState<'Boys' | 'Girls'>('Boys');
+  const [gender, setGender] = useState<'Boys' | 'Girls' | 'Mixed'>('Boys');
   const [houseMaster, setHouseMaster] = useState('');
   const [capacity, setCapacity] = useState(8);
   const [occupied, setOccupied] = useState(0);
   const [status, setStatus] = useState<'Available' | 'Full' | 'Maintenance'>('Available');
-  const [campus, setCampus] = useState<'JIPAS 1' | 'JIPAS 2'>('JIPAS 1');
+  const [campus, setCampus] = useState<'JIPAS 1' | 'JIPAS 2' | string>('JIPAS 1');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {

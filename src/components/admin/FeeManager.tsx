@@ -55,7 +55,7 @@ export const INITIAL_AUDIT_LOGS: FinancialAuditItem[] = [];
 
 export default function FeeManager({
   activeModule,
-  students,
+  students: propStudents,
   bills: initialBills,
   payments: initialPayments,
   classFeeTariffs: initialTariffs,
@@ -66,10 +66,11 @@ export default function FeeManager({
   preselectedStudentId,
   currentUser
 }: FeeManagerProps) {
+  const students = propStudents || [];
   const [feeOptions, setFeeOptions] = useState<FeeOptionItem[]>(INITIAL_FEE_OPTIONS);
-  const [billsList, setBillsList] = useState<StudentBill[]>(initialBills);
-  const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>(initialPayments);
-  const [classTariffs, setClassTariffs] = useState<ClassFeeTariffItem[]>(initialTariffs);
+  const [billsList, setBillsList] = useState<StudentBill[]>(initialBills || []);
+  const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>(initialPayments || []);
+  const [classTariffs, setClassTariffs] = useState<ClassFeeTariffItem[]>(initialTariffs || []);
   const [incomeExpenses, setIncomeExpenses] = useState<IncomeExpenseItem[]>(() => {
     try {
       const expenses = getStoredExpenses();
@@ -105,6 +106,17 @@ export default function FeeManager({
   const [isQRVerifierOpen, setIsQRVerifierOpen] = useState(false);
   const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
   const [showBatchPrintModal, setShowBatchPrintModal] = useState(false);
+
+  // Normalization for generic fee navigation
+  const isGenericFee = !activeModule || activeModule === 'fee' || activeModule === 'fees' || activeModule === 'fee_management' || activeModule === 'fee_hub';
+  const effectiveModule = isGenericFee ? 'fee_collection' : activeModule;
+  const [currentFeeTab, setCurrentFeeTab] = useState<string>(effectiveModule);
+
+  React.useEffect(() => {
+    setCurrentFeeTab(effectiveModule);
+  }, [effectiveModule]);
+
+  const activeTab = currentFeeTab;
 
   // Refund Management State
   const [refundsList, setRefundsList] = useState<FeeRefundRecord[]>(() => getStoredRefunds());
@@ -279,7 +291,7 @@ export default function FeeManager({
 
   // Fee Form State
   const [feeName, setFeeName] = useState('');
-  const [feeCat, setFeeCat] = useState<'Tuition' | 'PTA' | 'ICT' | 'Exams' | 'Maintenance' | 'Transport' | 'Uniform'>('Tuition');
+  const [feeCat, setFeeCat] = useState<string>('Tuition');
   const [feeAmount, setFeeAmount] = useState(100);
   const [feeClass, setFeeClass] = useState('All Classes');
   const [feeMandatory, setFeeMandatory] = useState(true);
@@ -287,7 +299,7 @@ export default function FeeManager({
   // Fee Collection Form State
   const [collectStudentId, setCollectStudentId] = useState(() => {
     if (preselectedStudentId) return preselectedStudentId;
-    return students[0]?.id || '';
+    return (students && students.length > 0 && students[0]?.id) ? students[0].id : '';
   });
   const [collectAmount, setCollectAmount] = useState(300);
   const [collectMethod, setCollectMethod] = useState<'Cash' | 'Bank' | 'Mobile Money' | 'Cheque'>('Mobile Money');
@@ -403,8 +415,12 @@ export default function FeeManager({
     }
   };
 
-  const selectedStudent = students.find(s => s.id === collectStudentId) || students[0];
-  const selectedBill = billsList.find(b => b.studentId === selectedStudent?.id || b.admissionNo === selectedStudent?.admissionNo);
+  const selectedStudent = (students && students.length > 0)
+    ? (students.find(s => s.id === collectStudentId) || students[0])
+    : null;
+  const selectedBill = selectedStudent 
+    ? billsList.find(b => b.studentId === selectedStudent.id || b.admissionNo === selectedStudent.admissionNo)
+    : null;
 
   // Income Expense Form State
   const [ieType, setIeType] = useState<'Income' | 'Expense'>('Income');
@@ -464,7 +480,9 @@ export default function FeeManager({
   // Execute Fee Collection - Step 1: Open verification preview modal
   const handleCollectFee = (e: React.FormEvent) => {
     e.preventDefault();
-    const student = students.find(s => s.id === collectStudentId) || students[0];
+    const student = (students && students.length > 0)
+      ? (students.find(s => s.id === collectStudentId) || students[0])
+      : null;
     if (!student || collectAmount <= 0) return;
 
     const b = (getStoredBills().length > 0 ? getStoredBills() : billsList).find(bill => {
@@ -674,8 +692,56 @@ export default function FeeManager({
 
   return (
     <div className="space-y-6">
+      {/* FEE MANAGEMENT SUB-NAVIGATION TABS */}
+      <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto flex items-center gap-1.5 scrollbar-thin">
+        {[
+          { id: 'fee_collection', label: 'Record Payment', icon: CreditCard },
+          { id: 'fee_bill_students', label: 'Bill Students & Sheets', icon: FileText },
+          { id: 'fee_payment_history', label: 'Payment Ledger', icon: Receipt },
+          { id: 'fee_payment_stats', label: 'Revenue Stats', icon: TrendingUp },
+          { id: 'fee_options', label: 'Tariffs & Settings', icon: DollarSign },
+          { id: 'fee_overdue_alerts', label: 'Overdue Alerts', icon: AlertCircle },
+          { id: 'fee_refunds', label: 'Refunds & Adjustments', icon: RefreshCw },
+          { id: 'fee_bulk_entry', label: 'Bulk Fee Entry', icon: Layers },
+          { id: 'fee_income_expenses', label: 'Cashbook', icon: Wallet },
+          { id: 'fee_audit_activity', label: 'Financial Audit', icon: ShieldCheck },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = 
+            activeTab === tab.id || 
+            (tab.id === 'fee_bill_students' && (activeTab === 'bills' || activeTab === 'fee_generate_sheets' || activeTab === 'generate_all_sheets' || activeTab === 'bill_students' || activeTab === 'generate_sheets')) ||
+            (tab.id === 'fee_payment_history' && activeTab === 'payments') ||
+            (tab.id === 'fee_payment_stats' && activeTab === 'finance_stats') ||
+            (tab.id === 'fee_options' && (activeTab === 'fee_settings' || activeTab === 'fee_structure' || activeTab === 'fee_descriptions' || activeTab === 'payment_settings' || activeTab === 'payment_channels' || activeTab === 'payment_proofs')) ||
+            (tab.id === 'fee_overdue_alerts' && activeTab === 'overdue_alerts') ||
+            (tab.id === 'fee_refunds' && activeTab === 'refunds') ||
+            (tab.id === 'fee_income_expenses' && (activeTab === 'income_expenses' || activeTab === 'fee_income_expense' || activeTab === 'income_expense')) ||
+            (tab.id === 'fee_audit_activity' && (activeTab === 'fee_audit' || activeTab === 'audit_activity' || activeTab === 'audit')) ||
+            (tab.id === 'fee_collection' && (activeTab === 'collect_fees' || activeTab === 'fee_collect'));
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setCurrentFeeTab(tab.id);
+                onNavigate?.(tab.id);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                isActive
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-sm shadow-cyan-600/20'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/60'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* OVERDUE FEE ALERTS MODULE */}
-      {(activeModule === 'fee_overdue_alerts' || activeModule === 'overdue_alerts') && (
+      {(activeTab === 'fee_overdue_alerts' || activeTab === 'overdue_alerts') && (
         <OverdueFeeAlertsManager
           students={students}
           bills={activeBillsList}
@@ -688,19 +754,20 @@ export default function FeeManager({
             if (b && b.balance > 0) {
               setCollectAmount(b.balance);
             }
-            onNavigate?.('fee_collect');
+            setCurrentFeeTab('fee_collection');
+            onNavigate?.('fee_collection');
           }}
         />
       )}
 
       {/* 1. FEE SETTINGS & TARIFF OPTIONS MODULE */}
-      {(activeModule === 'fee_options' || activeModule === 'fee_settings' || activeModule === 'fee_structure' || activeModule === 'fee_descriptions' || activeModule === 'payment_settings' || activeModule === 'payment_channels' || activeModule === 'payment_proofs') && (
+      {(activeTab === 'fee_options' || activeTab === 'fee_settings' || activeTab === 'fee_structure' || activeTab === 'fee_descriptions' || activeTab === 'payment_settings' || activeTab === 'payment_channels' || activeTab === 'payment_proofs') && (
         <FeesSettingsManager
           userRole="admin"
           initialTab={
-            activeModule === 'payment_proofs'
+            activeTab === 'payment_proofs'
               ? 'submissions_queue'
-              : (activeModule === 'payment_settings' || activeModule === 'payment_channels')
+              : (activeTab === 'payment_settings' || activeTab === 'payment_channels')
               ? 'payment_methods'
               : 'tariffs'
           }
@@ -720,7 +787,7 @@ export default function FeeManager({
       )}
 
       {/* 2. BILL STUDENTS & 3. GENERATE ALL SHEETS */}
-      {(activeModule === 'fee_bill_students' || activeModule === 'bill_students' || activeModule === 'fee_generate_sheets' || activeModule === 'fee_generate_all_sheets' || activeModule === 'generate_all_sheets' || activeModule === 'generate_sheets' || activeModule === 'bills') && (() => {
+      {(activeTab === 'fee_bill_students' || activeTab === 'bill_students' || activeTab === 'fee_generate_sheets' || activeTab === 'fee_generate_all_sheets' || activeTab === 'generate_all_sheets' || activeTab === 'generate_sheets' || activeTab === 'bills') && (() => {
         const uniqueClassesList = Array.from(new Set([
           ...getStoredClasses().map(c => c.name),
           ...activeBillsList.map(b => b.className)
@@ -879,9 +946,9 @@ export default function FeeManager({
                         <td className="p-3 text-right font-mono font-black text-rose-700">{(bill.balance ?? 0).toFixed(2)} CFA</td>
                         <td className="p-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            bill.isVoided || bill.status === 'Voided' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                            bill.status === 'Paid' || bill.status === 'Fully Paid' ? 'bg-emerald-100 text-emerald-800' :
-                            bill.status === 'Partial' || bill.status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                            bill.isVoided || (bill.status as string) === 'Voided' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                            (bill.status as string) === 'Paid' || bill.status === 'Fully Paid' ? 'bg-emerald-100 text-emerald-800' :
+                            (bill.status as string) === 'Partial' || bill.status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                           }`}>
                             {bill.isVoided ? 'VOIDED' : bill.status}
                           </span>
@@ -937,7 +1004,7 @@ export default function FeeManager({
       })()}
 
       {/* 4. FEE COLLECTION MODULE */}
-      {(activeModule === 'fee_collection' || activeModule === 'collect_fees') && (
+      {(activeTab === 'fee_collection' || activeTab === 'collect_fees' || activeTab === 'fee_collect' || (!['fee_overdue_alerts', 'overdue_alerts', 'fee_options', 'fee_settings', 'fee_structure', 'fee_descriptions', 'payment_settings', 'payment_channels', 'payment_proofs', 'fee_bill_students', 'bill_students', 'fee_generate_sheets', 'fee_generate_all_sheets', 'generate_all_sheets', 'generate_sheets', 'bills', 'fee_payment_history', 'payments', 'fee_payment_stats', 'finance_stats', 'fee_income_expenses', 'fee_income_expense', 'income_expenses', 'income_expense', 'fee_audit_activity', 'fee_audit', 'audit_activity', 'audit', 'fee_refunds', 'refunds', 'fee_bulk_entry'].includes(activeTab))) && (
         <div className="space-y-6">
           {/* Header Card with Hierarchical Filters */}
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
@@ -1150,8 +1217,8 @@ export default function FeeManager({
                   {filteredStudentsForPayment.map(st => {
                     const studentBill = billsList.find(b => b.studentId === st.id || b.admissionNo === st.admissionNo);
                     const isSelected = st.id === selectedStudent?.id;
-                    const computed = studentBill || computeStudentBill(st, classTariffs);
-                    const balance = computed.balance;
+                    const computed = studentBill || (st ? computeStudentBill(st, classTariffs) : null);
+                    const balance = computed?.balance ?? computed?.payable ?? 0;
                     const hasArrears = balance > 0;
 
                     return (
@@ -1415,7 +1482,7 @@ export default function FeeManager({
       )}
 
       {/* 5. PAYMENT HISTORY MODULE */}
-      {(activeModule === 'fee_payment_history' || activeModule === 'payments') && (
+      {(activeTab === 'fee_payment_history' || activeTab === 'payments') && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
           <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-100">
             <div>
@@ -1581,7 +1648,7 @@ export default function FeeManager({
       )}
 
       {/* 6. PAYMENT STATISTICS MODULE */}
-      {(activeModule === 'fee_payment_stats' || activeModule === 'finance_stats') && (
+      {(activeTab === 'fee_payment_stats' || activeTab === 'finance_stats') && (
         <div className="space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-100">
@@ -1689,7 +1756,7 @@ export default function FeeManager({
       )}
 
       {/* 7. INCOME & EXPENSES MODULE */}
-      {(activeModule === 'fee_income_expenses' || activeModule === 'fee_income_expense' || activeModule === 'income_expenses' || activeModule === 'income_expense') && (
+      {(activeTab === 'fee_income_expenses' || activeTab === 'fee_income_expense' || activeTab === 'income_expenses' || activeTab === 'income_expense') && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
           <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-100">
             <div>
@@ -1795,7 +1862,7 @@ export default function FeeManager({
       )}
 
       {/* 8. AUDIT ACTIVITY MODULE */}
-      {(activeModule === 'fee_audit_activity' || activeModule === 'fee_audit' || activeModule === 'audit_activity' || activeModule === 'audit') && (
+      {(activeTab === 'fee_audit_activity' || activeTab === 'fee_audit' || activeTab === 'audit_activity' || activeTab === 'audit') && (
         <div className="space-y-6">
           {/* Sub-tab Switcher between Forensic Payment Audit & Immutable Tamper Log */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex items-center justify-between gap-3 flex-wrap">
@@ -2204,7 +2271,7 @@ export default function FeeManager({
       )}
 
       {/* REFUND MANAGEMENT MODULE */}
-      {(activeModule === 'fee_refunds' || activeModule === 'refunds') && (
+      {(activeTab === 'fee_refunds' || activeTab === 'refunds') && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
           {/* Toast */}
           {refundToast && (
@@ -2480,7 +2547,7 @@ export default function FeeManager({
         </div>
       )}
 
-      {activeModule === 'fee_bulk_entry' && (
+      {activeTab === 'fee_bulk_entry' && (
         <BulkFeeEntryTool
           students={students}
           currentUser={currentUser || { name: 'Administrator', role: 'admin' } as any}

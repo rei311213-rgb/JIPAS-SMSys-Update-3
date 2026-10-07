@@ -112,11 +112,21 @@ export function generateBillItemsFromTariff(tariff: ClassFeeTariffItem): {
  * matching their class tariff settings, preserving previous payment history.
  */
 export function computeStudentBill(
-  student: { id: string; fullName: string; admissionNo: string; className: string; department?: string; academicYear?: string; term?: string },
+  student: { id: string; fullName: string; admissionNo: string; className: string; department?: string; academicYear?: string; term?: string } | any,
   tariffs: ClassFeeTariffItem[] = getStoredClassFeeTariffs(),
   existingBill?: Partial<StudentBill>
 ): StudentBill {
-  const matchingTariff = findMatchingTariff(student.className, student.department, tariffs);
+  const safeStudent = student || {
+    id: existingBill?.studentId || 'STU-DEF',
+    fullName: existingBill?.studentName || 'Student',
+    admissionNo: existingBill?.admissionNo || 'JIPAS-001',
+    className: existingBill?.className || 'Basic 1',
+    department: 'Primary',
+    academicYear: '2026-2027',
+    term: 'First Term'
+  };
+
+  const matchingTariff = findMatchingTariff(safeStudent.className, safeStudent.department, tariffs);
   let items: { name: string; amount: number }[] = [];
   let subTotal = 0;
 
@@ -130,7 +140,7 @@ export function computeStudentBill(
   const matchingFeeOptions = feeOptions.filter(opt => {
     if (!opt.isActive) return false;
     const appClass = (opt.applicableClass || '').toLowerCase();
-    const sClass = (student.className || '').toLowerCase();
+    const sClass = (safeStudent.className || '').toLowerCase();
     return appClass === 'all classes' || appClass === 'all' || appClass.includes(sClass) || sClass.includes(appClass);
   });
 
@@ -169,15 +179,17 @@ export function computeStudentBill(
   const status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid' = 
     balance === 0 ? 'Fully Paid' : (paid > 0 ? 'Partially Paid' : 'Unpaid');
 
+  const safeAdmission = safeStudent.admissionNo || safeStudent.id || '001';
+
   return {
     id: existingBill?.id || `bill-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    billNo: existingBill?.billNo || `BILL-${(student.admissionNo || student.id).replace(/[\/\s]/g, '-')}`,
-    studentId: student.id,
-    studentName: student.fullName,
-    admissionNo: student.admissionNo,
-    className: student.className,
-    academicYear: getStoredSettings().activeAcademicYear || student.academicYear || existingBill?.academicYear || '2026-2027',
-    term: getStoredSettings().activeTerm || student.term || existingBill?.term || 'First Term',
+    billNo: existingBill?.billNo || `BILL-${String(safeAdmission).replace(/[\/\s]/g, '-')}`,
+    studentId: safeStudent.id || '',
+    studentName: safeStudent.fullName || 'Student',
+    admissionNo: safeStudent.admissionNo || '',
+    className: safeStudent.className || 'Basic 1',
+    academicYear: getStoredSettings().activeAcademicYear || safeStudent.academicYear || existingBill?.academicYear || '2026-2027',
+    term: getStoredSettings().activeTerm || safeStudent.term || existingBill?.term || 'First Term',
     items,
     subTotal,
     arrears,

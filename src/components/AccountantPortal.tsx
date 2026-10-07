@@ -157,6 +157,7 @@ export default function AccountantPortal({
   onAddNotification
 }: AccountantPortalProps) {
   const [activeTab, setActiveTab] = useState<AccountantTab>(() => getInitialAccountantTab());
+  const currentTab: string = activeTab;
   const [rawExpenses] = useState(() => getStoredExpenses());
   const activePeriod = getActiveAcademicPeriod();
   const [rawTeachers, setRawTeachers] = useState<Teacher[]>(() => getStoredTeachers());
@@ -495,7 +496,7 @@ export default function AccountantPortal({
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'All' | 'Completed' | 'Pending'>('All');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'name_asc' | 'class_asc' | 'receipt_asc'>('date_desc');
   const [isImporterOpen, setIsImporterOpen] = useState(false);
-  const [billsFilter, setBillsFilter] = useState<'all' | 'action-required' | 'unpaid' | 'paid'>('all');
+  const [billsFilter, setBillsFilter] = useState<'all' | 'action-required' | 'unpaid' | 'paid' | 'partial'>('all');
   const [billsSearchQuery, setBillsSearchQuery] = useState('');
   const [correctingBill, setCorrectingBill] = useState<StudentBill | null>(null);
   const [correctingPayment, setCorrectingPayment] = useState<PaymentRecord | null>(null);
@@ -1178,21 +1179,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('collections')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'collections'
+                currentTab === 'collections'
                   ? 'bg-cyan-600 text-white border-cyan-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-cyan-50/80 to-slate-50 hover:from-cyan-600 hover:to-cyan-700 border-cyan-100 hover:border-cyan-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'collections'
+                  currentTab === 'collections'
                     ? 'bg-white text-cyan-700'
                     : 'bg-cyan-600 text-white group-hover:bg-white group-hover:text-cyan-700'
                 }`}>
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'collections'
+                  currentTab === 'collections'
                     ? 'bg-cyan-800 text-cyan-100'
                     : 'bg-cyan-100 group-hover:bg-cyan-500 text-cyan-800 group-hover:text-white'
                 }`}>
@@ -1201,12 +1202,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'collections' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'collections' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Collections Log
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'collections' ? 'text-cyan-100' : 'text-slate-500 group-hover:text-cyan-100'
+                  currentTab === 'collections' ? 'text-cyan-100' : 'text-slate-500 group-hover:text-cyan-100'
                 }`}>
                   Repository of all issued fee receipts & collected funds
                 </p>
@@ -1217,21 +1218,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('bills')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'bills'
+                currentTab === 'bills'
                   ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-amber-50/80 to-slate-50 hover:from-amber-600 hover:to-amber-700 border-amber-100 hover:border-amber-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'bills'
+                  currentTab === 'bills'
                     ? 'bg-white text-amber-700'
                     : 'bg-amber-600 text-white group-hover:bg-white group-hover:text-amber-700'
                 }`}>
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'bills'
+                  currentTab === 'bills'
                     ? 'bg-amber-800 text-amber-100'
                     : 'bg-amber-100 group-hover:bg-amber-500 text-amber-800 group-hover:text-white'
                 }`}>
@@ -1240,12 +1241,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'bills' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'bills' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Fee Bills & Balances
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'bills' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
+                  currentTab === 'bills' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
                 }`}>
                   Student billings, balances due & payment verification
                 </p>
@@ -1256,21 +1257,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('new-payment')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'new-payment'
+                currentTab === 'new-payment'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-emerald-50/80 to-slate-50 hover:from-emerald-600 hover:to-emerald-700 border-emerald-100 hover:border-emerald-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'new-payment'
+                  currentTab === 'new-payment'
                     ? 'bg-white text-emerald-700'
                     : 'bg-emerald-600 text-white group-hover:bg-white group-hover:text-emerald-700'
                 }`}>
                   <Plus className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'new-payment'
+                  currentTab === 'new-payment'
                     ? 'bg-emerald-800 text-emerald-100'
                     : 'bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white'
                 }`}>
@@ -1279,12 +1280,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'new-payment' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'new-payment' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Collect Fee Payment
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'new-payment' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
+                  currentTab === 'new-payment' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
                 }`}>
                   Process MoMo, cash & bank deposit payment receipts
                 </p>
@@ -1295,21 +1296,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('bulk-fee-entry')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'bulk-fee-entry'
+                currentTab === 'bulk-fee-entry'
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border-indigo-100 hover:border-indigo-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'bulk-fee-entry'
+                  currentTab === 'bulk-fee-entry'
                     ? 'bg-white text-indigo-700'
                     : 'bg-indigo-600 text-white group-hover:bg-white group-hover:text-indigo-700'
                 }`}>
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'bulk-fee-entry'
+                  currentTab === 'bulk-fee-entry'
                     ? 'bg-indigo-800 text-indigo-100'
                     : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
                 }`}>
@@ -1318,12 +1319,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'bulk-fee-entry' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'bulk-fee-entry' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Bulk Fee & Billing Entry
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'bulk-fee-entry' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                  currentTab === 'bulk-fee-entry' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Upload and parse student bills or payments in bulk
                 </p>
@@ -1334,21 +1335,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('overdue-alerts')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'overdue-alerts'
+                currentTab === 'overdue-alerts'
                   ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-rose-50/80 to-slate-50 hover:from-rose-600 hover:to-rose-700 border-rose-100 hover:border-rose-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'overdue-alerts'
+                  currentTab === 'overdue-alerts'
                     ? 'bg-white text-rose-700'
                     : 'bg-rose-600 text-white group-hover:bg-white group-hover:text-rose-700'
                 }`}>
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'overdue-alerts'
+                  currentTab === 'overdue-alerts'
                     ? 'bg-rose-800 text-rose-100'
                     : 'bg-rose-100 group-hover:bg-rose-500 text-rose-800 group-hover:text-white'
                 }`}>
@@ -1357,12 +1358,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'overdue-alerts' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'overdue-alerts' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Overdue Fee Alerts ({bills.filter(b => b.balance > 0).length})
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'overdue-alerts' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
+                  currentTab === 'overdue-alerts' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
                 }`}>
                   Dispatch automated WhatsApp & SMS payment reminders
                 </p>
@@ -1373,21 +1374,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('fee-settings')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'fee-settings'
+                currentTab === 'fee-settings'
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border-indigo-100 hover:border-indigo-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'fee-settings'
+                  currentTab === 'fee-settings'
                     ? 'bg-white text-indigo-700'
                     : 'bg-indigo-600 text-white group-hover:bg-white group-hover:text-indigo-700'
                 }`}>
                   <Settings className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'fee-settings'
+                  currentTab === 'fee-settings'
                     ? 'bg-indigo-800 text-indigo-100'
                     : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
                 }`}>
@@ -1396,12 +1397,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'fee-settings' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'fee-settings' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Fees Settings & Options
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'fee-settings' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                  currentTab === 'fee-settings' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Configure fee breakdown, compulsory items & currencies
                 </p>
@@ -1412,21 +1413,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('audit-payment-logs')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'audit-payment-logs'
+                currentTab === 'audit-payment-logs'
                   ? 'bg-rose-700 text-white border-rose-700 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-rose-50 to-slate-50 hover:from-rose-700 hover:to-rose-800 border-rose-100 hover:border-rose-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'audit-payment-logs'
+                  currentTab === 'audit-payment-logs'
                     ? 'bg-white text-rose-700'
                     : 'bg-rose-700 text-white group-hover:bg-white group-hover:text-rose-700'
                 }`}>
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'audit-payment-logs'
+                  currentTab === 'audit-payment-logs'
                     ? 'bg-rose-950 text-rose-100'
                     : 'bg-rose-100 group-hover:bg-rose-500 text-rose-800 group-hover:text-white'
                 }`}>
@@ -1435,12 +1436,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'audit-payment-logs' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'audit-payment-logs' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Audit Payment Logs
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'audit-payment-logs' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
+                  currentTab === 'audit-payment-logs' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
                 }`}>
                   Spot and delete erroneously tripled/duplicated payments
                 </p>
@@ -1451,21 +1452,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('generate-receipt')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'generate-receipt'
+                currentTab === 'generate-receipt'
                   ? 'bg-indigo-700 text-white border-indigo-700 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-indigo-50 to-slate-50 hover:from-indigo-700 hover:to-indigo-800 border-indigo-100 hover:border-indigo-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'generate-receipt'
+                  currentTab === 'generate-receipt'
                     ? 'bg-white text-indigo-700'
                     : 'bg-indigo-700 text-white group-hover:bg-white group-hover:text-indigo-700'
                 }`}>
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'generate-receipt'
+                  currentTab === 'generate-receipt'
                     ? 'bg-indigo-950 text-indigo-100'
                     : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
                 }`}>
@@ -1474,12 +1475,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'generate-receipt' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'generate-receipt' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Generate Receipt
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'generate-receipt' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                  currentTab === 'generate-receipt' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Generate individual or batch A6 receipts cleanly
                 </p>
@@ -1490,21 +1491,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('next-term-bills')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'next-term-bills'
+                currentTab === 'next-term-bills'
                   ? 'bg-emerald-700 text-white border-emerald-700 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-emerald-50 to-slate-50 hover:from-emerald-700 hover:to-emerald-800 border-emerald-100 hover:border-emerald-700 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'next-term-bills'
+                  currentTab === 'next-term-bills'
                     ? 'bg-white text-emerald-700'
                     : 'bg-emerald-700 text-white group-hover:bg-white group-hover:text-emerald-700'
                 }`}>
                   <Layers className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'next-term-bills'
+                  currentTab === 'next-term-bills'
                     ? 'bg-emerald-950 text-emerald-100'
                     : 'bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white'
                 }`}>
@@ -1513,12 +1514,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'next-term-bills' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'next-term-bills' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Next Term Fees Bill
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'next-term-bills' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
+                  currentTab === 'next-term-bills' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
                 }`}>
                   Setup bills by class/dept, generate individual bills & print receipts
                 </p>
@@ -1529,21 +1530,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('payroll')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'payroll'
+                currentTab === 'payroll'
                   ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-purple-50/80 to-slate-50 hover:from-purple-600 hover:to-purple-700 border-purple-100 hover:border-purple-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'payroll'
+                  currentTab === 'payroll'
                     ? 'bg-white text-purple-700'
                     : 'bg-purple-600 text-white group-hover:bg-white group-hover:text-purple-700'
                 }`}>
                   <Wallet className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'payroll'
+                  currentTab === 'payroll'
                     ? 'bg-purple-800 text-purple-100'
                     : 'bg-purple-100 group-hover:bg-purple-500 text-purple-800 group-hover:text-white'
                 }`}>
@@ -1552,12 +1553,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'payroll' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'payroll' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Staff Payroll System
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'payroll' ? 'text-purple-100' : 'text-slate-500 group-hover:text-purple-100'
+                  currentTab === 'payroll' ? 'text-purple-100' : 'text-slate-500 group-hover:text-purple-100'
                 }`}>
                   Monthly batch payroll, Pension, PAYE tax & HD payslips
                 </p>
@@ -1568,21 +1569,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('staff')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'staff'
+                currentTab === 'staff'
                   ? 'bg-orange-600 text-white border-orange-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-orange-50/80 to-slate-50 hover:from-orange-600 hover:to-orange-700 border-orange-100 hover:border-orange-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'staff'
+                  currentTab === 'staff'
                     ? 'bg-white text-orange-700'
                     : 'bg-orange-600 text-white group-hover:bg-white group-hover:text-orange-700'
                 }`}>
                   <Users className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'staff'
+                  currentTab === 'staff'
                     ? 'bg-orange-800 text-orange-100'
                     : 'bg-orange-100 group-hover:bg-orange-500 text-orange-800 group-hover:text-white'
                 }`}>
@@ -1591,12 +1592,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'staff' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'staff' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Institutional Staff
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'staff' ? 'text-orange-100' : 'text-slate-500 group-hover:text-orange-100'
+                  currentTab === 'staff' ? 'text-orange-100' : 'text-slate-500 group-hover:text-orange-100'
                 }`}>
                   Manage Cooks, Cleaners, Security & non-teaching staff
                 </p>
@@ -1607,21 +1608,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('expenses')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'expenses'
+                currentTab === 'expenses'
                   ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-rose-50/80 to-slate-50 hover:from-rose-600 hover:to-rose-700 border-rose-100 hover:border-rose-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'expenses'
+                  currentTab === 'expenses'
                     ? 'bg-white text-rose-700'
                     : 'bg-rose-600 text-white group-hover:bg-white group-hover:text-rose-700'
                 }`}>
                   <Receipt className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'expenses'
+                  currentTab === 'expenses'
                     ? 'bg-rose-800 text-rose-100'
                     : 'bg-rose-100 group-hover:bg-rose-500 text-rose-800 group-hover:text-white'
                 }`}>
@@ -1630,12 +1631,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'expenses' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'expenses' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Expenditure & Vouchers
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'expenses' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
+                  currentTab === 'expenses' ? 'text-rose-100' : 'text-slate-500 group-hover:text-rose-100'
                 }`}>
                   Log operational expenses, procurement vouchers & petty cash
                 </p>
@@ -1646,21 +1647,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('secretary-records')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'secretary-records'
+                currentTab === 'secretary-records'
                   ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-amber-50/80 to-slate-50 hover:from-amber-600 hover:to-amber-700 border-amber-100 hover:border-amber-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'secretary-records'
+                  currentTab === 'secretary-records'
                     ? 'bg-white text-amber-700'
                     : 'bg-amber-600 text-white group-hover:bg-white group-hover:text-amber-700'
                 }`}>
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'secretary-records'
+                  currentTab === 'secretary-records'
                     ? 'bg-amber-800 text-amber-100'
                     : 'bg-amber-100 group-hover:bg-amber-500 text-amber-800 group-hover:text-white'
                 }`}>
@@ -1669,12 +1670,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'secretary-records' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'secretary-records' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Secretary Financials
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'secretary-records' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
+                  currentTab === 'secretary-records' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
                 }`}>
                   Secretary front-desk collections, expenses & daily handovers
                 </p>
@@ -1684,21 +1685,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('financial-reconciliation')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'financial-reconciliation'
+                currentTab === 'financial-reconciliation'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-emerald-50/80 to-slate-50 hover:from-emerald-600 hover:to-emerald-700 border-emerald-100 hover:border-emerald-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'financial-reconciliation'
+                  currentTab === 'financial-reconciliation'
                     ? 'bg-white text-emerald-700'
                     : 'bg-emerald-600 text-white group-hover:bg-white group-hover:text-emerald-700'
                 }`}>
                   <Scale className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'financial-reconciliation'
+                  currentTab === 'financial-reconciliation'
                     ? 'bg-emerald-800 text-emerald-100'
                     : 'bg-emerald-100 group-hover:bg-emerald-500 text-emerald-800 group-hover:text-white'
                 }`}>
@@ -1707,12 +1708,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'financial-reconciliation' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  currentTab === 'financial-reconciliation' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Reconciliation & Audit
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'financial-reconciliation' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
+                  currentTab === 'financial-reconciliation' ? 'text-emerald-100' : 'text-slate-500 group-hover:text-emerald-100'
                 }`}>
                   Cross-ledger verification, duplicate detection & exception report
                 </p>
@@ -1722,21 +1723,21 @@ export default function AccountantPortal({
             <button
               onClick={() => setActiveTab('audit-trail')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'audit-trail'
+                (activeTab as string) === 'audit-trail'
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border-indigo-100 hover:border-indigo-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'audit-trail'
+                  (activeTab as string) === 'audit-trail'
                     ? 'bg-white text-indigo-700'
                     : 'bg-indigo-600 text-white group-hover:bg-white group-hover:text-indigo-700'
                 }`}>
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'audit-trail'
+                  (activeTab as string) === 'audit-trail'
                     ? 'bg-indigo-800 text-indigo-100'
                     : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
                 }`}>
@@ -1745,12 +1746,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'audit-trail' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  (activeTab as string) === 'audit-trail' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Audit Trail
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'audit-trail' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                  (activeTab as string) === 'audit-trail' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Immutable log of fee collections & adjustments
                 </p>
@@ -1762,21 +1763,21 @@ export default function AccountantPortal({
               type="button"
               onClick={() => setActiveTab('revenue-trends')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'revenue-trends'
+                (activeTab as string) === 'revenue-trends'
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-indigo-50/80 to-slate-50 hover:from-indigo-600 hover:to-indigo-700 border-indigo-100 hover:border-indigo-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'revenue-trends'
+                  (activeTab as string) === 'revenue-trends'
                     ? 'bg-white text-indigo-700'
                     : 'bg-indigo-600 text-white group-hover:bg-white group-hover:text-indigo-700'
                 }`}>
                   <BarChart3 className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'revenue-trends'
+                  (activeTab as string) === 'revenue-trends'
                     ? 'bg-indigo-800 text-indigo-100'
                     : 'bg-indigo-100 group-hover:bg-indigo-500 text-indigo-800 group-hover:text-white'
                 }`}>
@@ -1785,12 +1786,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'revenue-trends' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  (activeTab as string) === 'revenue-trends' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Revenue Trends
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'revenue-trends' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
+                  (activeTab as string) === 'revenue-trends' ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-100'
                 }`}>
                   Monthly fee collection totals, curves & trajectories
                 </p>
@@ -1802,21 +1803,21 @@ export default function AccountantPortal({
               type="button"
               onClick={() => setActiveTab('automated-reminders')}
               className={`group p-4 rounded-2xl text-left transition-all duration-200 border cursor-pointer flex flex-col justify-between space-y-3 ${
-                activeTab === 'automated-reminders'
+                (activeTab as string) === 'automated-reminders'
                   ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.02]'
                   : 'bg-gradient-to-br from-amber-50/80 to-slate-50 hover:from-amber-600 hover:to-amber-700 border-amber-100 hover:border-amber-600 hover:text-white shadow-2xs hover:shadow-lg hover:-translate-y-1'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs ${
-                  activeTab === 'automated-reminders'
+                  (activeTab as string) === 'automated-reminders'
                     ? 'bg-white text-amber-700'
                     : 'bg-amber-600 text-white group-hover:bg-white group-hover:text-amber-700'
                 }`}>
                   <BellRing className="w-5 h-5" />
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${
-                  activeTab === 'automated-reminders'
+                  (activeTab as string) === 'automated-reminders'
                     ? 'bg-amber-800 text-amber-100'
                     : 'bg-amber-100 group-hover:bg-amber-500 text-amber-800 group-hover:text-white'
                 }`}>
@@ -1825,12 +1826,12 @@ export default function AccountantPortal({
               </div>
               <div>
                 <h4 className={`font-extrabold text-xs transition-colors flex items-center gap-1 ${
-                  activeTab === 'automated-reminders' ? 'text-white' : 'text-slate-900 group-hover:text-white'
+                  (activeTab as string) === 'automated-reminders' ? 'text-white' : 'text-slate-900 group-hover:text-white'
                 }`}>
                   Fee Reminders Utility
                 </h4>
                 <p className={`text-[11px] mt-0.5 line-clamp-2 transition-colors ${
-                  activeTab === 'automated-reminders' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
+                  (activeTab as string) === 'automated-reminders' ? 'text-amber-100' : 'text-slate-500 group-hover:text-amber-100'
                 }`}>
                   Scan unpaid & partial fees, dispatch parent notices
                 </p>

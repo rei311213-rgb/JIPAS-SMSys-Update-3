@@ -944,7 +944,7 @@ export interface ParentReminderLog {
   parentName: string;
   parentPhone: string;
   balanceReminded: number;
-  channel: 'WhatsApp Direct' | 'WhatsApp Group' | 'SMS' | 'In-App Portal';
+  channel: 'WhatsApp Direct' | 'WhatsApp Group' | 'SMS' | 'In-App Portal' | 'Mass Cellular SMS' | 'Parent Portal Feed' | 'WhatsApp Gateway' | 'Multi-Channel Alert (SMS + Feed)' | string;
   tone: string;
   dateSent: string;
   operator: string;

@@ -73,6 +73,7 @@ import DataGovernanceDashboard from './admin/DataGovernanceDashboard';
 import DisasterRecoveryDashboard from './admin/DisasterRecoveryDashboard';
 import ReleaseManagementPanel from './admin/ReleaseManagementPanel';
 import ChangeAuditPanel from './admin/ChangeAuditPanel';
+import AppErrorBoundary from './common/AppErrorBoundary';
 import { useI18n } from '../i18n/I18nContext';
 import { PDFGeneratorService } from '../services/pdfService';
 import { addMoney, subtractMoney } from '../utils/financeUtils';
@@ -220,6 +221,7 @@ export const normalizeAdminModuleId = (mod: string): string => {
   if (clean === 'system_school_setup' || clean === 'school_setup') return 'system_settings';
   if (clean === 'reports_terminal') return 'admin_terminal_reports';
   if (clean === 'backup_recovery' || clean === 'backup_restore') return 'system_backup_restore';
+  if (clean === 'fee' || clean === 'fees' || clean === 'fee_management' || clean === 'fee_hub' || clean === 'school_fee_management') return 'fee_collection';
   return clean;
 };
 
@@ -1057,7 +1059,7 @@ export default function AdminPortal({
             {isSidebarCollapsed ? (
               <div className="space-y-1.5 pt-1">
                 {filteredNavGroups.map((group) => {
-                  const GroupIcon = group.icon || LayoutDashboard;
+                  const GroupIcon = (group.icon || LayoutDashboard) as any;
                   const hasActiveChild = group.items.some(it => it.id === activeModule);
                   const firstItem = group.items[0];
 
@@ -1065,9 +1067,15 @@ export default function AdminPortal({
                     <button
                       key={group.id}
                       onClick={() => {
-                        if (firstItem) { handleNavigate(firstItem.id); toggleSidebar(false); }
+                        if (group.id === 'fee') {
+                          handleNavigate('fee_collection');
+                          toggleSidebar(false);
+                        } else if (firstItem) {
+                          handleNavigate(firstItem.id);
+                          toggleSidebar(false);
+                        }
                       }}
-                      title={`${group.title}: ${group.items.map(i => i.label).join(', ')}`}
+                      title={`${group.title}: ${(group.items || []).map(i => i.label).join(', ')}`}
                       className={`w-full flex flex-col items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer text-center relative ${
                         hasActiveChild
                           ? 'bg-blue-600/90 text-white font-bold shadow-md shadow-blue-500/30 border border-blue-400'
@@ -1089,7 +1097,7 @@ export default function AdminPortal({
               /* Expanded Mode Accordion Categories */
               <div className="space-y-1.5">
                 {filteredNavGroups.map((group) => {
-                  const GroupIcon = group.icon || LayoutDashboard;
+                  const GroupIcon = (group.icon || LayoutDashboard) as any;
                   const hasActiveChild = group.items.some(it => it.id === activeModule);
                   const filteredItems = menuFilter.trim()
                     ? group.items.filter(it => it.label.toLowerCase().includes(menuFilter.toLowerCase()))
@@ -1104,7 +1112,16 @@ export default function AdminPortal({
                   return (
                     <div key={group.id} className="border border-blue-950/70 rounded-xl overflow-hidden bg-[#0A1329]/50">
                       <button
-                        onClick={() => toggleCategory(group.id)}
+                        onClick={() => {
+                          toggleCategory(group.id);
+                          if (!hasActiveChild) {
+                            if (group.id === 'fee') {
+                              handleNavigate('fee_collection');
+                            } else if (filteredItems[0]) {
+                              handleNavigate(filteredItems[0].id);
+                            }
+                          }
+                        }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 text-left transition-colors cursor-pointer ${
                           hasActiveChild
                             ? 'bg-blue-950/70 text-blue-300 font-bold'
@@ -1130,7 +1147,7 @@ export default function AdminPortal({
                       {isExpanded && (
                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#050A18]/80 border-t border-blue-950/60">
                           {filteredItems.map(item => {
-                            const ItemIcon = item.icon || LayoutDashboard;
+                            const ItemIcon = (item.icon || LayoutDashboard) as any;
                             const isSelected = activeModule === item.id;
                             return (
                               <button
@@ -2308,19 +2325,21 @@ export default function AdminPortal({
         )}
 
         {/* 7. FEE MANAGEMENT MODULES */}
-        {(activeModule.startsWith('fee_') || activeModule === 'fees' || activeModule === 'bills' || activeModule === 'payments' || activeModule === 'income_expenses' || activeModule === 'audit_activity' || activeModule === 'payment_settings' || activeModule === 'payment_channels' || activeModule === 'payment_proofs' || activeModule === 'fee_bulk_entry') && activeModule !== 'fee_generate_receipt' && activeModule !== 'fee_next_term_bills' && (
-          <FeeManager
-            activeModule={activeModule}
-            students={students}
-            bills={bills}
-            payments={payments}
-            classFeeTariffs={classFeeTariffs}
-            onAddPayment={onAddPayment || (() => {})}
-            onNavigate={handleNavigate}
-            onAddNotification={onAddNotification}
-            preselectedStudentId={selectedStudentForFees?.id}
-            currentUser={currentUser}
-          />
+        {(activeModule.startsWith('fee_') || activeModule === 'fees' || activeModule === 'fee' || activeModule === 'fee_management' || activeModule === 'bills' || activeModule === 'payments' || activeModule === 'income_expenses' || activeModule === 'audit_activity' || activeModule === 'payment_settings' || activeModule === 'payment_channels' || activeModule === 'payment_proofs' || activeModule === 'fee_bulk_entry') && activeModule !== 'fee_generate_receipt' && activeModule !== 'fee_next_term_bills' && (
+          <AppErrorBoundary fallbackTitle="School Fee Management Terminal">
+            <FeeManager
+              activeModule={activeModule}
+              students={students}
+              bills={bills}
+              payments={payments}
+              classFeeTariffs={classFeeTariffs}
+              onAddPayment={onAddPayment || (() => {})}
+              onNavigate={handleNavigate}
+              onAddNotification={onAddNotification}
+              preselectedStudentId={selectedStudentForFees?.id}
+              currentUser={currentUser}
+            />
+          </AppErrorBoundary>
         )}
 
         {/* 7.1 BATCH RECEIPT GENERATION & MULTI-PRINT (PHASE 54) */}

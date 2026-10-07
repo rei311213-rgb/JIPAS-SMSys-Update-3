@@ -294,7 +294,7 @@ export default function AcademicTreeView({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        HOD: <span className="font-semibold text-slate-700">{dept.headOfDepartment || 'Unassigned'}</span> • {deptClasses.length} Classes
+                        HOD: <span className="font-semibold text-slate-700">{(dept as any).headOfDepartment || (dept as any).hod || 'Unassigned'}</span> • {deptClasses.length} Classes
                       </p>
                     </div>
                   </div>

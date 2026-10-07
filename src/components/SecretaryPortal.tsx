@@ -119,7 +119,9 @@ type SecretaryActiveTab =
   | 'graduated_batch'
   | 'employee_history'
   | 'staff_attendance'
-  | 'generate_receipt';
+  | 'generate_receipt'
+  | 'daily_records'
+  | 'next_term_bills';
 
 export default function SecretaryPortal({
   secretary: rawSecretary,

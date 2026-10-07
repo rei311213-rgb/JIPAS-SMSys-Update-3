@@ -12,7 +12,7 @@ initErrorMonitoring();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
-      <AppErrorBoundary fallbackTitle="JIPAS Students Hub Error Recovery">
+      <AppErrorBoundary fallbackTitle="JIPAS Enterprise School System - Error Recovery">
         <App />
       </AppErrorBoundary>
     </I18nProvider>

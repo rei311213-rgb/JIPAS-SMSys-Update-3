@@ -164,7 +164,7 @@ export default function PrintableNextTermBillModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {bill.items.map((item, idx) => (
+                    {(bill?.items || []).map((item, idx) => (
                       <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : ''}>
                         <td className="p-2.5 text-center text-slate-400 font-mono">{idx + 1}</td>
                         <td className="p-2.5 text-slate-800 font-semibold">{item.name}</td>
@@ -173,7 +173,7 @@ export default function PrintableNextTermBillModal({
                         </td>
                       </tr>
                     ))}
-                    {bill.items.length === 0 && (
+                    {(!bill?.items || bill.items.length === 0) && (
                       <tr>
                         <td colSpan={3} className="p-4 text-center text-slate-400 italic">
                           No specific fee items listed. Base tuition applies.

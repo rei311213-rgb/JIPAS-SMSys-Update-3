@@ -523,7 +523,7 @@ export default function CommunicationLogsManager({
                     <td className="p-3 font-semibold text-slate-900">{s.recipientName}</td>
                     <td className="p-3 text-slate-600 max-w-xs truncate">{s.message}</td>
                     <td className="p-3 text-center font-mono">{s.smsCount}</td>
-                    <td className="p-3 text-right font-mono font-bold text-slate-900">{(s.costCFA ?? 0).toFixed(2)} CFA</td>
+                    <td className="p-3 text-right font-mono font-bold text-slate-900">{(((s as any).costCFA ?? (s as any).cost ?? 0)).toFixed(2)} CFA</td>
                     <td className="p-3 font-mono text-slate-500">{s.dateSent}</td>
                     <td className="p-3 text-center">
                       <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold text-[10px]">

@@ -349,7 +349,7 @@ export default function BulkStudentUploadModal({
           admissionDate: new Date().toISOString().split('T')[0],
           enrollmentDate: new Date().toISOString().split('T')[0],
           department: row.department,
-          campus: row.campus,
+          campus: (row.campus === 'JIPAS 2' ? 'JIPAS 2' : 'JIPAS 1') as 'JIPAS 1' | 'JIPAS 2',
           className: row.className,
           rollNo: String(existingStudents.length + i + 1).padStart(3, '0'),
           house: row.house || 'Blue House',

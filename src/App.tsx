@@ -1017,7 +1017,7 @@ export default function App() {
                 id: t.id,
                 name: t.name,
                 email: t.email,
-                classAssigned: t.classesTeaching?.[0]
+                classAssigned: (t as any).classesTeaching?.[0] || (t as any).classAssigned || (t as any).classes?.[0] || ''
               }))}
             />
           </motion.div>
@@ -1051,7 +1051,7 @@ export default function App() {
 
   const fallbackTeacher: Teacher = {
     id: currentUser?.id || 'TCH-DEMO',
-    staffId: currentUser?.teacherId || 'TCH-2026-001',
+    staffId: (currentUser as any)?.teacherId || (currentUser as any)?.staffId || 'TCH-2026-001',
     name: currentUser?.name || 'School Teacher',
     email: currentUser?.email || 'teacher@jipas.edu.gh',
     phone: '0240000000',

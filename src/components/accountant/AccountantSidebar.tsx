@@ -27,7 +27,9 @@ export type AccountantTabType =
   | 'audit-trail'
   | 'fee-audit-report'
   | 'next-term-bills'
-  | 'generate-receipt';
+  | 'generate-receipt'
+  | 'bulk-fee-entry'
+  | 'audit-payment-logs';
 
 interface AccountantSidebarProps {
   activeTab: AccountantTabType;
