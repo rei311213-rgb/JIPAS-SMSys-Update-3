@@ -38,6 +38,7 @@ import { formatCurrency } from '../../utils/financeUtils';
 import { PaymentRecord, Student, StudentBill } from '../../types';
 import JIPASLogo from './JIPASLogo';
 import ReceiptQRCode, { buildReceiptVerificationUrl } from './ReceiptQRCode';
+import BatchReceiptPrintModal from './BatchReceiptPrintModal';
 import { peekNextReceiptSerialNumber, auditReceiptSerialChain } from '../../services/receiptSerialService';
 
 // English Number to Words Converter
@@ -165,6 +166,10 @@ export default function ReceiptGenerationDashboard({
   const [previewReceipt, setPreviewReceipt] = useState<PaymentRecord | null>(null);
   const [previewLanguage, setPreviewLanguage] = useState<'FR' | 'EN'>('FR');
   const [previewCopyType, setPreviewCopyType] = useState<'Original' | 'Duplicate' | 'Student' | 'Finance'>('Original');
+  
+  // Batch Receipt Modal State (4-on-1 A4 or A6)
+  const [batchModalPayments, setBatchModalPayments] = useState<string[]>([]);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   
   // Printing loading trigger
   const [isPrinting, setIsPrinting] = useState(false);
@@ -376,34 +381,21 @@ export default function ReceiptGenerationDashboard({
     }
   };
 
-  // Execute direct batch print
+  // Execute direct batch print via BatchReceiptPrintModal
   const handlePrintBatch = () => {
     if (selectedReceiptIds.length === 0) return;
-    setActivePrintTarget('direct');
-    setIsPrinting(true);
-    document.body.classList.add('print-batch-active');
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove('print-batch-active');
-      setIsPrinting(false);
-    }, 500);
+    setBatchModalPayments(selectedReceiptIds);
+    setIsBatchModalOpen(true);
   };
 
-  // Execute queue selected print
+  // Execute queue selected print via BatchReceiptPrintModal
   const handlePrintSelectedQueue = () => {
     if (selectedQueueIds.length === 0) {
       showToast('Select at least one receipt in the queue to print.');
       return;
     }
-    setActivePrintTarget('queue');
-    setIsPrinting(true);
-    document.body.classList.add('print-batch-active');
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove('print-batch-active');
-      setIsPrinting(false);
-      showToast(`Printed ${selectedQueueIds.length} queued receipt${selectedQueueIds.length > 1 ? 's' : ''}.`);
-    }, 500);
+    setBatchModalPayments(selectedQueueIds);
+    setIsBatchModalOpen(true);
   };
 
   const getBillForPayment = (p: PaymentRecord) => {
@@ -1489,18 +1481,31 @@ export default function ReceiptGenerationDashboard({
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedReceiptIds([previewReceipt.id]);
-                  setTimeout(() => handlePrintBatch(), 50);
+                  setBatchModalPayments([previewReceipt.id]);
+                  setIsBatchModalOpen(true);
                 }}
                 className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/20 cursor-pointer transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print This Receipt (A6)</span>
+                <span>Print This Receipt (4 on A4 / A6)</span>
               </button>
             </div>
 
           </div>
         </div>
+      )}
+
+      {/* Batch Receipt Print Modal (4 on 1 A4 & A6) */}
+      {isBatchModalOpen && (
+        <BatchReceiptPrintModal
+          isOpen={isBatchModalOpen}
+          onClose={() => setIsBatchModalOpen(false)}
+          selectedPaymentIds={batchModalPayments}
+          payments={paymentsList}
+          students={studentsList}
+          bills={billsList}
+          initialPaperMode="a4_four_per_page"
+        />
       )}
 
     </div>

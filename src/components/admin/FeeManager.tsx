@@ -16,6 +16,7 @@ import { Student, StudentBill, PaymentRecord, IncomeExpenseItem, FinancialAuditI
 import { calculateBillBalance, getPaymentStatus, formatCurrency, addMoney, subtractMoney } from '../../utils/financeUtils';
 import { PDFGeneratorService } from '../../services/pdfService';
 import PrintableReceiptA6 from '../common/PrintableReceiptA6';
+import BatchReceiptPrintModal from '../common/BatchReceiptPrintModal';
 import JIPASLogo from '../common/JIPASLogo';
 import PaidAsSelector from '../common/PaidAsSelector';
 import ReceiptPreviewModal from '../common/ReceiptPreviewModal';
@@ -102,6 +103,8 @@ export default function FeeManager({
   const [showCollectPreview, setShowCollectPreview] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<any>(null);
   const [isQRVerifierOpen, setIsQRVerifierOpen] = useState(false);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
+  const [showBatchPrintModal, setShowBatchPrintModal] = useState(false);
 
   // Refund Management State
   const [refundsList, setRefundsList] = useState<FeeRefundRecord[]>(() => getStoredRefunds());
@@ -1453,8 +1456,29 @@ export default function FeeManager({
                 className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium"
               />
             </div>
-            <div className="text-slate-500 font-medium">
-              Showing <strong>{filteredPayments.length}</strong> payment transactions
+            <div className="flex items-center gap-3">
+              <span className="text-slate-500 font-medium">
+                Showing <strong>{filteredPayments.length}</strong> payment transactions
+              </span>
+              {selectedPaymentIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentIds([])}
+                    className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs cursor-pointer"
+                  >
+                    Clear ({selectedPaymentIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBatchPrintModal(true)}
+                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-lg text-xs flex items-center gap-1.5 shadow-sm cursor-pointer shadow-indigo-950/20"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Batch Print Receipts (4 on A4) ({selectedPaymentIds.length})</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1463,6 +1487,20 @@ export default function FeeManager({
             <table className="w-full text-left text-xs whitespace-nowrap">
               <thead className="bg-slate-900 text-white uppercase text-[10px] font-bold">
                 <tr>
+                  <th className="p-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={filteredPayments.length > 0 && selectedPaymentIds.length === filteredPayments.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPaymentIds(filteredPayments.map(p => p.id));
+                        } else {
+                          setSelectedPaymentIds([]);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-700 text-indigo-600 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-3">#</th>
                   <th className="p-3">Receipt No</th>
                   <th className="p-3">Date</th>
@@ -1477,7 +1515,26 @@ export default function FeeManager({
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredPayments.map((p, idx) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                  <tr 
+                    key={p.id} 
+                    className={`hover:bg-slate-50 transition-colors ${
+                      selectedPaymentIds.includes(p.id) ? 'bg-indigo-50/30' : ''
+                    }`}
+                  >
+                    <td className="p-3 w-8">
+                      <input
+                        type="checkbox"
+                        checked={selectedPaymentIds.includes(p.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPaymentIds(prev => [...prev, p.id]);
+                          } else {
+                            setSelectedPaymentIds(prev => prev.filter(x => x !== p.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer"
+                      />
+                    </td>
                     <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
                     <td className="p-3 font-mono font-bold text-indigo-700">{p.receiptNo}</td>
                     <td className="p-3 font-mono text-slate-600">{p.date}</td>
@@ -2444,6 +2501,19 @@ export default function FeeManager({
           />
         );
       })()}
+
+      {/* Batch Receipt Print Modal (4 on 1 A4 & A6) */}
+      {showBatchPrintModal && (
+        <BatchReceiptPrintModal
+          isOpen={showBatchPrintModal}
+          onClose={() => setShowBatchPrintModal(false)}
+          selectedPaymentIds={selectedPaymentIds}
+          payments={activePaymentsList}
+          students={students}
+          bills={activeBillsList}
+          initialPaperMode="a4_four_per_page"
+        />
+      )}
     </div>
   );
 }

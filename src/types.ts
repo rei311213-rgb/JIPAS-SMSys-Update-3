@@ -623,6 +623,8 @@ export interface PaymentRecord {
   isDuplicateRisk?: boolean;
   academicYear?: string;
   term?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SecurityAuditLog {

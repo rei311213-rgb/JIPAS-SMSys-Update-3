@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { getSchoolLogo } from '../common/JIPASLogo';
 import { SecurityAuditLog } from '../../types';
 import { getStoredSecurityAuditLogs, saveStoredSecurityAuditLogs, recordSecurityAuditLog } from '../../services/storageService';
-import { ShieldCheck, Search, Filter, Download, Printer, UserCheck, Clock, ShieldAlert, Key, Lock, Plus } from 'lucide-react';
+import { ShieldCheck, Search, Filter, Download, Printer, UserCheck, Clock, ShieldAlert, Key, Lock, Plus, Flame } from 'lucide-react';
+import FirewallDefensePanel from './FirewallDefensePanel';
 
 export const SecurityAuditLogsManager: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'audit_logs' | 'firewall'>('audit_logs');
   const [logs, setLogs] = useState<SecurityAuditLog[]>(() => getStoredSecurityAuditLogs());
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAction, setFilterAction] = useState('All');
@@ -110,44 +112,77 @@ export const SecurityAuditLogsManager: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-100 text-indigo-800 rounded-2xl">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-slate-900">Security & Role Audit Logs</h3>
-              <span className="bg-indigo-100 text-indigo-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase">
-                {filteredLogs.length} Events Tracked
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Timestamped history of all user role assignments, sub-accountant privilege updates, and secretary permission changes.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Navigation Sub-Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('audit_logs')}
+          className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'audit_logs'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Role Audit Trail ({logs.length})</span>
+        </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-indigo-600" />
-            <span>Export CSV</span>
-          </button>
-
-          <button
-            onClick={handlePrintAuditReport}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Audit Report</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('firewall')}
+          className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'firewall'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-400" />
+          <span>WAF Firewall & Perimeter Shield</span>
+        </button>
       </div>
+
+      {activeTab === 'firewall' ? (
+        <FirewallDefensePanel />
+      ) : (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-indigo-100 text-indigo-800 rounded-2xl">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-900">Security & Role Audit Logs</h3>
+                  <span className="bg-indigo-100 text-indigo-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase">
+                    {filteredLogs.length} Events Tracked
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Timestamped history of all user role assignments, sub-accountant privilege updates, and secretary permission changes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportCSV}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-indigo-600" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                onClick={handlePrintAuditReport}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Audit Report</span>
+              </button>
+            </div>
+          </div>
 
       {/* Filters bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
@@ -235,6 +270,8 @@ export const SecurityAuditLogsManager: React.FC = () => {
           </tbody>
         </table>
       </div>
+    </div>
+      )}
     </div>
   );
 };

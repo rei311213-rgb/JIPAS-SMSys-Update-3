@@ -11,8 +11,10 @@ import {
   Clock, 
   CheckCircle, 
   X,
-  Lock
+  Lock,
+  Printer
 } from 'lucide-react';
+import BatchReceiptPrintModal from '../common/BatchReceiptPrintModal';
 import { 
   getStoredPayments, 
   saveStoredPayments, 
@@ -47,6 +49,7 @@ export default function AuditPaymentLogs({
   // Batch Selection States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+  const [showBatchPrintModal, setShowBatchPrintModal] = useState(false);
   const [batchConfirmText, setBatchConfirmText] = useState('');
 
   // Group and find duplicate or tripled payment risks
@@ -411,6 +414,14 @@ export default function AuditPaymentLogs({
               </button>
               <button
                 type="button"
+                onClick={() => setShowBatchPrintModal(true)}
+                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all shadow-indigo-950/20"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Batch Print Receipts (4 on A4) ({selectedIds.length})</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   setBatchConfirmText('');
                   setShowBatchDeleteModal(true);
@@ -738,6 +749,19 @@ export default function AuditPaymentLogs({
 
           </div>
         </div>
+      )}
+
+      {/* Batch Receipt Print Modal (4 on 1 A4 & A6) */}
+      {showBatchPrintModal && (
+        <BatchReceiptPrintModal
+          isOpen={showBatchPrintModal}
+          onClose={() => setShowBatchPrintModal(false)}
+          selectedPaymentIds={selectedIds}
+          payments={payments}
+          students={students}
+          bills={bills}
+          initialPaperMode="a4_four_per_page"
+        />
       )}
 
     </div>

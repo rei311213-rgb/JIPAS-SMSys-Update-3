@@ -12,11 +12,10 @@ interface State {
   errorMessage: string;
 }
 
-const ComponentBase = React.Component as any;
-
-export class AppErrorBoundary extends ComponentBase {
+export class AppErrorBoundary extends (React.Component as any) {
   public props: Props;
   public state: State;
+  public setState: (state: Partial<State> | ((prevState: State) => Partial<State>)) => void;
 
   constructor(props: Props) {
     super(props);
@@ -25,6 +24,9 @@ export class AppErrorBoundary extends ComponentBase {
       hasError: false,
       errorMessage: ''
     };
+    this.setState = super.setState?.bind(this) || ((s: any) => {
+      this.state = { ...this.state, ...(typeof s === 'function' ? s(this.state) : s) };
+    });
   }
 
   public static getDerivedStateFromError(error: Error): State {

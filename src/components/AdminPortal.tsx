@@ -56,6 +56,15 @@ import BoardingManager from './admin/BoardingManager';
 import SessionControlsManager from './admin/SessionControlsManager';
 import StudentTransferManager from './admin/StudentTransferManager';
 import ProductionHealthDashboard from './admin/ProductionHealthDashboard';
+import ProductionLaunchControlPanel from './admin/ProductionLaunchControlPanel';
+import TermClosureRollOverWizard from './admin/TermClosureRollOverWizard';
+import WhatsAppFeeDispatchCenter from './admin/WhatsAppFeeDispatchCenter';
+import StudentQRIdCardGenerator from './admin/StudentQRIdCardGenerator';
+import MinesecComplianceExport from './admin/MinesecComplianceExport';
+import ContinuousAssessmentGradebook from './common/ContinuousAssessmentGradebook';
+import ParentMobilePaymentPortal from './common/ParentMobilePaymentPortal';
+import CanteenPOSManager from './common/CanteenPOSManager';
+import AlgorithmicTimetableGenerator from './admin/AlgorithmicTimetableGenerator';
 import DataIntegrityDashboard from './admin/DataIntegrityDashboard';
 import BackupVerificationPanel from './admin/BackupVerificationPanel';
 import SystemMaintenancePanel from './admin/SystemMaintenancePanel';
@@ -81,7 +90,7 @@ import {
   Send, Eye, History, RefreshCw, CheckCircle2, Mail, Clock, AlertTriangle, LogOut, Printer, Wallet, TrendingUp, ChevronRight, ChevronDown,
   PanelLeftClose, PanelLeftOpen, MessageCircle, Database, Trash2, X, Sparkles, Palette, Download, Menu, Presentation, ShieldCheck,
   GitCompare, Activity, Upload, Crown, FolderTree, Briefcase, Zap, UserPlus, Receipt, Compass, HardDrive,
-  Bus, ShieldAlert, ArrowRightLeft, Wrench, QrCode, Scale
+  Bus, ShieldAlert, ArrowRightLeft, Wrench, QrCode, Scale, Flame, Rocket, Utensils, Smartphone
 } from 'lucide-react';
 import Draggable from 'react-draggable';
 
@@ -153,7 +162,9 @@ const VALID_ADMIN_MODULES = new Set([
   'system_manage_logins', 'system_manage_portal_logins', 'manage_portal_logins', 'manage_user_logins', 'manage_logins', 'admin_feedback_manager',
   'sub_accountant_roles', 'accountant_roles', 'sub_accountant_privileges',
   'ceo_director_roles', 'ceo_roles', 'director_roles', 'executive_roles',
-  'users_portal_review', 'portal_review', 'users_review', 'security_audit', 'security_audit_logs',
+  'users_portal_review', 'portal_review', 'users_review', 'security_audit', 'security_audit_logs', 'firewall', 'waf_firewall', 'launch_control', 'production_launch_gate',
+  'term_closure_wizard', 'term_closure', 'rollover_wizard', 'whatsapp_dispatch_center', 'whatsapp_dispatch', 'student_qr_id_cards', 'qr_id_cards', 'minesec_compliance_export', 'minesec_dossier',
+  'continuous_assessment_gradebook', 'ca_gradebook', 'master_broadsheet', 'parent_momo_checkout', 'self_service_checkout', 'canteen_pos', 'canteen_meal_card', 'school_canteen', 'algorithmic_timetable', 'timetable_generator', 'master_timetable',
   // Teacher
   'teacher_profile', 'teachers', 'teacher_id_cards', 'teacher_assign',
   'teacher_attendance', 'teacher_attendance_report', 'teacher_attendance_stats', 'bulk_teacher_upload',
@@ -270,6 +281,8 @@ const ADMIN_NAV_GROUPS = [
       { id: 'users_portal_review', label: 'Users Portal Review', icon: Eye },
       { id: 'ceo_director_roles', label: 'CEO & Director Management', icon: Crown },
       { id: 'security_audit', label: 'Security & Role Audit Logs', icon: ShieldCheck },
+      { id: 'waf_firewall', label: 'WAF Firewall & Threat Shield', icon: Flame },
+      { id: 'launch_control', label: 'Production Launch & 4 Options Gate', icon: Rocket },
       { id: 'session_controls', label: 'Session Controls & Active Logins', icon: ShieldAlert },
       { id: 'system_student_portal_ctrl', label: 'Student Portal Control', icon: GraduationCap },
       { id: 'system_manage_logins', label: 'Manage Portal Logins', icon: KeyRound },
@@ -278,6 +291,7 @@ const ADMIN_NAV_GROUPS = [
       { id: 'database_integrity', label: 'Database Integrity', icon: ShieldCheck },
       { id: 'data_conflict_resolver', label: 'Data Conflict Resolver', icon: GitCompare },
       { id: 'reconciliation_dashboard', label: 'Reconciliation Dashboard', icon: Activity },
+      { id: 'minesec_compliance_export', label: 'MINESEC Compliance & Statistics', icon: Building2 },
     ]
   },
   {
@@ -304,9 +318,10 @@ const ADMIN_NAV_GROUPS = [
       { id: 'student_enroll', label: 'Enroll Student', icon: Plus },
       { id: 'bulk_upload', label: 'Bulk Import Students', icon: Upload },
       { id: 'student_enrolled', label: 'Enrolled Students', icon: Users },
+      { id: 'student_id_cards', label: 'Student ID Cards', icon: Award },
+      { id: 'student_qr_id_cards', label: 'PVC QR ID Cards & Gate Terminal', icon: QrCode },
       { id: 'student_transfers', label: 'Transfers & Leaving Certs', icon: ArrowRightLeft },
       { id: 'graduated_batch_registry', label: 'Graduated Batch (BECE / WASSCE)', icon: GraduationCap },
-      { id: 'student_id_cards', label: 'Student ID Cards', icon: Award },
       { id: 'student_attendance', label: 'Student Attendance', icon: ClipboardCheck },
       { id: 'discipline', label: 'Discipline & Conduct', icon: ShieldCheck },
       { id: 'student_promote', label: 'Promote Students', icon: ArrowUpRight },
@@ -318,6 +333,8 @@ const ADMIN_NAV_GROUPS = [
     title: 'Examination Management',
     icon: Award,
     items: [
+      { id: 'continuous_assessment_gradebook', label: 'Continuous Assessment (CA) Gradebook', icon: Award },
+      { id: 'algorithmic_timetable', label: 'Master Timetable Generator', icon: Clock },
       { id: 'exam_timetable', label: 'Exam Timetable & Schedule', icon: Calendar },
       { id: 'admin_terminal_reports', label: 'Terminal Reports & Broadcast', icon: Award },
       { id: 'student_transcript', label: "Students' Transcripts", icon: Award },
@@ -337,6 +354,8 @@ const ADMIN_NAV_GROUPS = [
       { id: 'financial_reconciliation', label: 'Financial Reconciliation', icon: Scale },
       { id: 'financial_audit', label: 'Financial Records Audit', icon: ShieldCheck },
       { id: 'audit_trail', label: 'Financial Audit Trail', icon: ShieldCheck },
+      { id: 'term_closure_wizard', label: 'End-of-Term Closure & Roll-Over', icon: Lock },
+      { id: 'parent_momo_checkout', label: 'Parent Mobile Money Checkout', icon: Smartphone },
       { id: 'departmental_financial_summary', label: 'Departmental Financial Summary', icon: Building2 },
       { id: 'institutional_expenses', label: 'Institutional Expenses', icon: Wallet },
       { id: 'payment_settings', label: 'Payment Channels & Proofs', icon: CreditCard },
@@ -374,6 +393,7 @@ const ADMIN_NAV_GROUPS = [
     icon: Bell,
     items: [
       { id: 'notif_send', label: 'Send Notification', icon: Bell },
+      { id: 'whatsapp_dispatch_center', label: 'WhatsApp & SMS Fee Dispatch', icon: MessageSquare },
       { id: 'whatsapp_broadcast', label: 'WhatsApp Broadcast', icon: MessageCircle },
       { id: 'whatsapp_groups', label: 'WhatsApp Groups', icon: Users },
       { id: 'whatsapp_history', label: 'WhatsApp Logs', icon: History },
@@ -397,6 +417,7 @@ const ADMIN_NAV_GROUPS = [
     title: 'School Resources & Amenities',
     icon: Layers,
     items: [
+      { id: 'canteen_pos', label: 'Canteen POS & Meal Cards', icon: Utensils },
       { id: 'library_assets', label: 'Library & Asset Manager', icon: Layers },
       { id: 'boarding_management', label: 'Hostel & Boarding Rooms', icon: Building2 },
     ]
@@ -2362,9 +2383,83 @@ export default function AdminPortal({
           />
         )}
 
-        {/* 7A1. SECURITY AUDIT LOGS MANAGER MODULE */}
-        {(activeModule === 'security_audit' || activeModule === 'security_audit_logs') && (
+        {/* 7A1. SECURITY AUDIT LOGS & WAF FIREWALL MODULE */}
+        {(activeModule === 'security_audit' || activeModule === 'security_audit_logs' || activeModule === 'firewall' || activeModule === 'waf_firewall') && (
           <SecurityAuditLogsManager />
+        )}
+
+        {/* 7A1B. PRODUCTION LAUNCH & 4 OPTIONS GATE */}
+        {(activeModule === 'launch_control' || activeModule === 'production_launch_gate') && (
+          <ProductionLaunchControlPanel />
+        )}
+
+        {/* 7A1C. OPTION A: END-OF-TERM CLOSURE & ROLL-OVER WIZARD */}
+        {(activeModule === 'term_closure_wizard' || activeModule === 'term_closure' || activeModule === 'rollover_wizard') && (
+          <TermClosureRollOverWizard
+            students={students}
+            bills={bills}
+            payments={payments}
+            currentUser={currentUser}
+          />
+        )}
+
+        {/* 7A1D. OPTION B: WHATSAPP & SMS FEE DISPATCH CENTER */}
+        {(activeModule === 'whatsapp_dispatch_center' || activeModule === 'whatsapp_dispatch') && (
+          <WhatsAppFeeDispatchCenter
+            students={students}
+            bills={bills}
+            payments={payments}
+          />
+        )}
+
+        {/* 7A1E. OPTION C: PVC QR ID CARDS & GATE TERMINAL */}
+        {(activeModule === 'student_qr_id_cards' || activeModule === 'qr_id_cards') && (
+          <StudentQRIdCardGenerator
+            students={students}
+          />
+        )}
+
+        {/* 7A1F. OPTION D: MINESEC COMPLIANCE & STATISTICAL EXPORT */}
+        {(activeModule === 'minesec_compliance_export' || activeModule === 'minesec_dossier') && (
+          <MinesecComplianceExport
+            students={students}
+            teachers={teachers}
+            bills={bills}
+            payments={payments}
+          />
+        )}
+
+        {/* 7A1G. OPTION 1: CONTINUOUS ASSESSMENT (CA) GRADEBOOK */}
+        {(activeModule === 'continuous_assessment_gradebook' || activeModule === 'ca_gradebook' || activeModule === 'master_broadsheet') && (
+          <ContinuousAssessmentGradebook
+            students={students}
+            currentUser={currentUser}
+          />
+        )}
+
+        {/* 7A1H. OPTION 2: PARENT MOBILE MONEY CHECKOUT */}
+        {(activeModule === 'parent_momo_checkout' || activeModule === 'self_service_checkout') && (
+          <ParentMobilePaymentPortal
+            students={students}
+            bills={bills}
+            payments={payments}
+            currentUser={currentUser}
+          />
+        )}
+
+        {/* 7A1I. OPTION 3: SCHOOL CANTEEN POS & MEAL CARDS */}
+        {(activeModule === 'canteen_pos' || activeModule === 'canteen_meal_card' || activeModule === 'school_canteen') && (
+          <CanteenPOSManager
+            students={students}
+            currentUser={currentUser}
+          />
+        )}
+
+        {/* 7A1J. OPTION 4: ALGORITHMIC TIMETABLE GENERATOR */}
+        {(activeModule === 'algorithmic_timetable' || activeModule === 'timetable_generator' || activeModule === 'master_timetable') && (
+          <AlgorithmicTimetableGenerator
+            teachers={teachers}
+          />
         )}
 
         {/* 7A2. DEPARTMENTAL FINANCIAL SUMMARY MODULE */}
