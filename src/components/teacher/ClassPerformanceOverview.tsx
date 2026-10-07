@@ -90,9 +90,11 @@ export default function ClassPerformanceOverview({
   const availableSubjects = useMemo(() => {
     const subSet = new Set<string>();
     classReports.forEach(r => {
-      if (r.subjectScores && Array.isArray(r.subjectScores)) {
-        r.subjectScores.forEach(s => {
-          if (s.subject) subSet.add(s.subject);
+      const list = (r as any).subjectScores || r.scores || [];
+      if (Array.isArray(list)) {
+        list.forEach((s: any) => {
+          const subName = s.subject || s.subjectName;
+          if (subName) subSet.add(subName);
         });
       }
     });
@@ -113,9 +115,10 @@ export default function ClassPerformanceOverview({
     let totalScoresCount = 0;
 
     classReports.forEach(r => {
+      const scoresList = (r as any).subjectScores || r.scores || [];
       if (selectedSubject === 'All Subjects') {
         // Use report average score or composite score
-        const score = r.averageScore ?? (r.totalScore && r.subjectScores?.length ? r.totalScore / r.subjectScores.length : 0);
+        const score = r.averageScore ?? (r.totalScore && scoresList.length ? r.totalScore / scoresList.length : 0);
         if (score > 0) {
           totalScoresCount++;
           if (score >= 80) counts['Grade 1 (80-100%)']++;
@@ -127,10 +130,10 @@ export default function ClassPerformanceOverview({
         }
       } else {
         // Specific subject score
-        const subj = r.subjectScores?.find(s => s.subject === selectedSubject);
-        if (subj && subj.total !== undefined) {
+        const subj = scoresList.find((s: any) => (s.subject || s.subjectName) === selectedSubject);
+        if (subj && (subj.total !== undefined || subj.score !== undefined)) {
           totalScoresCount++;
-          const score = subj.total;
+          const score = subj.total ?? subj.score ?? 0;
           if (score >= 80) counts['Grade 1 (80-100%)']++;
           else if (score >= 75) counts['Grade 2 (75-79%)']++;
           else if (score >= 65) counts['Grade 3-4 (65-74%)']++;
@@ -154,13 +157,17 @@ export default function ClassPerformanceOverview({
     const subjectMap: Record<string, { total: number; count: number }> = {};
 
     classReports.forEach(r => {
-      if (r.subjectScores && Array.isArray(r.subjectScores)) {
-        r.subjectScores.forEach(s => {
-          if (!subjectMap[s.subject]) {
-            subjectMap[s.subject] = { total: 0, count: 0 };
+      const scoresList = (r as any).subjectScores || r.scores || [];
+      if (Array.isArray(scoresList)) {
+        scoresList.forEach((s: any) => {
+          const subName = s.subject || s.subjectName;
+          if (subName) {
+            if (!subjectMap[subName]) {
+              subjectMap[subName] = { total: 0, count: 0 };
+            }
+            subjectMap[subName].total += (s.total ?? s.score ?? 0);
+            subjectMap[subName].count += 1;
           }
-          subjectMap[s.subject].total += (s.total || 0);
-          subjectMap[s.subject].count += 1;
         });
       }
     });
@@ -290,7 +297,8 @@ export default function ClassPerformanceOverview({
     let topStudentName = '—';
 
     classReports.forEach(r => {
-      const avg = r.averageScore ?? (r.totalScore && r.subjectScores?.length ? r.totalScore / r.subjectScores.length : 0);
+      const scoresList = (r as any).subjectScores || r.scores || [];
+      const avg = r.averageScore ?? (r.totalScore && scoresList.length ? r.totalScore / scoresList.length : 0);
       if (avg > 0) {
         totalScoreSum += avg;
         scoreCount++;
@@ -325,7 +333,8 @@ export default function ClassPerformanceOverview({
   const studentRosterData = useMemo(() => {
     return classStudents.map(student => {
       const report = classReports.find(r => r.studentId === student.id || r.admissionNo === student.admissionNo);
-      const score = report?.averageScore ?? (report?.totalScore && report?.subjectScores?.length ? Math.round(report.totalScore / report.subjectScores.length) : null);
+      const scoresList = (report as any)?.subjectScores || report?.scores || [];
+      const score = report?.averageScore ?? (report?.totalScore && scoresList.length ? Math.round(report.totalScore / scoresList.length) : null);
       
       // Calculate attendance from daily records
       let pres = 0;

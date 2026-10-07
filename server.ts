@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -473,6 +475,18 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 app.get('/api/features/:key', (req, res) => {
   const { key } = req.params;
   res.json({ enabled: isFeatureEnabled(key) });
+});
+
+// Direct Download User Manual Endpoint
+app.get('/api/download-user-manual', (req, res) => {
+  const manualPath = path.join(process.cwd(), 'USER_MANUAL.md');
+  if (fs.existsSync(manualPath)) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="JIPAS_SMSys_User_Manual_v2.6.md"');
+    res.sendFile(manualPath);
+  } else {
+    res.status(404).send('# JIPAS SMSys User Manual\nFile not found on server.');
+  }
 });
 
 export default app;

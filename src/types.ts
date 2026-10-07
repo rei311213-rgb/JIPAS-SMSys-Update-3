@@ -261,6 +261,7 @@ export interface Student {
   admissionDate?: string;
   department: string;
   className: string;
+  class?: string;
   course?: string;
   level?: string | number;
   electiveSubjects?: string[];
@@ -269,6 +270,8 @@ export interface Student {
   parentPhone: string;
   parentName: string;
   parentEmail?: string;
+  phone?: string;
+  guardianContact?: string;
   email?: string;
   academicYear: string;
   term: string;
@@ -362,6 +365,8 @@ export interface Teacher {
   gender: 'Male' | 'Female';
   campus?: 'JIPAS 1' | 'JIPAS 2';
   status?: 'Active' | 'Inactive' | 'On Leave';
+  role?: string;
+  subjects?: string[];
   academicQualification: string;
   professionalQualification: string;
   designation: string;
@@ -413,6 +418,7 @@ export interface TermReport {
   teacherComment: string;
   headmasterComment: string;
   scores: ScoreItem[];
+  subjectScores?: Record<string, number>;
   totalScore: number;
   averageScore: number;
   position: string;
@@ -494,6 +500,7 @@ export interface StudentBill {
   payable: number;
   paid: number;
   balance: number;
+  amount?: number;
   status: 'Fully Paid' | 'Partially Paid' | 'Unpaid' | 'Overpaid' | 'Voided' | 'Corrected' | 'VOIDED' | 'CORRECTED';
   isVoided?: boolean;
   isCorrected?: boolean;
@@ -603,6 +610,7 @@ export interface PaymentRecord {
   className: string;
   department?: string;
   paidAs?: string;
+  billId?: string;
   billAmount?: number;
   arrears?: number;
   discount?: number;
@@ -1191,6 +1199,7 @@ export interface UserAccountItem {
   status: 'Active' | 'Inactive' | 'Locked' | 'Pending';
   lastLogin: string;
   createdAt: string;
+  registeredAt?: string;
   campus?: string;
   password?: string;
   isApproved?: boolean;

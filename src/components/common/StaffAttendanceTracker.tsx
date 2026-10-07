@@ -49,7 +49,7 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
   const currentTeacher = teachers.find(t => t.email === currentUser?.email || t.name === currentUser?.name) || teachers[0];
   useEffect(() => {
     const handleExitToDashboard = () => {
-      setActiveTab('today_attendance');
+      setActiveTab('all_records');
     };
     window.addEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
     return () => window.removeEventListener('jipas_exit_to_dashboard', handleExitToDashboard);
@@ -196,8 +196,8 @@ export default function StaffAttendanceTracker({ teachers, currentUser, userRole
         <div className="space-y-4">
           <StaffAttendanceQRScanner 
             currentUser={currentUser} 
-            onSuccess={() => setActiveTab('today_attendance')}
-            onClose={() => setActiveTab('today_attendance')}
+            onSuccess={() => setActiveTab('all_records')}
+            onClose={() => setActiveTab('all_records')}
           />
         </div>
       )}

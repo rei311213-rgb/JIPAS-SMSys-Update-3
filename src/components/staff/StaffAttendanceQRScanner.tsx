@@ -118,10 +118,15 @@ export default function StaffAttendanceQRScanner({
 
   // Voice announcement helper for scan events
   const speakGreeting = useCallback((phrase: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    if (
+      typeof window !== 'undefined' && 
+      'speechSynthesis' in window && 
+      typeof (window as any).SpeechSynthesisUtterance === 'function'
+    ) {
       try {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(phrase);
+        const UtteranceConstructor = (window as any).SpeechSynthesisUtterance;
+        const utterance = new UtteranceConstructor(phrase);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
@@ -500,9 +505,14 @@ export default function StaffAttendanceQRScanner({
   // Continuous frame-by-frame QR inspection and auto-detection
   const startDecodingLoop = useCallback(() => {
     let barcodeDetector: any = null;
-    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+    if (
+      typeof window !== 'undefined' && 
+      'BarcodeDetector' in window && 
+      typeof (window as any).BarcodeDetector === 'function'
+    ) {
       try {
-        barcodeDetector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        const DetectorClass = (window as any).BarcodeDetector;
+        barcodeDetector = new DetectorClass({ formats: ['qr_code'] });
       } catch (e) {
         barcodeDetector = null;
       }
@@ -598,9 +608,14 @@ export default function StaffAttendanceQRScanner({
       let decoded: string | null = null;
       
       // 1. BarcodeDetector
-      if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      if (
+        typeof window !== 'undefined' && 
+        'BarcodeDetector' in window && 
+        typeof (window as any).BarcodeDetector === 'function'
+      ) {
         try {
-          const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+          const DetectorClass = (window as any).BarcodeDetector;
+          const detector = new DetectorClass({ formats: ['qr_code'] });
           const barcodes = await detector.detect(canvas);
           if (barcodes.length > 0) decoded = barcodes[0].rawValue;
         } catch {}

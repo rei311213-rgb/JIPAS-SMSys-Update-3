@@ -196,7 +196,7 @@ export default function ThemePaletteManager({
                     : 'border-slate-800 hover:border-slate-700 bg-slate-900/40 hover:bg-slate-900/80'
                 }`}
                 style={{
-                  ringColor: preset.primaryColor,
+                  borderColor: isSelected ? preset.primaryColor : undefined,
                   backgroundColor: isSelected ? `${preset.backgroundColor}dd` : undefined
                 }}
               >

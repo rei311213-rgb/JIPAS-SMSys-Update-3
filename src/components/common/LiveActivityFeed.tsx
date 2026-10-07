@@ -37,8 +37,9 @@ export const LiveActivityFeed: React.FC = () => {
     return <Activity className="w-4 h-4 text-slate-400" />;
   };
 
-  const getRelativeTime = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
+  const getRelativeTime = (timestamp: number | string) => {
+    const timeMs = typeof timestamp === 'number' ? timestamp : new Date(timestamp).getTime();
+    const diff = Date.now() - (isNaN(timeMs) ? Date.now() : timeMs);
     if (diff < 60000) return 'Just now';
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return `${mins}m ago`;

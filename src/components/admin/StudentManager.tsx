@@ -965,7 +965,7 @@ export default function StudentManager({
   // Admission Approval Handlers
   const handleApproveAdmission = async (student: Student) => {
     try {
-      setApprovingStudent(student.id);
+      setApprovingStudent(student);
       // Pass assignedAdmNo only if manually entered, otherwise let dbService generate it atomicaly
       const nextAdmNo = assignedAdmNo.trim();
       const updated = await approveStudentAdmission(student.id, nextAdmNo);

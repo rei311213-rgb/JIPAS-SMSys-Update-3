@@ -107,7 +107,7 @@ export default function StudentTransferManager({
         if (transferType === 'Inter-Campus Transfer' && clearanceStatus === 'Approved') {
           onUpdateStudent({
             ...stu,
-            campus: toCampus,
+            campus: toCampus as any,
             className: toClass
           });
         } else if (transferType === 'Transfer Out' && clearanceStatus === 'Completed') {

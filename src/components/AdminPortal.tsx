@@ -65,6 +65,7 @@ import ContinuousAssessmentGradebook from './common/ContinuousAssessmentGradeboo
 import ParentMobilePaymentPortal from './common/ParentMobilePaymentPortal';
 import CanteenPOSManager from './common/CanteenPOSManager';
 import AlgorithmicTimetableGenerator from './admin/AlgorithmicTimetableGenerator';
+import UserManualModal from './common/UserManualModal';
 import DataIntegrityDashboard from './admin/DataIntegrityDashboard';
 import BackupVerificationPanel from './admin/BackupVerificationPanel';
 import SystemMaintenancePanel from './admin/SystemMaintenancePanel';
@@ -594,6 +595,7 @@ export default function AdminPortal({
 
   const [menuFilter, setMenuFilter] = useState('');
   const [selectedStudentForFees, setSelectedStudentForFees] = useState<Student | null>(null);
+  const [isManualOpen, setIsManualOpen] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(() => {
     if (propCurrentUser) return propCurrentUser;
@@ -1221,6 +1223,17 @@ export default function AdminPortal({
               }}
               placeholder="Search students, teachers, fee bills, receipts, settings..."
             />
+
+            {/* User Manual Download & Viewer Button */}
+            <button
+              onClick={() => setIsManualOpen(true)}
+              id="admin-header-user-manual-btn"
+              title="Open and download official JIPAS SMSys User Manual (v2.6)"
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer shrink-0 border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-200 select-none"
+            >
+              <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden lg:inline font-black">User Manual</span>
+            </button>
 
             {/* Centralized Force Full Cloud Sync Button in Header */}
             <button
@@ -2624,6 +2637,12 @@ export default function AdminPortal({
         onClose={() => setShowGettingStartedTour(false)}
         onNavigate={(mod) => handleNavigate(mod)}
         userRole="admin"
+      />
+
+      {/* Official Institutional User Manual & Guide Modal */}
+      <UserManualModal
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
       />
     </div>
   );

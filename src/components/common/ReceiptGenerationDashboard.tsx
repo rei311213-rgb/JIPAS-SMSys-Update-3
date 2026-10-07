@@ -206,7 +206,8 @@ export default function ReceiptGenerationDashboard({
       if (p.className) classes.add(p.className);
     });
     studentsList.forEach(s => {
-      if (s.class) classes.add(s.class);
+      const cls = s.className || s.class;
+      if (cls) classes.add(cls);
     });
     try {
       getStoredClasses().forEach(c => {

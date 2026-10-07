@@ -215,7 +215,7 @@ export default function NextTermBillingManager({
   // Filter students for search in Individual Tab
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
-      if (s.status === 'Inactive' || s.status === 'Withdrawn' || s.status === 'Graduated') return false;
+      if (s.status === 'Inactive' || (s.status as any) === 'Withdrawn' || s.status === 'Graduated') return false;
       const sClass = s.className || (s as any).class || '';
       if (selectedStudentClassFilter !== 'All' && sClass.toLowerCase() !== selectedStudentClassFilter.toLowerCase()) {
         return false;
@@ -353,7 +353,7 @@ export default function NextTermBillingManager({
 
   const handleEditExistingSetup = (setup: NextTermBillSetup) => {
     setEditingSetupId(setup.id);
-    setSetupTargetType(setup.targetType);
+    setSetupTargetType(setup.targetType as any);
     setSetupTargetName(setup.targetName);
     setSetupYear(setup.academicYear);
     setSetupTerm(setup.term);

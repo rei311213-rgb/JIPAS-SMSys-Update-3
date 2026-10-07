@@ -201,13 +201,17 @@ A4 Printing Papers,Stationery & Books,85,Primary,Accountant,Secretary,2026-09-16
     } else if (activeCategory === 'expenses') {
       const expensesToImport: SchoolExpenseRecord[] = parsedRows.map((r, idx) => ({
         id: `IMP-EXP-${Date.now()}-${idx}`,
+        voucherNo: r.voucherNo || `VOUCH-IMP-${Date.now()}-${idx + 1}`,
         title: r.title || 'Institutional Expense',
         category: r.category || 'General Operations',
         amount: parseFloat(r.amount || '0') || 0,
         department: r.department || 'Administration',
+        vendorPayee: r.vendorPayee || r.title || 'General Vendor',
         approvedBy: r.approvedBy || 'Accountant',
         recordedBy: r.recordedBy || 'Bursar',
+        recorderRole: 'accountant',
         date: r.date || new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
         status: r.status || 'Approved',
         paymentMethod: r.paymentMethod || 'Cash',
         receiptNo: r.receiptNo || `VOUCH-IMP-${idx + 1}`

@@ -690,7 +690,7 @@ export default function SystemSettingsManager({
     setUserFormOtherNames(parts.slice(1).join(' '));
     setUserFormEmail(user.email);
     setUserFormUsername(user.username);
-    setUserFormRole(user.role);
+    setUserFormRole(user.role as any);
     setUserFormPhone(user.phone || '');
     setUserFormDepartment(user.department || (departments[0]?.name || 'Primary School'));
     setUserFormClass(user.className || 'Basic 1');

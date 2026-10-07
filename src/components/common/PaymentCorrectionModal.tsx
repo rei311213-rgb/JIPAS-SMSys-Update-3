@@ -272,7 +272,7 @@ export default function PaymentCorrectionModal({
               type="button"
               onClick={() => {
                 setActionType('VOID_PAYMENT');
-                setReasonCode('DUPLICATE_PAYMENT');
+                setReasonCode('DUPLICATE_PAYMENT' as any);
               }}
               className={`p-2.5 rounded-xl border font-medium flex flex-col items-center gap-1 transition ${
                 actionType === 'VOID_PAYMENT' 

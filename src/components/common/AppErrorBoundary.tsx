@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { reportError } from '../../services/errorMonitoringService';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
@@ -12,21 +12,13 @@ interface State {
   errorMessage: string;
 }
 
-export class AppErrorBoundary extends (React.Component as any) {
-  public props: Props;
-  public state: State;
-  public setState: (state: Partial<State> | ((prevState: State) => Partial<State>)) => void;
-
+export class AppErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.props = props;
     this.state = {
       hasError: false,
       errorMessage: ''
     };
-    this.setState = super.setState?.bind(this) || ((s: any) => {
-      this.state = { ...this.state, ...(typeof s === 'function' ? s(this.state) : s) };
-    });
   }
 
   public static getDerivedStateFromError(error: Error): State {
@@ -37,9 +29,13 @@ export class AppErrorBoundary extends (React.Component as any) {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    reportError(error, 'UI', {
-      componentStack: errorInfo.componentStack
-    });
+    try {
+      reportError(error, 'UI', {
+        componentStack: errorInfo?.componentStack
+      });
+    } catch {
+      // Prevent recursive errors
+    }
   }
 
   private handleReset = (): void => {
@@ -48,6 +44,10 @@ export class AppErrorBoundary extends (React.Component as any) {
 
   private handleReloadPage = (): void => {
     if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('jipas_active_page_admin');
+        localStorage.removeItem('jipas_active_page_teacher');
+      } catch {}
       window.location.reload();
     }
   };
@@ -57,7 +57,7 @@ export class AppErrorBoundary extends (React.Component as any) {
       return (
         <div className="min-h-[350px] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 m-4">
           <div className="max-w-md w-full text-center space-y-4">
-            <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto shadow-sm">
               <AlertTriangle className="w-7 h-7" />
             </div>
 
@@ -70,23 +70,25 @@ export class AppErrorBoundary extends (React.Component as any) {
             </p>
 
             {this.state.errorMessage && (
-              <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 text-left overflow-x-auto max-h-24">
+              <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 text-left overflow-x-auto max-h-24 border border-slate-200 dark:border-slate-700">
                 {this.state.errorMessage}
               </div>
             )}
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Retry View
               </button>
 
               <button
+                type="button"
                 onClick={this.handleReloadPage}
-                className="px-4 py-2 text-xs font-medium bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Home className="w-3.5 h-3.5" />
                 Reload Page
