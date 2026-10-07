@@ -45,7 +45,7 @@ function numberToWordsEN(num: number): string {
     numCopy %= 1000;
   }
   if (numCopy > 0) word += convertLessThanOneThousand(numCopy);
-  return word.trim() + ' Ghana Cedis Only';
+  return word.trim() + ' CFA Only';
 }
 
 // French Number to Words Converter

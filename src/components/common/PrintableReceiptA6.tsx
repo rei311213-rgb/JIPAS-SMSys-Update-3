@@ -51,7 +51,7 @@ function numberToWordsEN(num: number): string {
   if (numCopy > 0) {
     word += convertLessThanOneThousand(numCopy);
   }
-  return word.trim() + ' Ghana Cedis Only';
+  return word.trim() + ' CFA Only';
 }
 
 // French Number to Words Converter
@@ -93,7 +93,7 @@ function numberToWordsFR(num: number): string {
   if (numCopy > 0) {
     word += convert(numCopy);
   }
-  return word.trim() + ' Cedis Ghana Seulement';
+  return word.trim() + ' Francs CFA Seulement';
 }
 
 interface PrintableReceiptA6Props {
@@ -588,112 +588,79 @@ export default function PrintableReceiptA6({ receipt, student, bill, onClose }: 
                 </div>
               </div>
 
-              {/* Structured Fees Particulars Table */}
-              <table className="w-full text-left text-[8px] border-collapse mb-1.5">
+            {/* Structured Fees Particulars Table */}
+              <table className="w-full text-left text-[8px] border-collapse mb-2">
                 <thead>
-                  <tr className="bg-slate-950 text-white text-[7.5px] uppercase font-bold tracking-wider">
-                    <th className="p-1 border border-slate-950">{language === 'FR' ? 'Libellé' : 'Particulars'}</th>
-                    <th className="p-1 text-right border border-slate-950">{language === 'FR' ? 'Montant (CFA)' : 'Amount (CFA)'}</th>
+                  <tr className="bg-slate-900 text-white text-[7px] uppercase font-bold tracking-wider">
+                    <th className="p-1.5 border border-slate-900">{language === 'FR' ? 'Libellé' : 'Description / Item'}</th>
+                    <th className="p-1.5 text-right border border-slate-900">{language === 'FR' ? 'Total' : 'Total Billed'}</th>
+                    <th className="p-1.5 text-right border border-slate-900">{language === 'FR' ? 'Versé' : 'Paid'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-mono">
-                  {/* Detailed breakdown */}
-                  {arrearsVal > 0 && (
-                    <tr className="text-slate-600">
-                      <td className="p-1 font-sans">{dict.previousArrears}</td>
-                      <td className="p-1 text-right">{arrearsVal.toLocaleString()} CFA</td>
-                    </tr>
-                  )}
-                  {discountVal > 0 && (
-                    <tr className="text-rose-600">
-                      <td className="p-1 font-sans">{dict.discount}</td>
-                      <td className="p-1 text-right">-{discountVal.toLocaleString()} CFA</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td className="p-1 font-semibold text-slate-800 font-sans">{receipt.notes || receipt.paidAs || (language === 'FR' ? 'Frais de Scolarité' : 'Tuition & Academic Fees')}</td>
-                    <td className="p-1 text-right font-bold text-slate-900">{(payableVal - arrearsVal + discountVal).toLocaleString()} CFA</td>
+                   <tr>
+                    <td className="p-1.5 font-semibold text-slate-800 font-sans">{receipt.notes || receipt.paidAs || (language === 'FR' ? 'Frais de Scolarité' : 'Tuition Fee')}</td>
+                    <td className="p-1.5 text-right font-bold text-slate-900">{payableVal.toLocaleString()} CFA</td>
+                    <td className="p-1.5 text-right font-bold text-emerald-700">{amountPaidVal.toLocaleString()} CFA</td>
                   </tr>
                   
                   {/* Totals & Net summaries */}
-                  <tr className="bg-slate-100 font-bold text-slate-900 border-t border-slate-900">
-                    <td className="p-1 text-[7.5px] font-sans">{dict.totalPayable}</td>
-                    <td className="p-1 text-right">{payableVal.toLocaleString()} CFA</td>
+                  <tr className="bg-slate-50 font-bold text-slate-900 border-t border-slate-900">
+                    <td colSpan={2} className="p-1.5 text-right">{language === 'FR' ? 'Net Reçu' : 'Net Amount Received:'}</td>
+                    <td className="p-1.5 text-right text-emerald-700">{amountPaidVal.toLocaleString()} CFA</td>
                   </tr>
-                  <tr className="bg-emerald-50 font-black text-emerald-800 text-[8.5px] border-t-2 border-slate-900">
-                    <td className="p-1 text-[7.5px] font-sans">{dict.amountPaid}</td>
-                    <td className="p-1 text-right">{amountPaidVal.toLocaleString()} CFA</td>
-                  </tr>
-                  <tr className="bg-rose-50 font-bold text-rose-800">
-                    <td className="p-1 text-[7.5px] font-sans">{dict.currentBalance}</td>
-                    <td className="p-1 text-right">{balanceVal.toLocaleString()} CFA</td>
+                  <tr className="bg-rose-50 font-black text-rose-800">
+                    <td colSpan={2} className="p-1.5 text-right">{language === 'FR' ? 'Solde Restant' : 'Remaining Outstanding Balance:'}</td>
+                    <td className="p-1.5 text-right">{balanceVal.toLocaleString()} CFA</td>
                   </tr>
                 </tbody>
               </table>
 
               {/* Amount in words */}
-              <div className="bg-slate-50 border border-slate-200 rounded p-1.5 text-[7px] text-slate-700 leading-normal mb-1.5">
+              <div className="bg-slate-50 border border-slate-200 rounded p-1.5 text-[7px] text-slate-700 leading-normal mb-3">
                 <span className="font-bold block text-[6.5px] text-slate-500 uppercase">{dict.amountInWords}:</span>
                 <span className="font-semibold text-slate-950 italic">"{amountInWords}"</span>
               </div>
             </div>
 
-            {/* Verification & Stamp / Receipt Footer Details */}
-            <div>
-              <div className="grid grid-cols-12 gap-1 border-t border-slate-200 pt-1.5">
-                {/* Security and Verification Hash QR */}
-                <div className="col-span-4 flex flex-col items-center justify-center text-center">
-                  <div className="bg-white p-0.5 border border-slate-200 rounded">
-                    {/* Embedded micro QR element matching props */}
-                    <div className="w-14 h-14 flex items-center justify-center relative">
-                      <ReceiptQRCode 
-                        receiptId={receipt.id}
-                        receiptNo={receipt.receiptNo}
-                        referenceNo={receipt.referenceNo}
-                        studentName={receipt.studentName}
-                        admissionNo={receipt.admissionNo}
-                        amount={amountPaidVal}
-                        date={receipt.date}
-                        size={56}
-                        showLabel={false}
-                      />
-                    </div>
-                  </div>
+            {/* Footer Section: QR, Stamp, Signature */}
+            <div className="mt-auto border-t border-slate-200 pt-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[7px] text-slate-500 italic max-w-[50%]">
+                  Received with thanks from <strong>{student?.parentName || student?.guardianName || 'Parent'}</strong> on account of <strong>{receipt.studentName}</strong>.
                 </div>
-
-                {/* Secure Stamp */}
-                <div className="col-span-4 flex items-center justify-center relative overflow-hidden">
-                  {stampColor !== 'none' && (
-                    <div className={`border-2 ${
-                      stampColor === 'emerald' ? 'border-emerald-600/60 text-emerald-700/80 bg-emerald-500/5' : 'border-blue-600/60 text-blue-700/80 bg-blue-500/5'
-                    } rounded-full w-16 h-16 flex flex-col items-center justify-center text-center rotate-12 scale-90 border-double`}>
-                      <span className="text-[4.5px] font-bold tracking-wider leading-none">JOY INT'L SCHOOL</span>
-                      <span className="text-[6.5px] font-black leading-none my-0.5">{dict.sealVerified}</span>
-                      <span className="text-[4px] font-mono leading-none tracking-tighter opacity-80">{verificationHash.slice(0, 14)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sign-off Field */}
-                <div className="col-span-4 text-right flex flex-col justify-end space-y-0.5">
-                  <div className="text-[6px] text-slate-400 font-medium">
-                    {dict.collectedBy}:
-                  </div>
-                  <strong className="text-[7px] text-slate-900 font-bold block truncate max-w-[85px]">
-                    {receipt.receivedBy || receipt.collectedBy || 'Cashier Desk'}
-                  </strong>
-                  <div className="border-t border-dashed border-slate-300 mt-4 pt-1 text-[6.5px] text-slate-500 text-center uppercase font-bold">
-                    {dict.signatureLabel}
-                  </div>
+                {/* Embedded micro QR element matching screenshot */}
+                <div className="border border-slate-200 p-0.5 rounded shadow-sm">
+                  <ReceiptQRCode 
+                    receiptId={receipt.id}
+                    receiptNo={receipt.receiptNo}
+                    referenceNo={receipt.referenceNo}
+                    studentName={receipt.studentName}
+                    admissionNo={receipt.admissionNo}
+                    amount={amountPaidVal}
+                    date={receipt.date}
+                    size={50}
+                    showLabel={false}
+                  />
+                  <div className="text-[5px] text-center font-bold mt-0.5">Scan to Verify</div>
                 </div>
               </div>
 
-              {/* Non-refundable Disclaimer */}
-              <div className="flex items-center justify-between mt-1.5 border-t border-slate-100 pt-1 text-[6px] text-slate-400 font-medium leading-none">
-                <span>{dict.rulesNotice}</span>
-                <span className="font-mono text-[5.5px] scale-90 origin-right text-slate-300">{verificationHash}</span>
+              <div className="flex items-end justify-between mt-2">
+                <div className="text-[7px] text-slate-500 font-bold border-t border-slate-300 w-28 pt-1 text-center">
+                  AUTHORIZED BURSAR SIGNATURE & DATE
+                </div>
+                {/* Official Seal */}
+                {stampColor !== 'none' && (
+                  <div className={`border-2 ${stampColor === 'emerald' ? 'border-emerald-600' : 'border-blue-600'} rounded-full w-14 h-14 flex flex-col items-center justify-center text-center rotate-6 scale-90`}>
+                    <span className="text-[4px] font-black uppercase text-slate-800">JOY INT'L SCHOOL</span>
+                    <span className="text-[6px] font-black uppercase">{dict.sealVerified}</span>
+                    <span className="text-[3px] font-mono">{receipt.date}</span>
+                  </div>
+                )}
               </div>
             </div>
+
 
           </div>
         </div>
