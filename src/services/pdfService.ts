@@ -19,6 +19,7 @@ export interface SchoolPerformanceSummaryOptions {
 
 import { printBlob } from '../utils/printUtils';
 import { formatCurrency } from '../utils/financeUtils';
+import { createJSPDFInstance } from '../utils/pdfHelper';
 
 export class PDFGeneratorService {
   private static readonly SCHOOL_NAME = 'JOY INTERNATIONAL SCHOOL (JIPAS)';
@@ -139,7 +140,7 @@ export class PDFGeneratorService {
 
     const topClass = classSummaries[0] ? classSummaries[0].className : 'N/A';
 
-    const doc = new jsPDF();
+    const doc = createJSPDFInstance();
     
     // Header
     this.addHeader(doc, options?.title || 'School Performance & Class Metrics Summary');
@@ -330,7 +331,7 @@ export class PDFGeneratorService {
   }
 
   static async generateTerminalReport(report: TermReport) {
-    const doc = new jsPDF();
+    const doc = createJSPDFInstance();
     this.addHeader(doc, 'Terminal Academic Report');
 
     // Student Info Section
@@ -396,7 +397,7 @@ export class PDFGeneratorService {
   }
 
   static async generateFeeReceipt(payment: PaymentRecord, student: Student) {
-    const doc = new jsPDF();
+    const doc = createJSPDFInstance();
     this.addHeader(doc, 'Official Payment Receipt');
 
     // Receipt Metadata

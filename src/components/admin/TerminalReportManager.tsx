@@ -29,7 +29,7 @@ import {
 } from '../../services/dbService';
 import { PDFGeneratorService } from '../../services/pdfService';
 import { getActiveAcademicPeriod } from '../../services/storageService';
-import jsPDF from 'jspdf';
+import { createJSPDFInstance } from '../../utils/pdfHelper';
 import html2canvas from 'html2canvas';
 
 interface TerminalReportManagerProps {
@@ -280,7 +280,7 @@ export default function TerminalReportManager({
       });
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
+      const pdf = createJSPDFInstance({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'

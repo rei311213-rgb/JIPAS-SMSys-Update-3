@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, Sparkles, Upload, AlertCircle, ShieldAlert, X, BookOpen, Zap,
   ArrowRightLeft, FileCheck
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { createJSPDFInstance } from '../../utils/pdfHelper';
 import { Student, PromotionRecord, CourseItem, ClassItem, DepartmentItem, HouseItem, StudentTransferRecord, StudentDocument } from '../../types';
 import JIPASLogo from '../common/JIPASLogo';
 import PhotoUploader from '../common/PhotoUploader';
@@ -321,7 +321,7 @@ export default function StudentManager({
     // PDF Export
     setIsExportingPdf(true);
     try {
-      const doc = new jsPDF({
+      const doc = createJSPDFInstance({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
@@ -1169,7 +1169,7 @@ export default function StudentManager({
 
     setIsExportingPdf(true);
     try {
-      const doc = new jsPDF({
+      const doc = createJSPDFInstance({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'

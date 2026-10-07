@@ -3,7 +3,7 @@ import {
   FileText, Award, Percent, Edit3, Plus, Pencil, Trash2, Save, 
   CheckCircle2, Download, Printer, ArrowLeft, Search, Eye, Filter, Check, X, Clock, Sparkles
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { createJSPDFInstance } from '../../utils/pdfHelper';
 import 'jspdf-autotable';
 import { Student, TermReport, GradingScaleItem, ScoreConversionItem, SubjectItem, ScoreApprovalRecord } from '../../types';
 import JIPASLogo from '../common/JIPASLogo';
@@ -122,7 +122,7 @@ export default function ExaminationManager({
 
   const generateTranscriptPdf = (student: Student) => {
     const studentReports = reportsList.filter(r => r.studentId === student.id || r.admissionNo === student.admissionNo);
-    const doc = new jsPDF();
+    const doc = createJSPDFInstance();
     doc.text(`Official Academic Transcript: ${student.fullName}`, 14, 15);
     
     const tableData = studentReports.flatMap(r => 
@@ -140,7 +140,7 @@ export default function ExaminationManager({
 
   const generateTestimonialPdf = () => {
     if (!testimonialData.student) return;
-    const doc = new jsPDF();
+    const doc = createJSPDFInstance();
     doc.text(`Testimonial: ${testimonialData.student.fullName}`, 14, 15);
     doc.text(`Highlight: ${testimonialData.highlight}`, 14, 25);
     doc.text(`References: ${testimonialData.refs}`, 14, 35);

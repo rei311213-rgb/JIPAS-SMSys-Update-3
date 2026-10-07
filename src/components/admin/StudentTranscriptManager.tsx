@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Student, TermReport } from '../../types';
 import JIPASLogo from '../common/JIPASLogo';
-import jsPDF from 'jspdf';
+import { createJSPDFInstance } from '../../utils/pdfHelper';
 import html2canvas from 'html2canvas';
 
 interface StudentTranscriptManagerProps {
@@ -119,7 +119,7 @@ export default function StudentTranscriptManager({
       });
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
+      const pdf = createJSPDFInstance({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
