@@ -29,6 +29,8 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('[AppErrorBoundary] Caught error:', error);
+    console.error('[AppErrorBoundary] Component stack:', errorInfo.componentStack);
     try {
       reportError(error, 'UI', {
         componentStack: errorInfo?.componentStack

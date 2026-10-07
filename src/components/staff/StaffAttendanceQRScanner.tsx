@@ -512,8 +512,12 @@ export default function StaffAttendanceQRScanner({
     ) {
       try {
         const DetectorClass = (window as any).BarcodeDetector;
-        if (DetectorClass.toString().includes('[native code]')) {
+        
+        // Try 'new' instantiation, fallback to factory call if 'new' fails
+        try {
           barcodeDetector = new DetectorClass({ formats: ['qr_code'] });
+        } catch {
+          barcodeDetector = DetectorClass({ formats: ['qr_code'] });
         }
       } catch (e) {
         barcodeDetector = null;
@@ -617,8 +621,14 @@ export default function StaffAttendanceQRScanner({
       ) {
         try {
           const DetectorClass = (window as any).BarcodeDetector;
-          if (DetectorClass.toString().includes('[native code]')) {
+          
+          // Try 'new' instantiation, fallback to factory call if 'new' fails
+          try {
             const detector = new DetectorClass({ formats: ['qr_code'] });
+            const barcodes = await detector.detect(canvas);
+            if (barcodes.length > 0) decoded = barcodes[0].rawValue;
+          } catch {
+            const detector = DetectorClass({ formats: ['qr_code'] });
             const barcodes = await detector.detect(canvas);
             if (barcodes.length > 0) decoded = barcodes[0].rawValue;
           }
