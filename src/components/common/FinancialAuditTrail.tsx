@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { PaymentRecord, SchoolExpenseRecord, StudentBill, User } from '../../types';
-import { Search, Filter, Clock, Receipt, Calculator, Banknote, UserCheck, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
-import JIPASLogo from './JIPASLogo';
+import { PaymentRecord, SchoolExpenseRecord, StudentBill } from '../../types';
+import { Search, Filter, Clock, Receipt, Calculator, Banknote, Shield } from 'lucide-react';
 
 interface FinancialAuditTrailProps {
   payments: PaymentRecord[];
@@ -27,7 +26,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
         user: p.paidAs || 'Cashier',
         description: `Fee collected for ${p.studentName} (${p.admissionNo})`,
         status: 'Completed',
-        icon: Receipt,
+        iconType: 'receipt',
         color: 'text-emerald-600',
         bg: 'bg-emerald-100'
       });
@@ -44,13 +43,13 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
         user: e.loggedBy || e.recordedBy || 'Accountant',
         description: `${e.category} - ${e.description || e.title || ''}`,
         status: e.status || 'Approved',
-        icon: Banknote,
+        iconType: 'banknote',
         color: 'text-rose-600',
         bg: 'bg-rose-100'
       });
     });
 
-    // We could add manual balance adjustments here if we track them in bills
+    // Manual balance adjustments from bills history
     bills.forEach(b => {
       if (b.history && Array.isArray(b.history)) {
         b.history.forEach((h: any) => {
@@ -64,7 +63,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
                user: h.user || 'Admin',
                description: `Manual adjustment on bill for ${b.studentName} - ${h.reason || ''}`,
                status: 'Adjusted',
-               icon: Calculator,
+               iconType: 'calculator',
                color: 'text-amber-600',
                bg: 'bg-amber-100'
              });
@@ -85,11 +84,24 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
     });
   }, [allEvents, searchTerm, filterType]);
 
+  const renderEventIcon = (iconType: string) => {
+    switch (iconType) {
+      case 'receipt':
+        return <Receipt className="w-3.5 h-3.5" />;
+      case 'banknote':
+        return <Banknote className="w-3.5 h-3.5" />;
+      case 'calculator':
+        return <Calculator className="w-3.5 h-3.5" />;
+      default:
+        return <Receipt className="w-3.5 h-3.5" />;
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-      <div className="p-6 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
+      <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <Shield className="w-6 h-6 text-indigo-600" />
             Financial Audit Trail
           </h2>
@@ -103,13 +115,13 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
               placeholder="Search trail..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64"
+              className="pl-9 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none w-64"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="pl-3 pr-8 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+            className="pl-3 pr-8 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
           >
             <option value="All">All Actions</option>
             <option value="Fee Collection">Fee Collections</option>
@@ -122,7 +134,7 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
       <div className="flex-1 overflow-auto p-0">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-100 text-slate-600 text-[10px] uppercase tracking-wider font-bold">
+            <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] uppercase tracking-wider font-bold">
               <th className="px-6 py-4">Timestamp</th>
               <th className="px-6 py-4">Action Type</th>
               <th className="px-6 py-4">Description</th>
@@ -131,55 +143,43 @@ export default function FinancialAuditTrail({ payments, expenses, bills }: Finan
               <th className="px-6 py-4">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredEvents.length > 0 ? (
-              filteredEvents.map((event) => {
-                const Icon = event.icon;
-                return (
-                  <tr key={event.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-slate-900 font-medium">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        {event.date.toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${event.bg} ${event.color}`}>
-                        <Icon className="w-3.5 h-3.5" />
-                        {event.type}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-slate-600 max-w-md truncate" title={event.description}>
-                        {event.description}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className={`text-sm font-black font-mono ${event.type === 'Daily Expense' ? 'text-rose-600' : 'text-slate-900'}`}>
-                        {event.type === 'Daily Expense' ? '-' : '+'} CFA {event.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <UserCheck className="w-4 h-4 text-indigo-400" />
-                        {event.user}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                        {event.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
+              filteredEvents.map((event) => (
+                <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2 text-sm text-slate-900 dark:text-white font-medium">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      {event.date.toLocaleString()}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${event.bg} ${event.color}`}>
+                      {renderEventIcon(event.iconType)}
+                      {event.type}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{event.description}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right whitespace-nowrap font-mono font-bold text-slate-900 dark:text-white">
+                    {Number(event.amount).toLocaleString()} {event.currency}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 font-medium">
+                    {event.user}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100 dark:border-emerald-900">
+                      {event.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                  <Shield className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-base font-bold text-slate-700">No audit events found</p>
-                  <p className="text-sm">Try adjusting your filters or search terms.</p>
+                <td colSpan={6} className="text-center py-16 text-slate-400">
+                  <Receipt className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-semibold">No financial audit trail records found.</p>
                 </td>
               </tr>
             )}
