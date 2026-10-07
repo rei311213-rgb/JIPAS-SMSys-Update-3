@@ -41,6 +41,7 @@ interface AccountantSidebarProps {
   billsCount: number;
   overdueCount: number;
   actionRequiredCount?: number;
+  currentUser?: { name?: string; email?: string; role?: string };
 }
 
 export default function AccountantSidebar({
@@ -52,7 +53,8 @@ export default function AccountantSidebar({
   collectionsCount,
   billsCount,
   overdueCount,
-  actionRequiredCount = 0
+  actionRequiredCount = 0,
+  currentUser
 }: AccountantSidebarProps) {
   // Auto hide/show on hover state
   const [isHovered, setIsHovered] = useState(false);
@@ -425,10 +427,10 @@ export default function AccountantSidebar({
         {isExpanded && (
           <div className="px-3.5 py-2.5 mx-3 mt-1 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-2.5 animate-fadeIn">
             <div className="w-9 h-9 rounded-xl bg-cyan-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              DM
+              {(currentUser?.name || 'Accountant').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden whitespace-nowrap">
-              <span className="text-xs font-bold text-slate-900 block truncate">Denis Mawutor</span>
+              <span className="text-xs font-bold text-slate-900 block truncate">{currentUser?.name || 'Accountant'}</span>
               <span className="text-[10px] text-slate-500 font-medium block truncate">Accountant / Bursar</span>
             </div>
           </div>

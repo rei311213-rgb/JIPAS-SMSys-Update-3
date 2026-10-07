@@ -925,6 +925,7 @@ export default function AccountantPortal({
         billsCount={bills.length}
         overdueCount={bills.filter(b => b.balance > 0).length}
         actionRequiredCount={actionRequiredBills.length}
+        currentUser={currentUser}
       />
 
       {/* Main Content Area */}
