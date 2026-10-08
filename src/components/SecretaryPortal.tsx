@@ -1246,6 +1246,7 @@ export default function SecretaryPortal({
           expenses={expenses}
           bills={bills}
           campus={selectedCampus}
+          classStats={campusClassStats}
         />
       )}
 

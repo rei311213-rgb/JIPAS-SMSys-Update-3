@@ -189,6 +189,8 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
               role: matchedUserAccount.role as any,
               phone: matchedUserAccount.phone,
               executiveTitle: execTitle,
+              department: matchedUserAccount.department,
+              leadershipTitle: matchedUserAccount.leadershipTitle,
               ceoPrivileges: matchedUserAccount.ceoPrivileges || DEFAULT_CEO_PRIVILEGES,
               avatar: (matchedUserAccount as any).avatar || (matchedUserAccount.role === 'director'
                 ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
@@ -212,10 +214,14 @@ export default function LoginScreen({ onLogin, studentsList, teachersList = [] }
             email: matchedUserAccount.email,
             role: matchedUserAccount.role,
             phone: matchedUserAccount.phone,
-            classAssigned: (matchedUserAccount as any).classAssigned,
+            classAssigned: (matchedUserAccount as any).classAssigned || matchedUserAccount.className,
             admissionNo: (matchedUserAccount as any).admissionNo,
             allowedModules: (matchedUserAccount as any).allowedModules,
             privilege: (matchedUserAccount as any).privilege,
+            department: matchedUserAccount.department,
+            leadershipTitle: matchedUserAccount.leadershipTitle,
+            headteacherPrivileges: matchedUserAccount.headteacherPrivileges,
+            hodPrivileges: matchedUserAccount.hodPrivileges,
             accountantPrivileges: matchedUserAccount.accountantPrivileges,
             avatar: (matchedUserAccount as any).avatar || (matchedUserAccount.role === 'teacher' 
               ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'

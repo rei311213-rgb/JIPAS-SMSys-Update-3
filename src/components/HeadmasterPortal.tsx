@@ -82,7 +82,17 @@ export default function HeadmasterPortal({
     setTimeout(() => setFeedbackToast(null), 3500);
   };
 
-  const assignedDept = currentUser.department || 'Primary School';
+  const assignedDept = useMemo(() => {
+    if (currentUser.department) return currentUser.department;
+    
+    // Infer from leadership title if department is missing
+    const title = (currentUser.leadershipTitle || '').toLowerCase();
+    if (title.includes('junior high') || title.includes('jhs')) return 'Junior High School';
+    if (title.includes('senior high') || title.includes('shs')) return 'Senior High School';
+    if (title.includes('pre-school') || title.includes('nursery')) return 'Pre-School';
+    
+    return 'Primary School'; // Final fallback
+  }, [currentUser.department, currentUser.leadershipTitle]);
   const isSuperAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
 
   // Filter department students, teachers & reports

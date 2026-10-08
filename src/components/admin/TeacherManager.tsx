@@ -239,6 +239,53 @@ export default function TeacherManager({
   const [showCeoSigModal, setShowCeoSigModal] = useState(false);
   const [ceoSigPreview, setCeoSigPreview] = useState(typeof window !== 'undefined' ? localStorage.getItem('jipas_ceo_signature') || '' : '');
 
+  /**
+   * Automatically aligns the HOD's department field to match the primary department 
+   * of the classes they are currently assigned to teach.
+   */
+  const handleSmartSyncDepartment = () => {
+    const classArray = formClasses.split(',').map(c => c.trim()).filter(Boolean);
+    if (classArray.length === 0) {
+      alert("Please assign classes to this faculty member before using Smart Sync.");
+      return;
+    }
+
+    const counts: Record<string, number> = {
+      'Junior High School': 0,
+      'Primary Department': 0,
+      'Early Childhood': 0,
+      'Senior High School': 0
+    };
+
+    classArray.forEach(c => {
+      const cls = c.toLowerCase();
+      if (cls.includes('jhs')) {
+        counts['Junior High School']++;
+      } else if (cls.includes('basic')) {
+        counts['Primary Department']++;
+      } else if (['creche', 'nursery', 'kg', 'kindergarten'].some(k => cls.includes(k))) {
+        counts['Early Childhood']++;
+      } else if (cls.includes('shs') || ['science', 'arts', 'business', 'economics', 'visual', 'vocational', 'home eco'].some(k => cls.includes(k))) {
+        counts['Senior High School']++;
+      }
+    });
+
+    let bestDept = '';
+    let maxCount = 0;
+    Object.entries(counts).forEach(([dept, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        bestDept = dept;
+      }
+    });
+
+    if (bestDept) {
+      setFormDepartment(bestDept);
+    } else {
+      alert("Smart Sync could not automatically determine a department from the assigned classes. Please select manually.");
+    }
+  };
+
   const handleToggleFormSubject = (subj: string) => {
     const currentList = formSubjects.split(',').map(s => s.trim()).filter(Boolean);
     const exists = currentList.some(s => s.toLowerCase() === subj.toLowerCase());
@@ -312,6 +359,32 @@ export default function TeacherManager({
 
     const classArray = formClasses.split(',').map(c => c.trim()).filter(Boolean);
     const subjectArray = formSubjects.split(',').map(s => s.trim()).filter(Boolean);
+
+    // HOD Department Mismatch Warning
+    if (formDesignation === 'Head of Department (HOD)') {
+      const isJhsDept = formDepartment.toLowerCase().includes('junior high') || formDepartment.toLowerCase().includes('jhs');
+      const isPrimaryDept = formDepartment.toLowerCase().includes('primary');
+      const isPreSchoolDept = formDepartment.toLowerCase().includes('pre-school') || formDepartment.toLowerCase().includes('early childhood');
+      const isShsDept = formDepartment.toLowerCase().includes('senior high') || formDepartment.toLowerCase().includes('shs');
+
+      const hasJhsClass = classArray.some(c => c.toLowerCase().includes('jhs'));
+      const hasPrimaryClass = classArray.some(c => c.toLowerCase().includes('basic'));
+      const hasPreSchoolClass = classArray.some(c => ['creche', 'nursery', 'kg'].some(k => c.toLowerCase().includes(k)));
+      const hasShsClass = classArray.some(c => c.toLowerCase().includes('shs') || ['science', 'arts', 'business', 'economics'].some(k => c.toLowerCase().includes(k)));
+
+      let mismatch = false;
+      if (isJhsDept && !hasJhsClass && (hasPrimaryClass || hasPreSchoolClass || hasShsClass)) mismatch = true;
+      if (isPrimaryDept && !hasPrimaryClass && (hasJhsClass || hasPreSchoolClass || hasShsClass)) mismatch = true;
+      if (isPreSchoolDept && !hasPreSchoolClass && (hasJhsClass || hasPrimaryClass || hasShsClass)) mismatch = true;
+      if (isShsDept && !hasShsClass && (hasJhsClass || hasPrimaryClass || hasPreSchoolClass)) mismatch = true;
+
+      if (mismatch) {
+        const confirmSave = window.confirm(
+          `DEPARTMENT MISMATCH DETECTED:\n\nYou are assigning ${combinedTeacherName} as HOD for "${formDepartment}", but the assigned classes (${formClasses}) seem to belong to a different department.\n\nAre you sure you want to proceed with this configuration?`
+        );
+        if (!confirmSave) return;
+      }
+    }
 
     if (editingTeacher) {
       const updated: Teacher = {
@@ -1558,7 +1631,20 @@ export default function TeacherManager({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Department</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Department</label>
+                    {formDesignation === 'Head of Department (HOD)' && (
+                      <button
+                        type="button"
+                        onClick={handleSmartSyncDepartment}
+                        className="text-[9px] font-black text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                        title="Auto-align department based on assigned classes"
+                      >
+                        <Zap className="w-2.5 h-2.5 fill-indigo-600" />
+                        <span>Smart Sync</span>
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={formDepartment}
                     onChange={(e) => setFormDepartment(e.target.value)}

@@ -1619,6 +1619,67 @@ export async function purgeOrphanedStudentData(): Promise<{
   };
 }
 
+/**
+ * Specifically identifies and rectifies the reported departmental mismatch for the Junior High School HOD.
+ * If a teacher is designated as JHS HOD but recorded in the Primary department, 
+ * this function reassigns them to 'Junior High School' across local storage and Firestore.
+ */
+export async function rectifyHodDepartments(): Promise<{ success: boolean; teacherName?: string; message: string }> {
+  try {
+    const teachers = getStoredTeachers();
+    const users = getStoredUsers();
+    
+    // Identify the teacher: HOD for JHS but in Primary department
+    // Look for Denis Mawutor specifically OR any teacher with JHS HOD designation in Primary dept
+    const targetTeacher = teachers.find(t => 
+      (t.name?.toLowerCase().includes('denis') && t.name?.toLowerCase().includes('mawutor')) ||
+      ((t.designation || '').toLowerCase().includes('head of department') && 
+       ((t.designation || '').toLowerCase().includes('junior high') || (t.designation || '').toLowerCase().includes('jhs')) &&
+       (t.department || '').toLowerCase().includes('primary'))
+    );
+
+    if (!targetTeacher) {
+      return { success: false, message: 'No mismatched JHS HOD record identified in the current faculty directory.' };
+    }
+
+    if (targetTeacher.department === 'Junior High School') {
+      return { success: true, teacherName: targetTeacher.name, message: `${targetTeacher.name} is already correctly assigned to Junior High School.` };
+    }
+
+    const updatedTeacher: Teacher = {
+      ...targetTeacher,
+      department: 'Junior High School',
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveTeacher(updatedTeacher);
+    
+    // Also update linked user account if exists
+    const linkedUser = users.find(u => u.teacherId === targetTeacher.id || (u.staffId && u.staffId === targetTeacher.staffId));
+    if (linkedUser) {
+      await saveUserAccount({
+        ...linkedUser,
+        department: 'Junior High School',
+        assignedDepartments: ['Junior High School']
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jipas_cloud_synced'));
+    }
+
+    return { 
+      success: true, 
+      teacherName: targetTeacher.name, 
+      message: `Successfully reassigned ${targetTeacher.name} to the Junior High School department.` 
+    };
+  } catch (err) {
+    console.error('[Rectification] Error during HOD department rectification:', err);
+    return { success: false, message: 'Failed to update department in the cloud database.' };
+  }
+}
+
+
 export async function saveTeacher(teacher: Teacher) {
   if (!teacher.name || !teacher.name.trim()) {
     throw new Error('Teacher validation failed: Name is required.');

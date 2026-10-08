@@ -386,6 +386,8 @@ export interface Teacher {
   subjectsTaught: string[];
   headteacherPrivileges?: HeadteacherPrivilegesConfig;
   hodPrivileges?: HodPrivilegesConfig;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ScoreItem {

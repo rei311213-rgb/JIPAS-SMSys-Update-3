@@ -10,6 +10,7 @@ import AcademicSetupManager from './AcademicSetupManager';
 import AcademicTreeView from './admin/AcademicTreeView';
 import SystemSettingsManager from './admin/SystemSettingsManager';
 import TeacherManager from './admin/TeacherManager';
+import BulkDepartmentReassignment from './admin/BulkDepartmentReassignment';
 import StudentManager from './admin/StudentManager';
 import ExaminationManager from './admin/ExaminationManager';
 import ExamTimetableManager from './admin/ExamTimetableManager';
@@ -83,7 +84,7 @@ import {
   INITIAL_ACADEMIC_YEARS, INITIAL_TERMS, INITIAL_DEPARTMENTS, 
   INITIAL_CLASSES, INITIAL_HOUSES, INITIAL_SUBJECTS 
 } from '../data/setupData';
-import { checkHasDemoData, clearDemoData, getStoredReports, forceSyncCollections } from '../services/dbService';
+import { checkHasDemoData, clearDemoData, getStoredReports, forceSyncCollections, rectifyHodDepartments } from '../services/dbService';
 import { getStoredExpenses, getStoredSettings, getActiveAcademicPeriod } from '../services/storageService';
 import { 
   LayoutDashboard, Users, UserCheck, CreditCard, Award, Calendar, Bell, 
@@ -170,6 +171,7 @@ const VALID_ADMIN_MODULES = new Set([
   // Teacher
   'teacher_profile', 'teachers', 'teacher_id_cards', 'teacher_assign',
   'teacher_attendance', 'teacher_attendance_report', 'teacher_attendance_stats', 'bulk_teacher_upload',
+  'teacher_bulk_reassign',
   // Student
   'student_enroll', 'enroll_student', 'student_enrolled', 'enrolled_students',
   'student_transcript', 'exam_transcripts', 'transcripts', 'student_id_cards',
@@ -310,6 +312,7 @@ const ADMIN_NAV_GROUPS = [
       { id: 'teacher_attendance', label: 'Teacher Attendance', icon: ClipboardCheck },
       { id: 'teacher_attendance_report', label: 'Attendance Report', icon: FileText },
       { id: 'teacher_attendance_stats', label: 'Attendance Statistics', icon: BarChart3 },
+      { id: 'teacher_bulk_reassign', label: 'Bulk Dept Reassign', icon: RefreshCw },
       { id: 'staff_qr_attendance_dashboard', label: 'Staff QR Attendance', icon: QrCode },
     ]
   },
@@ -524,6 +527,19 @@ export default function AdminPortal({
     window.addEventListener('jipas_exit_to_dashboard', handleExit);
     return () => window.removeEventListener('jipas_exit_to_dashboard', handleExit);
   }, []);
+
+  // System Rectification: Automatically fix reported departmental mismatches (e.g. JHS HOD in Primary)
+  useEffect(() => {
+    if (activeModule === 'dashboard' || activeModule === 'teacher_bulk_reassign' || activeModule === 'teacher_profile') {
+      rectifyHodDepartments().then(result => {
+        if (result.success) {
+          console.log(`[AdminPortal] System Rectification: ${result.message}`);
+        }
+      }).catch(err => {
+        console.warn('[AdminPortal] Rectification check notice:', err);
+      });
+    }
+  }, [activeModule]);
 
   const handleCampusChange = (campus: 'General' | 'JIPAS 1' | 'JIPAS 2') => {
     setSelectedCampus(campus);
@@ -2100,7 +2116,14 @@ export default function AdminPortal({
           <StaffAttendanceManager />
         )}
 
-        {(activeModule.startsWith('teacher_') || activeModule === 'teachers' || activeModule === 'attendance_report' || activeModule === 'attendance_stats' || activeModule === 'attendance_statistics') && activeModule !== 'teacher_attendance' && activeModule !== 'staff_qr_attendance_dashboard' && (
+        {activeModule === 'teacher_bulk_reassign' && (
+          <BulkDepartmentReassignment 
+            teachers={propTeachers} 
+            onComplete={() => setActiveModule('teacher_profile')}
+          />
+        )}
+
+        {(activeModule.startsWith('teacher_') || activeModule === 'teachers' || activeModule === 'attendance_report' || activeModule === 'attendance_stats' || activeModule === 'attendance_statistics') && activeModule !== 'teacher_attendance' && activeModule !== 'staff_qr_attendance_dashboard' && activeModule !== 'teacher_bulk_reassign' && (
           <TeacherManager
             activeModule={activeModule}
             teachers={teachers}

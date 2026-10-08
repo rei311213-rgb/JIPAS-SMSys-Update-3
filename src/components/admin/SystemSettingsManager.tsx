@@ -27,6 +27,7 @@ import JIPASLogo, {
 } from '../common/JIPASLogo';
 import ThemePaletteManager from './ThemePaletteManager';
 import ImageCropperModal from '../common/ImageCropperModal';
+import BulkDepartmentReassignment from './BulkDepartmentReassignment';
 import { useI18n } from '../../i18n/I18nContext';
 import { getStoredClasses, getStoredThermalPrinterSettings, saveStoredThermalPrinterSettings, getStoredStudents } from '../../services/storageService';
 import { 
@@ -278,7 +279,7 @@ export default function SystemSettingsManager({
   const [staffRequestFilter, setStaffRequestFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected'>('all');
 
   // RBAC Roles & Permissions Management State
-  const [userMgmtTab, setUserMgmtTab] = useState<'users' | 'roles' | 'staff_updates'>('users');
+  const [userMgmtTab, setUserMgmtTab] = useState<'users' | 'roles' | 'staff_updates' | 'bulk_reassign'>('users');
   const [rbacRoles, setRbacRoles] = useState([
     {
       id: 'role-headteacher',
@@ -2252,6 +2253,16 @@ export default function SystemSettingsManager({
                   {staffLoginRequests.filter(r => r.status === 'Pending').length}
                 </span>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserMgmtTab('bulk_reassign')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                userMgmtTab === 'bulk_reassign' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Bulk Reassign
             </button>
           </div>
 

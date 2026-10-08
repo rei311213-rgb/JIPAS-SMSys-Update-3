@@ -126,17 +126,31 @@ export default function StaffAttendanceQRScanner({
       try {
         window.speechSynthesis.cancel();
         const UtteranceConstructor = (window as any).SpeechSynthesisUtterance;
+        
+        // Robust instantiation check to prevent 'Illegal constructor'
         let utterance;
         try {
-          utterance = new UtteranceConstructor(phrase);
+          if (typeof UtteranceConstructor === 'function') {
+            utterance = new UtteranceConstructor(phrase);
+          } else {
+            throw new Error('Not a constructor');
+          }
         } catch {
-          utterance = UtteranceConstructor(phrase);
+          try {
+            utterance = UtteranceConstructor(phrase);
+          } catch (e2) {
+            console.warn('[StaffQRScanner] Utterance instantiation failed:', e2);
+            return;
+          }
         }
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-        utterance.lang = 'en-US';
-        window.speechSynthesis.speak(utterance);
+
+        if (utterance) {
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          utterance.volume = 1.0;
+          utterance.lang = 'en-US';
+          window.speechSynthesis.speak(utterance);
+        }
       } catch (e) {
         console.warn('[StaffQRScanner] Speech error:', e);
       }
@@ -519,10 +533,17 @@ export default function StaffAttendanceQRScanner({
         const DetectorClass = (window as any).BarcodeDetector;
         
         // Try 'new' instantiation, fallback to factory call if 'new' fails
+        // Use more defensive approach to avoid 'Illegal constructor' in restricted environments
         try {
-          barcodeDetector = new DetectorClass({ formats: ['qr_code'] });
+          if (typeof DetectorClass === 'function') {
+            barcodeDetector = new DetectorClass({ formats: ['qr_code'] });
+          }
         } catch {
-          barcodeDetector = DetectorClass({ formats: ['qr_code'] });
+          try {
+            barcodeDetector = DetectorClass({ formats: ['qr_code'] });
+          } catch {
+            barcodeDetector = null;
+          }
         }
       } catch (e) {
         barcodeDetector = null;
@@ -626,14 +647,22 @@ export default function StaffAttendanceQRScanner({
       ) {
         try {
           const DetectorClass = (window as any).BarcodeDetector;
+          let detector: any = null;
           
           // Try 'new' instantiation, fallback to factory call if 'new' fails
           try {
-            const detector = new DetectorClass({ formats: ['qr_code'] });
-            const barcodes = await detector.detect(canvas);
-            if (barcodes.length > 0) decoded = barcodes[0].rawValue;
+            if (typeof DetectorClass === 'function') {
+              detector = new DetectorClass({ formats: ['qr_code'] });
+            }
           } catch {
-            const detector = DetectorClass({ formats: ['qr_code'] });
+            try {
+              detector = DetectorClass({ formats: ['qr_code'] });
+            } catch {
+              detector = null;
+            }
+          }
+
+          if (detector) {
             const barcodes = await detector.detect(canvas);
             if (barcodes.length > 0) decoded = barcodes[0].rawValue;
           }
