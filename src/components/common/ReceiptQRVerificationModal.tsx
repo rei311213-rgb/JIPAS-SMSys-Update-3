@@ -144,7 +144,12 @@ export default function ReceiptQRVerificationModal({
       // Check if payload is URL with verification query params
       if (rawText.includes('http://') || rawText.includes('https://') || rawText.includes('verify_receipt=')) {
         try {
-          const urlObj = new URL(rawText.startsWith('http') ? rawText : `http://localhost${rawText}`);
+          let urlObj;
+          try {
+            urlObj = new URL(rawText.startsWith('http') ? rawText : `http://localhost${rawText}`);
+          } catch {
+             urlObj = { searchParams: new URLSearchParams(rawText.split('?')[1] || '') };
+          }
           const rNo = urlObj.searchParams.get('verify_receipt') || urlObj.searchParams.get('receiptNo') || urlObj.searchParams.get('r');
           const adm = urlObj.searchParams.get('student') || urlObj.searchParams.get('adm');
           const name = urlObj.searchParams.get('name');

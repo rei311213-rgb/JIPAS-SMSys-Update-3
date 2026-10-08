@@ -206,6 +206,29 @@ export default function SecretaryPortal({
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
 
+  // Stats for campus
+  const campusStudents = useMemo(() => students.filter(s => s.campus === selectedCampus), [students, selectedCampus]);
+  const campusBills = useMemo(() => bills.filter(b => b.campus === selectedCampus), [bills, selectedCampus]);
+
+  const campusClassStats = useMemo(() => {
+    const classMap = new Map<string, { enrollment: number; totalDue: number }>();
+    campusStudents.forEach(s => {
+      const cls = s.className || 'Unknown';
+      const stats = classMap.get(cls) || { enrollment: 0, totalDue: 0 };
+      stats.enrollment += 1;
+      classMap.set(cls, stats);
+    });
+    
+    campusBills.forEach(b => {
+      const cls = b.className || 'Unknown';
+      const stats = classMap.get(cls) || { enrollment: 0, totalDue: 0 };
+      stats.totalDue += (b.balance || 0);
+      classMap.set(cls, stats);
+    });
+    
+    return Array.from(classMap.entries()).map(([className, data]) => ({ className, ...data })).sort((a,b) => a.className.localeCompare(b.className));
+  }, [campusStudents, campusBills]);
+
   useEffect(() => {
     const handleExitToDashboard = () => {
       setActiveTab('daily_records');
@@ -1821,8 +1844,33 @@ export default function SecretaryPortal({
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <h3 className="font-black text-slate-900 text-base">Enrolled Students & Arrears Directory</h3>
-              <p className="text-xs text-slate-500">Quick student profile, class, parent contacts, and fee balances</p>
+              <h3 className="font-black text-slate-900 text-base">Campus Enrollment & Fees Directory</h3>
+              <p className="text-xs text-slate-500">Class-based enrollment and fee balances</p>
+            </div>
+          </div>
+
+          {/* Campus Stats Table */}
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+            <h4 className="font-bold text-slate-800 text-xs mb-3 uppercase tracking-wider">Campus Class Summary</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-white text-slate-500 uppercase font-bold text-[10px]">
+                    <th className="p-2">Class</th>
+                    <th className="p-2 text-center">Enrollment</th>
+                    <th className="p-2 text-right">Total Fees Due</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {campusClassStats.map(stat => (
+                    <tr key={stat.className} className="hover:bg-slate-100 transition-colors">
+                      <td className="p-2 text-slate-900">{stat.className}</td>
+                      <td className="p-2 text-center">{stat.enrollment}</td>
+                      <td className="p-2 text-right font-mono text-rose-600">{stat.totalDue.toLocaleString()} CFA</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

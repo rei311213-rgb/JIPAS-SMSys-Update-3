@@ -126,7 +126,12 @@ export default function StaffAttendanceQRScanner({
       try {
         window.speechSynthesis.cancel();
         const UtteranceConstructor = (window as any).SpeechSynthesisUtterance;
-        const utterance = new UtteranceConstructor(phrase);
+        let utterance;
+        try {
+          utterance = new UtteranceConstructor(phrase);
+        } catch {
+          utterance = UtteranceConstructor(phrase);
+        }
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
