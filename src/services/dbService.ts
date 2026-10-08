@@ -1453,7 +1453,33 @@ export async function deleteStudent(studentId: string) {
     saveStoredFeeSubmissions(updatedSubmissions);
   }
 
-  // 6. Delete student in cloud
+  // 6. Cascade delete associated user account from 'users' collection
+  try {
+    const targetStudent = getStoredStudents().find(s => s.id === studentId);
+    const targetEmail = (targetStudent as any)?.email?.toLowerCase().trim();
+
+    const currentUsers = getStoredUsers();
+    const associatedUsers = currentUsers.filter(u => 
+      (targetAdm && (u.admissionNo || '').toLowerCase().trim() === targetAdm) ||
+      (targetEmail && u.email?.toLowerCase().trim() === targetEmail)
+    );
+
+    if (associatedUsers.length > 0) {
+      const nextUsers = currentUsers.filter(u => 
+        (!targetAdm || (u.admissionNo || '').toLowerCase().trim() !== targetAdm) &&
+        (!targetEmail || u.email?.toLowerCase().trim() !== targetEmail)
+      );
+      saveStoredUsers(nextUsers);
+      
+      for (const u of associatedUsers) {
+        await deleteDoc(doc(db, 'users', u.id)).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn('[dbService:deleteStudent] User account cleanup error:', err);
+  }
+
+  // 7. Delete student in cloud
   await executeCloudDelete('students', studentId, () => {
     saveStoredStudents(getStoredStudents().filter(s => s.id !== studentId));
   }, `Delete Student: ${studentId}`);
@@ -1726,6 +1752,40 @@ export async function saveAllTeachers(teachersList: Teacher[]) {
 }
 
 export async function deleteTeacher(teacherId: string) {
+  console.log(`[dbService:deleteTeacher] Deleting teacher ID: ${teacherId}`);
+  
+  // 1. Cascade delete associated user account from 'users' collection
+  try {
+    const currentTeachers = getStoredTeachers();
+    const targetTeacher = currentTeachers.find(t => t.id === teacherId);
+    const targetEmail = targetTeacher?.email?.toLowerCase().trim();
+
+    const currentUsers = getStoredUsers();
+    const associatedUsers = currentUsers.filter(u => 
+      u.teacherId === teacherId || 
+      (u.id === `usr-t-${teacherId}`) ||
+      (targetEmail && u.email?.toLowerCase().trim() === targetEmail)
+    );
+
+    if (associatedUsers.length > 0) {
+      console.log(`[dbService:deleteTeacher] Found ${associatedUsers.length} associated user accounts. Purging...`);
+      const nextUsers = currentUsers.filter(u => 
+        u.teacherId !== teacherId && 
+        (u.id !== `usr-t-${teacherId}`) &&
+        (!targetEmail || u.email?.toLowerCase().trim() !== targetEmail)
+      );
+      saveStoredUsers(nextUsers);
+      
+      for (const u of associatedUsers) {
+        await deleteDoc(doc(db, 'users', u.id)).catch(err => {
+          console.warn(`[deleteTeacher] Failed to delete user account ${u.id}:`, err);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[dbService:deleteTeacher] User account cleanup error:', err);
+  }
+
   return executeCloudDelete(
     'teachers',
     teacherId,
@@ -2931,7 +2991,7 @@ export async function authenticateWithFirebase(
   
   // 2. Authoritative Role Assignment
   // If user exists in cloud, we MUST use that role.
-  // If it's a first-time registration, default to 'student' or 'pending' unless it's the bootstrap admin.
+  // If it's a first-time registration, we check if they are already in teachers or students collection.
   let assignedRole: UserRole = existingUser?.role || 'student';
   
   if (!existingUser) {
@@ -2939,7 +2999,50 @@ export async function authenticateWithFirebase(
     if (email.toLowerCase() === 'rei311213@gmail.com') {
       assignedRole = 'super_admin';
     } else {
-      assignedRole = 'student'; // Default safest role for new self-registrations
+      // Check if they are in teachers or students collection to verify identity
+      // We check local storage first for performance, then fall back to Firestore queries for first-time logins on new devices
+      const teachers = getStoredTeachers();
+      let isTeacher = teachers.some(t => t.email?.toLowerCase() === email.toLowerCase());
+      
+      const students = getStoredStudents();
+      let isStudent = students.some(s => 
+        (s as any).email?.toLowerCase() === email.toLowerCase() || 
+        s.parentPhone === email || 
+        s.admissionNo?.toLowerCase() === email.toLowerCase()
+      );
+
+      // Fallback to Firestore check if not found locally (important for first-time login on new devices)
+      if (!isTeacher && !isStudent && auth.currentUser) {
+        try {
+          const teacherQuery = query(collection(db, 'teachers'), where('email', '==', email));
+          const teacherSnap = await getDocs(teacherQuery);
+          if (!teacherSnap.empty) isTeacher = true;
+
+          if (!isTeacher) {
+            const studentEmailQuery = query(collection(db, 'students'), where('email', '==', email));
+            const studentEmailSnap = await getDocs(studentEmailQuery);
+            if (!studentEmailSnap.empty) isStudent = true;
+
+            if (!isStudent) {
+              const studentAdmQuery = query(collection(db, 'students'), where('admissionNo', '==', email));
+              const studentAdmSnap = await getDocs(studentAdmQuery);
+              if (!studentAdmSnap.empty) isStudent = true;
+            }
+          }
+        } catch (queryErr) {
+          console.warn('[authenticateWithFirebase] Identity verification query error:', queryErr);
+        }
+      }
+
+      if (isTeacher) {
+        assignedRole = 'teacher';
+      } else if (isStudent) {
+        assignedRole = 'student';
+      } else {
+        // If they are not found in any collection, we reject the login
+        // to prevent deleted accounts or unauthorized users from getting 'student' access.
+        throw new Error('Access Denied: Your account has been deactivated or was not found in the school records.');
+      }
     }
   }
 

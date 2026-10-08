@@ -20,6 +20,7 @@ import {
   Crown, 
   Award, 
   GraduationCap, 
+  UserCog,
   Menu, 
   X 
 } from 'lucide-react';
@@ -29,17 +30,21 @@ interface HeaderNavigationProps {
   sessionRole: string;
   themePalette: ThemePaletteConfig;
   handleLogout: () => void;
+  onRoleToggle: () => void;
 }
 
 export default function HeaderNavigation({
   currentUser,
   sessionRole,
   themePalette,
-  handleLogout
+  handleLogout,
+  onRoleToggle
 }: HeaderNavigationProps) {
   const { t } = useI18n();
   const [isMobileMenuOpen, setIsMobileOpenMenu] = useState(false);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => getStoredSettings());
+
+  const canSwitchRole = currentUser.role === 'headteacher' || currentUser.role === 'hod' || currentUser.role === 'headmaster';
 
   useEffect(() => {
     const unsub = subscribeSettings((newSettings) => {
@@ -89,6 +94,18 @@ export default function HeaderNavigation({
           {/* Campus Selector */}
           {(currentUser.role === 'admin' || currentUser.role === 'accountant' || currentUser.role === 'ceo' || currentUser.role === 'director' || currentUser.role === 'secretary') && (
             <CampusSelector />
+          )}
+
+          {/* Role Switcher */}
+          {canSwitchRole && (
+            <button
+              onClick={onRoleToggle}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 shadow-lg shadow-indigo-500/10 active:scale-95"
+              title={sessionRole === 'teacher' ? "Switch to Admin View" : "Switch to Teacher View"}
+            >
+              <UserCog className="w-3.5 h-3.5" />
+              <span>{sessionRole === 'teacher' ? "Switch to Admin" : "Switch to Teacher"}</span>
+            </button>
           )}
 
           {/* Language Switcher */}
@@ -177,6 +194,16 @@ export default function HeaderNavigation({
 
             {(currentUser.role === 'admin' || currentUser.role === 'accountant' || currentUser.role === 'ceo' || currentUser.role === 'director' || currentUser.role === 'secretary') && (
               <CampusSelector />
+            )}
+
+            {canSwitchRole && (
+              <button
+                onClick={onRoleToggle}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 w-full justify-center shadow-lg active:scale-95"
+              >
+                <UserCog className="w-4 h-4" />
+                <span>{sessionRole === 'teacher' ? "Switch to Admin" : "Switch to Teacher"}</span>
+              </button>
             )}
           </div>
 

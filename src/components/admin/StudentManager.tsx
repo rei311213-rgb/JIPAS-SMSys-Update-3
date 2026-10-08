@@ -645,7 +645,7 @@ export default function StudentManager({
   const [bulkSuccessMsg, setBulkSuccessMsg] = useState('');
 
   const generateCsvTemplate = () => {
-    const headers = ["Admission No,Full Name,Gender,Dob,Department,ClassName,House,Parent Name,Parent Phone,Campus"];
+    const headers = ["Admission No,Last Name,Other Names,Gender,Dob,Department,ClassName,House,Parent Name,Parent Phone,Campus,Nationality,Blood Group"];
     const csvContent = headers.join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -682,13 +682,18 @@ export default function StudentManager({
           });
 
           const admissionNo = data['admissionno'];
-          const fullName = data['fullname'] || data['name'];
+          const lastName = data['lastname'] || data['surname'] || '';
+          const otherNames = data['othernames'] || data['firstname'] || '';
+          let fullName = data['fullname'] || data['name'];
+          if (!fullName && (lastName || otherNames)) {
+            fullName = [lastName, otherNames].filter(Boolean).join(' ');
+          }
           const className = data['classname'] || data['class'];
           const parentPhone = data['parentphone'] || data['phone'];
 
           // Validation
-          if (!admissionNo || !fullName || !className) {
-            summary.push(`Row ${index + 1}: Missing required fields (Admission No, Full Name, Class).`);
+          if (!admissionNo || (!fullName && !lastName) || !className) {
+            summary.push(`Row ${index + 1}: Missing required fields (Admission No, Name, Class).`);
             failCount++;
             return;
           }
@@ -710,6 +715,11 @@ export default function StudentManager({
           const campusStr = data['campus']?.toString().toUpperCase() || '';
           const campus: 'JIPAS 1' | 'JIPAS 2' = campusStr.includes('2') ? 'JIPAS 2' : 'JIPAS 1';
           const parentName = data['parentname'] || data['parent'] || 'Parent / Guardian';
+          const nationality = data['nationality'] || data['nation'] || 'Ghanaian';
+          const bloodGroup = data['bloodgroup'] || data['blood'] || 'O+';
+          const course = data['course'] || '';
+          const level = data['level'] || '';
+          const electivesStr = data['electives'] || data['elective'] || '';
 
           const nextId = `s-bulk-${Date.now()}-${index}`;
           
@@ -718,7 +728,9 @@ export default function StudentManager({
           const newStudent: Student = {
             id: nextId,
             admissionNo: admissionNo,
-            fullName: fullName.toUpperCase(),
+            fullName: (fullName || '').toUpperCase(),
+            lastName: lastName.toUpperCase(),
+            otherNames: otherNames.toUpperCase(),
             gender,
             dob,
             department,
@@ -728,6 +740,11 @@ export default function StudentManager({
             campus,
             parentName,
             parentPhone: parentPhone || '0240000000',
+            nationality,
+            bloodGroup,
+            course,
+            level,
+            electiveSubjects: electivesStr ? electivesStr.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
             academicYear: '2025-2026',
             term: 'Third Term',
             status: 'Active',

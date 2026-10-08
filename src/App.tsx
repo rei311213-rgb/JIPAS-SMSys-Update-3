@@ -1149,6 +1149,7 @@ export default function App() {
         sessionRole={sessionRole} 
         themePalette={themePalette} 
         handleLogout={handleLogout} 
+        onRoleToggle={handleRoleToggle}
       />
 
       {/* Main Content Area with Subtle Slide-In Portal Transition */}

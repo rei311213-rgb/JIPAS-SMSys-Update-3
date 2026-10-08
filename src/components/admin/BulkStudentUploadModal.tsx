@@ -43,6 +43,8 @@ interface BulkStudentUploadModalProps {
 
 interface ParsedStudentRow {
   rowNumber: number;
+  lastName: string;
+  otherNames: string;
   fullName: string;
   gender: 'Male' | 'Female';
   className: string;
@@ -55,16 +57,22 @@ interface ParsedStudentRow {
   department: string;
   academicYear: string;
   term: string;
+  nationality: string;
+  bloodGroup: string;
+  admissionDate: string;
+  course: string;
+  level: string;
+  electives: string;
   isValid: boolean;
   errors: string[];
   warnings: string[];
 }
 
-const SAMPLE_CSV_CONTENT = `Full Name,Gender,Class,Admission No,Date of Birth,House,Parent Name,Parent Phone,Department,Campus
-Kofi Mensah,Male,Basic 5,JIPAS/2026/0101,2015-05-14,Blue House,Mr. Kwame Mensah,+233 24 123 4567,Primary School,JIPAS 1
-Ama Serwaa Boateng,Female,Basic 6,JIPAS/2026/0102,2014-08-22,Red House,Mrs. Grace Boateng,+233 20 987 6543,Primary School,JIPAS 2
-Kwabena Osei,Male,JHS 1,JIPAS/2026/0103,2013-11-05,Green House,Dr. Osei Tutu,+233 55 456 7890,Junior High School,JIPAS 1
-Abena Pokuaa,Female,KG 2,JIPAS/2026/0104,2019-02-18,Yellow House,Madam Akosua Poku,+233 27 654 3210,Kindergarten,JIPAS 2`;
+const SAMPLE_CSV_CONTENT = `Last Name,Other Names,Gender,Class,Admission No,Date of Birth,House,Parent Name,Parent Phone,Department,Campus,Nationality,Blood Group,Course,Level,Electives
+Mensah,Kofi,Male,Basic 5,JIPAS/2026/0101,2015-05-14,Blue House,Mr. Kwame Mensah,+233 24 123 4567,Primary School,JIPAS 1,Ghanaian,O+,,,
+Boateng,Ama Serwaa,Female,Basic 6,JIPAS/2026/0102,2014-08-22,Red House,Mrs. Grace Boateng,+233 20 987 6543,Primary School,JIPAS 2,Ghanaian,A-,,,
+Osei,Kwabena,Male,JHS 1,JIPAS/2026/0103,2013-11-05,Green House,Dr. Osei Tutu,+233 55 456 7890,Junior High School,JIPAS 1,Ghanaian,B+,,,
+Appiah,Prince,Male,Science 1,JIPAS/2026/0105,2008-04-12,Yellow House,Mr. John Appiah,+233 24 111 2222,Senior High School,JIPAS 1,Ghanaian,O+,General Science,1,"Elective Maths, Biology, Physics"`;
 
 export default function BulkStudentUploadModal({ 
   isOpen, 
@@ -127,6 +135,12 @@ export default function BulkStudentUploadModal({
         else if (h.includes('parent') || h.includes('guardian') || h.includes('father') || h.includes('mother')) headerMap['parentName'] = idx;
         else if (h.includes('dept') || h.includes('department')) headerMap['department'] = idx;
         else if (h.includes('campus')) headerMap['campus'] = idx;
+        else if (h.includes('nation') || h.includes('origin')) headerMap['nationality'] = idx;
+        else if (h.includes('blood') || h.includes('group')) headerMap['bloodGroup'] = idx;
+        else if (h.includes('admissiondate') || h.includes('enrollmentdate')) headerMap['admissionDate'] = idx;
+        else if (h.includes('course')) headerMap['course'] = idx;
+        else if (h.includes('level')) headerMap['level'] = idx;
+        else if (h.includes('elective')) headerMap['electives'] = idx;
       });
       dataLines = lines.slice(1);
     }
@@ -186,6 +200,14 @@ export default function BulkStudentUploadModal({
       let department = getVal('department', 8).trim();
       let campus = getVal('campus', 9).trim();
       if (!campus) campus = 'JIPAS 1';
+
+      const nationality = getVal('nationality', 10).trim() || 'Ghanaian';
+      const bloodGroup = getVal('bloodGroup', 11).trim() || 'O+';
+      const admissionDate = getVal('admissionDate', -1).trim() || new Date().toISOString().split('T')[0];
+      const course = getVal('course', -1).trim();
+      const level = getVal('level', -1).trim();
+      const electives = getVal('electives', -1).trim();
+
       if (!department) {
         if (className.includes('JHS') || className.includes('Junior')) {
           department = 'Junior High School';
@@ -202,8 +224,8 @@ export default function BulkStudentUploadModal({
       const warnings: string[] = [];
 
       // Required validation
-      if (!fullName || fullName.length < 2) {
-        errors.push('Student full name is required (min 2 characters).');
+      if (!fullName && !lastName) {
+        errors.push('Student name (Full Name or Last Name) is required.');
       }
 
       if (!className) {
@@ -234,6 +256,8 @@ export default function BulkStudentUploadModal({
 
       rows.push({
         rowNumber: index + (hasHeader ? 2 : 1),
+        lastName,
+        otherNames,
         fullName,
         gender,
         className,
@@ -244,6 +268,12 @@ export default function BulkStudentUploadModal({
         admissionNo,
         department,
         campus,
+        nationality,
+        bloodGroup,
+        admissionDate,
+        course,
+        level,
+        electives,
         academicYear: '2025-2026',
         term: 'Third Term',
         isValid: errors.length === 0,
@@ -344,10 +374,12 @@ export default function BulkStudentUploadModal({
           id: studentId,
           admissionNo: finalAdmissionNo.toUpperCase(),
           fullName: row.fullName.toUpperCase(),
+          lastName: row.lastName.toUpperCase(),
+          otherNames: row.otherNames.toUpperCase(),
           gender: row.gender,
           dob: row.dob || '2015-05-14',
-          admissionDate: new Date().toISOString().split('T')[0],
-          enrollmentDate: new Date().toISOString().split('T')[0],
+          admissionDate: row.admissionDate || new Date().toISOString().split('T')[0],
+          enrollmentDate: row.admissionDate || new Date().toISOString().split('T')[0],
           department: row.department,
           campus: (row.campus === 'JIPAS 2' ? 'JIPAS 2' : 'JIPAS 1') as 'JIPAS 1' | 'JIPAS 2',
           className: row.className,
@@ -357,6 +389,11 @@ export default function BulkStudentUploadModal({
           parentPhone: row.parentPhone || '+233 24 000 0000',
           academicYear: row.academicYear || '2025-2026',
           term: row.term || 'Third Term',
+          nationality: row.nationality || 'Ghanaian',
+          bloodGroup: row.bloodGroup || 'O+',
+          course: row.course,
+          level: row.level,
+          electiveSubjects: row.electives ? row.electives.split(',').map(s => s.trim()).filter(Boolean) : [],
           status: 'Active',
           isCurrent: true,
           photo: row.gender === 'Female'
@@ -529,7 +566,7 @@ export default function BulkStudentUploadModal({
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
                   <HelpCircle className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <span>Expected Columns: <strong className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400">FullName, Gender, Class, AdmissionNo, DOB, House, ParentName, Phone, Department</strong></span>
+                  <span>Expected Columns: <strong className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400">LastName, OtherNames, Gender, Class, AdmissionNo, DOB, House, ParentName, Phone, Department, Campus, Nationality, BloodGroup</strong></span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
