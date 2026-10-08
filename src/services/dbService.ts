@@ -1456,7 +1456,18 @@ export async function deleteStudent(studentId: string) {
   // 6. Cascade delete associated user account from 'users' collection
   try {
     const targetStudent = getStoredStudents().find(s => s.id === studentId);
-    const targetEmail = (targetStudent as any)?.email?.toLowerCase().trim();
+    let targetEmail = (targetStudent as any)?.email?.toLowerCase().trim();
+
+    if (!targetEmail) {
+      try {
+        const studentDoc = await getDoc(doc(db, 'students', studentId));
+        if (studentDoc.exists()) {
+          targetEmail = (studentDoc.data() as any)?.email?.toLowerCase().trim();
+        }
+      } catch (e) {
+        console.warn('[deleteStudent] Cloud student fetch error:', e);
+      }
+    }
 
     const currentUsers = getStoredUsers();
     const associatedUsers = currentUsers.filter(u => 
@@ -1474,6 +1485,26 @@ export async function deleteStudent(studentId: string) {
       for (const u of associatedUsers) {
         await deleteDoc(doc(db, 'users', u.id)).catch(() => {});
       }
+    }
+
+    // Direct Firestore cleanup for any matching user documents
+    try {
+      if (targetAdm) {
+        const admQuery = query(collection(db, 'users'), where('admissionNo', '==', targetAdm));
+        const admSnap = await getDocs(admQuery);
+        for (const d of admSnap.docs) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
+      if (targetEmail) {
+        const emailQuery = query(collection(db, 'users'), where('email', '==', targetEmail));
+        const emailSnap = await getDocs(emailQuery);
+        for (const d of emailSnap.docs) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
+    } catch (fsErr) {
+      console.warn('[deleteStudent] Cloud user query/purge error:', fsErr);
     }
   } catch (err) {
     console.warn('[dbService:deleteStudent] User account cleanup error:', err);
@@ -1758,7 +1789,19 @@ export async function deleteTeacher(teacherId: string) {
   try {
     const currentTeachers = getStoredTeachers();
     const targetTeacher = currentTeachers.find(t => t.id === teacherId);
-    const targetEmail = targetTeacher?.email?.toLowerCase().trim();
+    let targetEmail = targetTeacher?.email?.toLowerCase().trim();
+
+    // If teacher wasn't found in localStorage, fetch from Firestore
+    if (!targetEmail) {
+      try {
+        const teacherDoc = await getDoc(doc(db, 'teachers', teacherId));
+        if (teacherDoc.exists()) {
+          targetEmail = (teacherDoc.data() as any)?.email?.toLowerCase().trim();
+        }
+      } catch (e) {
+        console.warn('[deleteTeacher] Cloud teacher fetch error:', e);
+      }
+    }
 
     const currentUsers = getStoredUsers();
     const associatedUsers = currentUsers.filter(u => 
@@ -1781,6 +1824,27 @@ export async function deleteTeacher(teacherId: string) {
           console.warn(`[deleteTeacher] Failed to delete user account ${u.id}:`, err);
         });
       }
+    }
+
+    // Direct Firestore user purge for any matching user documents
+    try {
+      await deleteDoc(doc(db, 'users', `usr-t-${teacherId}`)).catch(() => {});
+      
+      const teacherIdQuery = query(collection(db, 'users'), where('teacherId', '==', teacherId));
+      const teacherIdSnap = await getDocs(teacherIdQuery);
+      for (const d of teacherIdSnap.docs) {
+        await deleteDoc(d.ref).catch(() => {});
+      }
+
+      if (targetEmail) {
+        const emailQuery = query(collection(db, 'users'), where('email', '==', targetEmail));
+        const emailSnap = await getDocs(emailQuery);
+        for (const d of emailSnap.docs) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
+    } catch (fsErr) {
+      console.warn('[deleteTeacher] Cloud user query/purge error:', fsErr);
     }
   } catch (err) {
     console.warn('[dbService:deleteTeacher] User account cleanup error:', err);
@@ -2989,6 +3053,19 @@ export async function authenticateWithFirebase(
   const existingUsers = getStoredUsers();
   const existingUser = cloudUser || existingUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
   
+  // If user account is deactivated, locked, or pending approval, reject immediately
+  if (existingUser && (
+    existingUser.status === 'Inactive' || 
+    existingUser.status === 'Locked' || 
+    (existingUser.status as string) === 'deactivated' || 
+    existingUser.isApproved === false
+  )) {
+    if (auth.currentUser) {
+      await signOut(auth).catch(() => {});
+    }
+    throw new Error('Access Denied: Your account is currently inactive, locked, or pending administrator approval.');
+  }
+
   // 2. Authoritative Role Assignment
   // If user exists in cloud, we MUST use that role.
   // If it's a first-time registration, we check if they are already in teachers or students collection.
@@ -3041,6 +3118,9 @@ export async function authenticateWithFirebase(
       } else {
         // If they are not found in any collection, we reject the login
         // to prevent deleted accounts or unauthorized users from getting 'student' access.
+        if (auth.currentUser) {
+          await signOut(auth).catch(() => {});
+        }
         throw new Error('Access Denied: Your account has been deactivated or was not found in the school records.');
       }
     }
