@@ -36,6 +36,7 @@ import BankDepositManager from './common/BankDepositManager';
 import PhotoUploader from './common/PhotoUploader';
 import OverdueFeeAlertsManager from './admin/OverdueFeeAlertsManager';
 import SecretarySidebar, { SecretaryTabType } from './secretary/SecretarySidebar';
+import SecretaryDashboard from './secretary/SecretaryDashboard';
 import GraduatedBatchManager from './common/GraduatedBatchManager';
 import PastEmployeeHistoryManager from './common/PastEmployeeHistoryManager';
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
@@ -107,6 +108,7 @@ interface SecretaryPortalProps {
 }
 
 type SecretaryActiveTab = 
+  | 'dashboard'
   | 'fee_collection' 
   | 'expenses' 
   | 'daily_reconcile' 
@@ -1237,6 +1239,16 @@ export default function SecretaryPortal({
       {/* ------------------------------------------------------------- */}
       {/* TAB 1: COLLECT SCHOOL FEES                                    */}
       {/* ------------------------------------------------------------- */}
+      {activeTab === 'dashboard' && (
+        <SecretaryDashboard 
+          students={students}
+          payments={payments}
+          expenses={expenses}
+          bills={bills}
+          campus={selectedCampus}
+        />
+      )}
+
       {activeTab === 'fee_collection' && (
         <div className="space-y-6">
           {/* Header Card with Hierarchical Filters */}

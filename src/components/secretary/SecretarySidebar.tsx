@@ -9,6 +9,7 @@ import JIPASLogo from '../common/JIPASLogo';
 import SidebarToggleButton from '../common/SidebarToggleButton';
 
 export type SecretaryTabType = 
+  | 'dashboard'
   | 'fee_collection' 
   | 'expenses' 
   | 'daily_reconcile' 
@@ -77,6 +78,13 @@ export default function SecretarySidebar({
   const isExpanded = isHovered || isPinned;
 
   const navItems: SecretaryNavItem[] = [
+    {
+      id: 'dashboard',
+      category: 'GENERAL',
+      label: 'Secretary Dashboard',
+      sublabel: 'Overview of campus activity, enrollment, and financials',
+      icon: BarChart3,
+    },
     {
       id: 'fee_collection',
       category: 'POS DESK',
