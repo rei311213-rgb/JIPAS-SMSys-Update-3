@@ -10,6 +10,7 @@ import AcademicSetupManager from './AcademicSetupManager';
 import AcademicTreeView from './admin/AcademicTreeView';
 import SystemSettingsManager from './admin/SystemSettingsManager';
 import TeacherManager from './admin/TeacherManager';
+import StaffDirectory from './staff/StaffDirectory';
 import BulkDepartmentReassignment from './admin/BulkDepartmentReassignment';
 import StudentManager from './admin/StudentManager';
 import ExaminationManager from './admin/ExaminationManager';
@@ -171,7 +172,7 @@ const VALID_ADMIN_MODULES = new Set([
   // Teacher
   'teacher_profile', 'teachers', 'teacher_id_cards', 'teacher_assign',
   'teacher_attendance', 'teacher_attendance_report', 'teacher_attendance_stats', 'bulk_teacher_upload',
-  'teacher_bulk_reassign',
+  'teacher_bulk_reassign', 'staff_directory',
   // Student
   'student_enroll', 'enroll_student', 'student_enrolled', 'enrolled_students',
   'student_transcript', 'exam_transcripts', 'transcripts', 'student_id_cards',
@@ -232,7 +233,7 @@ const getCategoryForModule = (mod: string): string => {
   if (norm === 'performance_overview') return 'dashboard';
   if (norm.startsWith('setup_') || norm === 'academic_setup' || norm === 'manage_courses' || norm === 'academic_tree_view') return 'setup';
   if (norm.startsWith('system_') || norm === 'backup_recovery' || norm === 'backup_restore' || norm === 'users_roles' || norm === 'student_portal_control' || norm === 'manage_portal_logins' || norm === 'account_requests' || norm === 'sub_accountant_roles' || norm === 'accountant_roles' || norm === 'ceo_director_roles' || norm === 'ceo_roles' || norm === 'director_roles' || norm === 'executive_roles' || norm === 'users_portal_review' || norm === 'portal_review' || norm === 'admin_feedback_manager' || norm === 'reconciliation_dashboard' || norm === 'data_conflict_resolver' || norm === 'database_integrity' || norm === 'integrity_check') return 'system';
-  if (norm.startsWith('teacher_') || norm === 'teachers' || norm === 'bulk_teacher_upload') return 'teacher';
+  if (norm.startsWith('teacher_') || norm === 'teachers' || norm === 'bulk_teacher_upload' || norm === 'staff_directory') return 'teacher';
   if (norm === 'student_transcript' || norm === 'exam_transcripts' || norm === 'transcripts') return 'student';
   if (norm === 'admin_terminal_reports' || norm === 'terminal_reports' || norm === 'class_broadcasts') return 'exam';
   if (norm.startsWith('student_') || norm === 'students' || norm === 'enroll_student' || norm === 'enrolled_students' || norm === 'promote_students' || norm === 'promotion_history' || norm === 'discipline' || norm === 'bulk_upload' || norm === 'bulk_data_import' || norm === 'data_import' || norm === 'bulk_import') return 'student';
@@ -305,6 +306,7 @@ const ADMIN_NAV_GROUPS = [
     icon: UserCheck,
     items: [
       { id: 'teacher_profile', label: 'Employee (Current Staff)', icon: UserCheck },
+      { id: 'staff_directory', label: 'Staff Directory', icon: BookOpen },
       { id: 'bulk_teacher_upload', label: 'Bulk Import Teachers', icon: Upload },
       { id: 'past_employees', label: 'Employee History (Past Staff)', icon: Briefcase },
       { id: 'teacher_id_cards', label: 'Staff ID Cards', icon: CreditCard },
@@ -2123,7 +2125,11 @@ export default function AdminPortal({
           />
         )}
 
-        {(activeModule.startsWith('teacher_') || activeModule === 'teachers' || activeModule === 'attendance_report' || activeModule === 'attendance_stats' || activeModule === 'attendance_statistics') && activeModule !== 'teacher_attendance' && activeModule !== 'staff_qr_attendance_dashboard' && activeModule !== 'teacher_bulk_reassign' && (
+        {activeModule === 'staff_directory' && (
+          <StaffDirectory teachers={teachers} />
+        )}
+
+        {(activeModule.startsWith('teacher_') || activeModule === 'teachers' || activeModule === 'attendance_report' || activeModule === 'attendance_stats' || activeModule === 'attendance_statistics') && activeModule !== 'teacher_attendance' && activeModule !== 'staff_qr_attendance_dashboard' && activeModule !== 'teacher_bulk_reassign' && activeModule !== 'staff_directory' && (
           <TeacherManager
             activeModule={activeModule}
             teachers={teachers}

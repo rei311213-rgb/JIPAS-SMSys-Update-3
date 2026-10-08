@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import JIPASLogo from './common/JIPASLogo';
 import StaffAttendanceQRScanner from './staff/StaffAttendanceQRScanner';
+import StaffDirectory from './staff/StaffDirectory';
 import { printContent } from '../utils/printUtils';
 import { 
   subscribeScoreApprovals, 
@@ -45,7 +46,7 @@ export default function HeadmasterPortal({
   notifications,
   broadcasts
 }: HeadmasterPortalProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'reports' | 'performance' | 'attendance'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'reports' | 'performance' | 'attendance' | 'staff'>('dashboard');
   const [selectedClass, setSelectedClass] = useState<string>('All');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -336,7 +337,8 @@ export default function HeadmasterPortal({
           { id: 'approvals', label: `Score Approvals (${analytics.pendingApprovalsCount})`, icon: CheckCircle2 },
           { id: 'reports', label: 'Terminal Reports & Endorsements', icon: FileText },
           { id: 'performance', label: 'Subject & Class Rankings', icon: TrendingUp },
-          { id: 'attendance', label: 'Attendance Oversight', icon: ClipboardList }
+          { id: 'attendance', label: 'Attendance Oversight', icon: ClipboardList },
+          { id: 'staff', label: 'Staff Directory', icon: BookOpen }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -783,6 +785,18 @@ export default function HeadmasterPortal({
             </div>
           </div>
         </div>
+        </div>
+      )}
+
+      {/* 6. STAFF DIRECTORY */}
+      {activeTab === 'staff' && (
+        <div className="space-y-6">
+          <StaffDirectory 
+            teachers={deptTeachers} 
+            title={`${assignedDept} Staff Directory`}
+            subtitle={`Official registry of faculty and administrative staff within the ${assignedDept}.`}
+            isReadOnly={true}
+          />
         </div>
       )}
 
